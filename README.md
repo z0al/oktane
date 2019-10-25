@@ -1,22 +1,20 @@
+> **Status:** This is pretty much experimental at the moment and I haven't figured out everything yet. If you want to discuss this feel free to reach me on [Twitter][twitter] or just open an [issue][issue] here.
+
 # AnyQL (codename)
 
-Abstract helpers for data-driven apps inspired by [Apollo Client](apollo) built on the top of [redux-saga](saga).
+Abstract helpers for data-driven JavaScript apps inspired by [Apollo Client][apollo] built on the top of [redux-saga][saga].
 
 ## Design
 
-**Principles:**
+### Principles
 
 - Query language and view layer agnostic.
 - Convention over configuration
 
-**Out of scope:**
+### Non-goals
 
-- Compatibility with Apollo client/Relay.
+- Compatibility (or competing) with Apollo client/Relay.
 - Specific Query Language support (e.g. GraphQL).
-
-## Project status
-
-> **Status:** This is pretty much experimental at the moment and I haven't figured out everything yet. If you want to discuss this feel free to reach me on [Twitter](twitter) or just open an [issue](issue) here.
 
 ## Roadmap
 
@@ -28,7 +26,7 @@ Abstract helpers for data-driven apps inspired by [Apollo Client](apollo) built 
 - [ ] Add cache helpers (get by ID, invalidate ..etc)
 - [ ] Support mutations (i.e. write queries)
 - [ ] Support subscriptions (i.e. streaming data)
-- Anything missing? Open an issue.
+- [ ] Anything missing? Open an issue.
 
 ## License
 
