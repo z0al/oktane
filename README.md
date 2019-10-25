@@ -41,7 +41,7 @@ This project wouldn't have been possible without the following great libraries:
 * [Redux Saga][saga]: For helping us avoid the pain of forking [nocode][nocode]
 * [TSDX][tsdx]: For making dealing with TypeScript no implicit any
 
-Also, special thanks to Apollo's team for their amazing work in [Apollo Client][apollo] from which we copied a lot.
+Also, a special thanks to Apollo's team for their amazing work on [Apollo Client][apollo] from which we copied a lot.
 
 ## License
 

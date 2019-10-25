@@ -42,6 +42,17 @@ describe('query', () => {
     );
   });
 
+  it('catches unhandled errors', () => {
+    let gen = query(act, handler);
+    let err = new Error('FAIL');
+
+    gen.next(); // calling handler
+    gen.next(resolver); // calling resolver
+    expect(gen.throw(err).value).toEqual(
+      put(actions.queryError(q, err))
+    );
+  });
+
   it('adds data to cache', () => {
     let gen = query(act, handler);
 
