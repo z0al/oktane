@@ -1,3 +1,4 @@
+export type ID = string | number;
 export type QueryArgs = any;
 
 export interface Object {
@@ -5,12 +6,12 @@ export interface Object {
 }
 
 export interface Query extends Object {
-  id: string | number;
+  id: ID;
   type?: 'query';
 }
 
 export interface DataObject extends Object {
-  id: string | number;
+  id: ID;
   __typename?: string;
 }
 

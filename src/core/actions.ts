@@ -25,3 +25,8 @@ export const cacheAdd = createAction(
     return { payload: { query, data } };
   }
 );
+
+export type Action =
+  | ReturnType<typeof queryFetch>
+  | ReturnType<typeof queryError>
+  | ReturnType<typeof cacheAdd>;
