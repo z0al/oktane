@@ -13,17 +13,11 @@
   "scripts": {
     "start": "tsdx watch",
     "build": "tsdx build",
-    "test": "tsdx test",
-    "lint": "tsdx lint"
+    "test": "tsdx test"
   },
   "peerDependencies": {
     "redux": "^4.0.4",
     "redux-saga": "^1.1.1"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "tsdx lint"
-    }
   },
   "prettier": {
     "printWidth": 72,
@@ -33,7 +27,6 @@
   },
   "devDependencies": {
     "@types/jest": "^24.0.19",
-    "husky": "^3.0.9",
     "redux": "^4.0.4",
     "redux-saga": "^1.1.1",
     "tsdx": "^0.10.5",
