@@ -20,12 +20,13 @@ Abstract helpers for data-driven JavaScript apps built on the top of [Redux Saga
 
 ## Roadmap
 
-- [ ] Basic query support (share your [feedback][basic-query])
+- [x] Basic query support (share your [feedback][basic-query])
 	- [x] Resolving queries
 	- [x] Loading indication
 	- [x] Handling query errors
 	- [x] Cancellation support
-	- [ ] Pagination support
+	- [x] Pagination support
+- [ ] React binding (WIP)
 - [ ] Add cache helpers (get by ID, invalidate ..etc)
 - [ ] Support mutations (i.e. write queries)
 - [ ] Support streaming

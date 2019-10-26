@@ -1,6 +1,6 @@
 {
   "name": "anyql",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "private": true,
   "license": "MIT",
   "author": "Ahmed T. Ali",
@@ -17,7 +17,8 @@
   },
   "peerDependencies": {
     "redux": "^4.0.4",
-    "redux-saga": "^1.1.1"
+    "redux-saga": "^1.1.1",
+    "react": "^16.11.0"
   },
   "prettier": {
     "printWidth": 72,
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@types/jest": "^24.0.19",
+    "react": "^16.11.0",
     "redux": "^4.0.4",
     "redux-saga": "^1.1.1",
     "tsdx": "^0.10.5",
