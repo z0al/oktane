@@ -5,7 +5,7 @@ import * as saga from 'redux-saga/effects';
 import * as act from '../actions';
 import * as t from '../internals/types';
 
-export function* isCancelled(query: t.Query) {
+export function* cancel(query: t.Query) {
   const actions = [act.QUERY_CANCEL];
 
   while (true) {

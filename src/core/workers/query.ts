@@ -11,7 +11,7 @@ function* query(query: t.Query, resolver: t.QueryResolver) {
   try {
     const task = yield saga.race({
       result: saga.call(resolver, {}),
-      cancelled: saga.call(utils.isCancelled, query),
+      cancelled: saga.call(utils.cancel, query),
     });
 
     if (task.cancelled) {

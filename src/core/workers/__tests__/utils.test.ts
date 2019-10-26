@@ -5,11 +5,11 @@ import * as saga from 'redux-saga/effects';
 import * as utils from '../utils';
 import * as act from '../../actions';
 
-describe('isCancelled', () => {
+describe('cancel', () => {
   const query = { id: 'CANCEL_THIS' };
 
   it('waits for cancel actions', () => {
-    const gen = utils.isCancelled(query);
+    const gen = utils.cancel(query);
     const actions = [act.QUERY_CANCEL];
 
     const cancel = act.queryCancel(query);

@@ -20,7 +20,7 @@ describe('query', () => {
     expect(worker(query, resolver).next().value).toEqual(
       saga.race({
         result: saga.call(resolver, {}),
-        cancelled: saga.call(utils.isCancelled, query),
+        cancelled: saga.call(utils.cancel, query),
       })
     );
   });
