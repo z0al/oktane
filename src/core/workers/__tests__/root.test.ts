@@ -3,18 +3,18 @@ import { channel } from 'redux-saga';
 import * as saga from 'redux-saga/effects';
 
 // Ours
-import worker from '..';
+import init from '..';
+import runQuery from '../query';
 import * as actions from '../../actions';
-import resolveQuery from '../query';
 
 describe('root', () => {
   const query = { id: 'RESOLVE_ME' };
 
-  let handler: any; // A mocked handler
+  let resolver: any; // A mocked resolver
   let ch: any; // A mocked channel
 
   beforeEach(() => {
-    handler = jest.fn();
+    resolver = jest.fn();
     ch = channel();
   });
 
@@ -22,36 +22,36 @@ describe('root', () => {
   const allowed = [actions.QUERY_FETCH];
 
   it('creates an actionChannel', () => {
-    const gen = worker(handler);
+    const gen = init(resolver)();
     expect(gen.next().value).toEqual(saga.actionChannel(allowed));
   });
 
   it('listens to necessary actions', () => {
-    const gen = worker(handler);
+    const gen = init(resolver)();
 
     gen.next(); // create a channel
     expect(gen.next(ch).value).toEqual(saga.take(ch));
   });
 
-  it('gets a resolver from the handler', () => {
+  it('calls resolver to get a runner', () => {
     const action = actions.queryFetch(query);
-    const gen = worker(handler);
+    const gen = init(resolver)();
 
     gen.next(); // create a channel
     gen.next(ch); // listen to it
-    expect(gen.next(action).value).toEqual(saga.call(handler, query));
+    expect(gen.next(action).value).toEqual(saga.call(resolver, query));
   });
 
   it('spawns an appropriate worker', () => {
     const action = actions.queryFetch(query);
-    const gen = worker(handler);
-    const resolver: any = jest.fn();
+    const gen = init(resolver)();
+    const runner: any = jest.fn();
 
     gen.next(); // create a channel
     gen.next(ch); // listen to it
-    gen.next(action); // get a resolver
-    expect(gen.next(resolver).value).toEqual(
-      saga.spawn(resolveQuery, query, resolver)
+    gen.next(action); // get a runner
+    expect(gen.next(runner).value).toEqual(
+      saga.spawn(runQuery, query, runner)
     );
   });
 });

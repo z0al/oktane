@@ -8,7 +8,7 @@ import * as is from '../internals/is';
 import * as select from '../selectors';
 import * as t from '../internals/types';
 
-function* query(query: t.Query, resolver: t.QueryResolver) {
+function* query(query: t.Query, runner: t.QueryRunner) {
   const { next } = yield saga.select(state =>
     select.queryData(state, query.id)
   );
@@ -17,7 +17,7 @@ function* query(query: t.Query, resolver: t.QueryResolver) {
 
   try {
     const task = yield saga.race({
-      result: saga.call(resolver, options),
+      result: saga.call(runner, options),
       cancelled: saga.call(utils.cancel, query),
     });
 

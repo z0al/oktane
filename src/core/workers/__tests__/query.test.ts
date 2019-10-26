@@ -12,25 +12,25 @@ describe('query', () => {
   const query = { id: 'MY_QUERY' };
   const options = { next: 'NEXT_ID' };
 
-  let resolver: any;
+  let runner: any;
   beforeEach(() => {
-    resolver = jest.fn();
+    runner = jest.fn();
   });
 
-  it('passes resolver options', () => {
-    const gen = worker(query, resolver);
+  it('passes runner options', () => {
+    const gen = worker(query, runner);
 
     gen.next();
     expect(gen.next(options).value).toEqual(
       saga.race({
-        result: saga.call(resolver, options),
+        result: saga.call(runner, options),
         cancelled: saga.call(utils.cancel, query),
       })
     );
   });
 
   it('fires an action on error', () => {
-    const gen = worker(query, resolver);
+    const gen = worker(query, runner);
     const result = { error: 'FAIL' };
 
     gen.next();
@@ -41,7 +41,7 @@ describe('query', () => {
   });
 
   it('catches unhandled errors', () => {
-    const gen = worker(query, resolver);
+    const gen = worker(query, runner);
     const error = new Error('FAIL');
 
     gen.next();
@@ -53,7 +53,7 @@ describe('query', () => {
 
   it('saves result', () => {
     // Single object
-    let gen = worker(query, resolver);
+    let gen = worker(query, runner);
     let result: any = { data: { id: 1 }, next: 'NEXT' };
 
     gen.next();
@@ -63,7 +63,7 @@ describe('query', () => {
     );
 
     // Data as array
-    gen = worker(query, resolver);
+    gen = worker(query, runner);
     result = { data: [{ id: 1 }], next: null };
 
     gen.next();

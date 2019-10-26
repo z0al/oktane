@@ -20,14 +20,14 @@ export interface QueryResult extends Object {
   error?: any;
 }
 
-export interface QueryResolverOptions {
+export interface RunnerOptions {
   next?: any;
 }
 
-export type QueryResolver = (
-  o?: QueryResolverOptions
+export type QueryRunner = (
+  o?: RunnerOptions
 ) => QueryResult | Promise<QueryResult>;
 
-export type QueryHandler = (
+export type QueryResolver = (
   q: Query
-) => QueryHandler | Promise<QueryResolver>;
+) => QueryRunner | Promise<QueryRunner>;
