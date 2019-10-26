@@ -1,5 +1,4 @@
 export type ID = string | number;
-export type QueryArgs = any;
 
 export interface Object {
   [id: string]: any;
@@ -22,6 +21,9 @@ export interface QueryResult extends Object {
 
 export type ResolverOptions = Object;
 export type QueryResolver = (
-  q: QueryArgs,
   o?: ResolverOptions
 ) => QueryResult | Promise<QueryResult>;
+
+export type QueryHandler = (
+  q: Query
+) => QueryHandler | Promise<QueryResolver>;

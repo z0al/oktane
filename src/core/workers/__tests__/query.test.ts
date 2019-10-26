@@ -1,5 +1,5 @@
 // Packages
-import { call, put } from 'redux-saga/effects';
+import * as saga from 'redux-saga/effects';
 
 // Ours
 import worker from '../query';
@@ -17,7 +17,7 @@ describe('query', () => {
 
   it('tries to resolve the query', () => {
     expect(worker(query, resolver).next().value).toEqual(
-      call(resolver, {})
+      saga.call(resolver, {})
     );
   });
 
@@ -26,7 +26,7 @@ describe('query', () => {
 
     gen.next(); // calling resolver
     expect(gen.next({ error: 'FAIL' }).value).toEqual(
-      put(actions.queryError(query, 'FAIL'))
+      saga.put(actions.queryError(query, 'FAIL'))
     );
   });
 
@@ -36,7 +36,7 @@ describe('query', () => {
 
     gen.next(); // calling resolver
     expect(gen.throw(error).value).toEqual(
-      put(actions.queryError(query, error))
+      saga.put(actions.queryError(query, error))
     );
   });
 
@@ -45,7 +45,7 @@ describe('query', () => {
 
     gen.next(resolver); // calling resolver
     expect(gen.next({ data: { id: 1 } }).value).toEqual(
-      put(actions.cacheAdd(query, [{ id: 1 }]))
+      saga.put(actions.cacheAdd(query, [{ id: 1 }]))
     );
   });
 });

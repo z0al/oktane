@@ -1,5 +1,5 @@
 // Packages
-import { call, put } from 'redux-saga/effects';
+import * as saga from 'redux-saga/effects';
 
 // Ours
 import * as actions from '../actions';
@@ -10,7 +10,7 @@ function* query(query: t.Query, resolver: t.QueryResolver) {
   let result: t.QueryResult = {};
 
   try {
-    result = yield call(resolver, {});
+    result = yield saga.call(resolver, {});
   } catch (error) {
     result.error = error;
   }
@@ -19,7 +19,7 @@ function* query(query: t.Query, resolver: t.QueryResolver) {
 
   // An error occured
   if (is.defined(error)) {
-    return yield put(actions.queryError(query, error));
+    return yield saga.put(actions.queryError(query, error));
   }
 
   if (!is.defined(data)) {
@@ -28,7 +28,7 @@ function* query(query: t.Query, resolver: t.QueryResolver) {
   }
 
   data = is.array(data) ? data : [data];
-  yield put(actions.cacheAdd(query, data));
+  yield saga.put(actions.cacheAdd(query, data));
 }
 
 export default query;
