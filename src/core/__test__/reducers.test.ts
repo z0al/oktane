@@ -2,96 +2,97 @@
 import reducer from '../reducers';
 import * as actions from '../actions';
 
-describe('reducer/queries', () => {
-  it('returns default state', () => {
-    const act = { type: 'ACT' };
+describe('root', () => {
+  const act = { type: 'undefined' };
+  it('sets initial state', () => {
     expect(reducer(undefined, act).queries).toEqual({});
   });
+});
 
-  it(`${actions.QUERY_FETCH}:sets loading, type`, () => {
-    const query = { id: 'MY_QUERY' };
-    const act = actions.queryFetch(query);
+describe(actions.QUERY_FETCH, () => {
+  const query = { id: 'fetch-me' };
+  const fetch = actions.queryFetch(query);
 
-    const stateOne = reducer(undefined, act);
-    const stateTwo = reducer(
-      {
-        queries: {
-          [query.id]: {
-            loading: false,
-          },
-        },
-      } as any,
-      act
-    );
-
-    const output = {
-      [query.id]: {
+  it('sets loading to true', () => {
+    const state = reducer(undefined, fetch);
+    expect(state.queries).toEqual({
+      [query.id]: expect.objectContaining({
         loading: true,
-        dataIds: [],
+      }),
+    });
+  });
+
+  it('sets other query metadata', () => {
+    const state = reducer(undefined, fetch);
+    expect(state.queries).toEqual({
+      [query.id]: expect.objectContaining({
+        id: query.id,
         type: 'query',
-      },
-    };
+        dataIds: [],
+      }),
+    });
+  });
+});
 
-    expect(stateOne.queries).toEqual(output);
-    expect(stateTwo.queries).toEqual(output);
+describe(actions.QUERY_ERROR, () => {
+  const query = { id: 'fetch-me' };
+  const error = new Error('FAIL');
+  const fail = actions.queryError(query, error);
+
+  it('sets loading to false', () => {
+    const state = reducer(undefined, fail);
+    expect(state.queries).toEqual({
+      [query.id]: expect.objectContaining({
+        loading: false,
+      }),
+    });
   });
 
-  it(`${actions.QUERY_ERROR}: sets error and loading`, () => {
-    const query = { id: 'MY_QUERY' };
-    const act = actions.queryError(query, 'MY ERROR');
+  it('sets other query metadata', () => {
+    const state = reducer(undefined, fail);
+    expect(state.queries).toEqual({
+      [query.id]: expect.objectContaining({
+        error,
+      }),
+    });
+  });
+});
 
-    const stateOne = reducer(undefined, act);
-    const stateTwo = reducer(
-      {
-        queries: {
-          [query.id]: {
-            error: true,
-            loading: true,
-          },
-        },
-      } as any,
-      act
-    );
+describe(actions.CACHE_ADD, () => {
+  const query = { id: 'fetch-me' };
+  const data = [{ id: 1 }, { id: 2 }, { id: 3 }];
+  const add = actions.cacheAdd(query, data);
 
-    const output = {
-      [query.id]: {
+  it('sets loading to false', () => {
+    const state = reducer(undefined, add);
+    expect(state.queries).toEqual({
+      [query.id]: expect.objectContaining({
         loading: false,
-        error: 'MY ERROR',
-      },
-    };
-    expect(stateOne.queries).toEqual(output);
-    expect(stateTwo.queries).toEqual(output);
+      }),
+    });
   });
 
-  it(`${actions.CACHE_ADD}: sets dataIds and loading`, () => {
-    const query = { id: 'MY_QUERY' };
-    const act = actions.cacheAdd(query, [{ id: 1 }, { id: 2 }]);
-
-    const stateOne = reducer(undefined, act);
-    const stateTwo = reducer(
-      {
-        queries: {
-          [query.id]: {
-            loading: true,
-            dataIds: [1, 3],
-          },
-        },
-      } as any,
-      act
-    );
-
-    expect(stateOne.queries).toEqual({
-      [query.id]: {
-        loading: false,
-        dataIds: [1, 2],
-      },
+  it('appends ids to dataIds', () => {
+    let state = reducer(undefined, add);
+    expect(state.queries).toEqual({
+      [query.id]: expect.objectContaining({
+        dataIds: [1, 2, 3],
+      }),
     });
 
-    expect(stateTwo.queries).toEqual({
-      [query.id]: {
-        loading: false,
-        dataIds: [1, 2, 3],
+    const preload = {
+      queries: {
+        [query.id]: {
+          dataIds: [1, 4],
+        },
       },
+    };
+
+    state = reducer(preload as any, add);
+    expect(state.queries).toEqual({
+      [query.id]: expect.objectContaining({
+        dataIds: [1, 2, 3, 4],
+      }),
     });
   });
 });

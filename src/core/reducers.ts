@@ -7,6 +7,7 @@ import * as is from './internals/is';
 import * as t from './internals/types';
 
 interface QueryObject {
+  id: t.ID;
   type?: 'query';
   dataIds: t.ID[];
   loading?: boolean;
@@ -34,6 +35,7 @@ function queries(state: Queries = {}, act: actions.Action): Queries {
       const { query } = act.payload;
       const obj: QueryObject = { ...state[query.id] } || {};
 
+      obj.id = query.id;
       obj.loading = true;
       obj.type = query.type || 'query';
 
