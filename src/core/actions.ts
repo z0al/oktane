@@ -5,15 +5,15 @@ import { createAction } from './internals/createAction';
 export const QUERY_FETCH = 'query/fetch';
 export const queryFetch = createAction(
   QUERY_FETCH,
-  (query: t.Query, args?: t.QueryArgs) => {
-    return { payload: { query, args } };
+  (query: t.Query) => {
+    return { payload: { query } };
   }
 );
 
 export const QUERY_ERROR = 'query/error';
 export const queryError = createAction(
   QUERY_ERROR,
-  (query: t.Query, error?: any) => {
+  (query: t.Query, error: any) => {
     return { payload: { query, error } };
   }
 );
