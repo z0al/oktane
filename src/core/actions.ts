@@ -18,6 +18,14 @@ export const queryError = createAction(
   }
 );
 
+export const QUERY_CANCEL = 'query/cancel';
+export const queryCancel = createAction(
+  QUERY_CANCEL,
+  (query: t.Query) => {
+    return { payload: { query } };
+  }
+);
+
 export const CACHE_ADD = 'cache/add';
 export const cacheAdd = createAction(
   CACHE_ADD,
@@ -29,4 +37,5 @@ export const cacheAdd = createAction(
 export type Action =
   | ReturnType<typeof queryFetch>
   | ReturnType<typeof queryError>
+  | ReturnType<typeof queryCancel>
   | ReturnType<typeof cacheAdd>;

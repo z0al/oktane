@@ -6,12 +6,11 @@ Abstract helpers for data-driven JavaScript apps built on the top of [Redux Saga
 
 ## Design
 
-### Goals
+### Goals / Principles
 
 - Idiomatic Redux
 - No magic, no lock-in
 - Query language agnostic
-- View layer agnostic
 - Convention over configuration
 
 ### Non-goals / Out of scope
@@ -21,14 +20,15 @@ Abstract helpers for data-driven JavaScript apps built on the top of [Redux Saga
 
 ## Roadmap
 
-- [ ] Basic query support with loading
-- [ ] Handle query errors
-- [ ] Support cancelation
-- [ ] Support pagination
-- [ ] Cache normalization
+- [ ] Basic query support (share your [feedback][basic-query])
+	- [x] Resolving queries
+	- [x] Loading indication
+	- [x] Handling query errors
+	- [x] Cancellation support
+	- [ ] Pagination support
 - [ ] Add cache helpers (get by ID, invalidate ..etc)
 - [ ] Support mutations (i.e. write queries)
-- [ ] Support subscriptions (i.e. streaming data)
+- [ ] Support streaming
 - [ ] TBD. Have something? Open an [issue][issue]
 
 
@@ -41,7 +41,7 @@ This project wouldn't have been possible without the following great libraries:
 * [Redux Saga][saga]: For helping us avoid the pain of forking [nocode][nocode]
 * [TSDX][tsdx]: For making dealing with TypeScript no implicit any
 
-Also, a special thanks to Apollo's team for their amazing work on [Apollo Client][apollo] from which we copied a lot.
+Also, a special thanks to Apollo's team for their amazing work on [Apollo Client][apollo] from which we copied some concepts.
 
 ## License
 
@@ -55,3 +55,4 @@ MIT © Ahmed T. Ali
 [saga]: https://redux-saga.js.org
 [twitter]: https://twitter.com/_z0al
 [tsdx]: https://github.com/jaredpalmer/tsdx
+[basic-query]: https://github.com/z0al/anyql/issues/1
