@@ -46,8 +46,18 @@ describe('query', () => {
   });
 
   it('adds data to cache', () => {
-    const gen = worker(query, resolver);
-    const result = { data: { id: 1 } };
+    // Single object
+    let gen = worker(query, resolver);
+    let result: any = { data: { id: 1 } };
+
+    gen.next(resolver); // calling resolver
+    expect(gen.next({ result }).value).toEqual(
+      saga.put(actions.cacheAdd(query, [{ id: 1 }]))
+    );
+
+    // Data as array
+    gen = worker(query, resolver);
+    result = { data: [{ id: 1 }] };
 
     gen.next(resolver); // calling resolver
     expect(gen.next({ result }).value).toEqual(

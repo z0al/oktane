@@ -23,8 +23,8 @@ function* query(query: t.Query, resolver: t.QueryResolver) {
       throw result.error;
     }
 
-    // TODO: Maybe log a warning if result.data is not an object?
-    if (is.object(result.data)) {
+    // TODO: Maybe log a warning if result.data is not defined?
+    if (is.defined(result.data)) {
       yield saga.put(
         actions.cacheAdd(
           query,

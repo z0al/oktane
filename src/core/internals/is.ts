@@ -11,8 +11,8 @@ export function defined(o: any): o is Defined {
   return typeof o !== 'undefined';
 }
 
-export function object(o: any): o is Object {
-  return typeof o === 'object';
+export function object(o: any): boolean {
+  return typeof o === 'object' && o !== null && !array(o);
 }
 
 export const array = Array.isArray;
