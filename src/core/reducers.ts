@@ -34,7 +34,7 @@ function queries(state: Queries = {}, act: actions.Action): Queries {
     // TODO: the query type should always be the same between calls
     case actions.QUERY_FETCH: {
       const { query } = act.payload;
-      const obj: QueryData = { ...state[query.id] } || {};
+      const obj: QueryData = { ...state[query.id] } || ({} as any);
 
       obj.id = query.id;
       obj.loading = true;
@@ -55,7 +55,7 @@ function queries(state: Queries = {}, act: actions.Action): Queries {
     //
     case actions.QUERY_ERROR: {
       const { query, error } = act.payload;
-      const obj: QueryData = { ...state[query.id] } || {};
+      const obj: QueryData = { ...state[query.id] } || ({} as any);
 
       obj.error = error;
       obj.loading = false;
@@ -70,7 +70,7 @@ function queries(state: Queries = {}, act: actions.Action): Queries {
     //
     case actions.QUERY_RESULT: {
       const { query, data, next } = act.payload;
-      const obj: QueryData = { ...state[query.id] } || {};
+      const obj: QueryData = { ...state[query.id] } || ({} as any);
 
       obj.loading = false;
       obj.next = next;

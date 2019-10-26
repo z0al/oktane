@@ -1,8 +1,8 @@
 'use strict';
 
 var saga = require('redux-saga/effects');
-var redux = require('redux');
 var reselect = require('reselect');
+var redux = require('redux');
 
 function _extends() {
   _extends = Object.assign || function (target) {
@@ -130,7 +130,158 @@ function defined(o) {
 }
 var array = Array.isArray;
 
-function queries(state, act) {
+// Packages
+
+var queries = function queries(state) {
+  return state.queries;
+};
+
+var queryData =
+/*#__PURE__*/
+reselect.createSelector(queries, function (_, id) {
+  return id;
+}, function (data, id) {
+  return data[id];
+});
+
+var _marked$1 =
+/*#__PURE__*/
+regeneratorRuntime.mark(query);
+
+function query(query, runner) {
+  var _ref, next, options, task, result;
+
+  return regeneratorRuntime.wrap(function query$(_context) {
+    while (1) {
+      switch (_context.prev = _context.next) {
+        case 0:
+          _context.next = 2;
+          return saga.select(function (state) {
+            return queryData(state, query.id);
+          });
+
+        case 2:
+          _ref = _context.sent;
+          next = _ref.next;
+          options = {
+            next: next
+          };
+          _context.prev = 5;
+          _context.next = 8;
+          return saga.race({
+            result: saga.call(runner, options),
+            cancelled: saga.call(cancel, query)
+          });
+
+        case 8:
+          task = _context.sent;
+
+          if (!task.cancelled) {
+            _context.next = 11;
+            break;
+          }
+
+          return _context.abrupt("return");
+
+        case 11:
+          result = task.result;
+
+          if (!defined(result.error)) {
+            _context.next = 14;
+            break;
+          }
+
+          throw result.error;
+
+        case 14:
+          if (!defined(result.data)) {
+            _context.next = 17;
+            break;
+          }
+
+          _context.next = 17;
+          return saga.put(queryResult(query, array(result.data) ? result.data : [result.data], result.next));
+
+        case 17:
+          _context.next = 24;
+          break;
+
+        case 19:
+          _context.prev = 19;
+          _context.t0 = _context["catch"](5);
+          _context.next = 23;
+          return saga.put(queryError(query, _context.t0));
+
+        case 23:
+          return _context.abrupt("return", _context.sent);
+
+        case 24:
+        case "end":
+          return _context.stop();
+      }
+    }
+  }, _marked$1, null, [[5, 19]]);
+}
+
+// Packages
+
+function init(resolver) {
+  return (
+    /*#__PURE__*/
+    regeneratorRuntime.mark(function _callee() {
+      var triggers, chan, action, query$1, runner;
+      return regeneratorRuntime.wrap(function _callee$(_context) {
+        while (1) {
+          switch (_context.prev = _context.next) {
+            case 0:
+              // Only listen to new requests since cancelation is
+              // handled by internally by specific workers
+              triggers = [QUERY_FETCH]; // Makes sure we don't miss any action no matter what
+
+              _context.next = 3;
+              return saga.actionChannel(triggers);
+
+            case 3:
+              chan = _context.sent;
+
+            case 4:
+
+              _context.next = 7;
+              return saga.take(chan);
+
+            case 7:
+              action = _context.sent;
+              // Get runner
+              query$1 = action.payload.query;
+              _context.next = 11;
+              return saga.call(resolver, query$1);
+
+            case 11:
+              runner = _context.sent;
+
+              if (!(action.type === QUERY_FETCH)) {
+                _context.next = 15;
+                break;
+              }
+
+              _context.next = 15;
+              return saga.spawn(query, query$1, runner);
+
+            case 15:
+              _context.next = 4;
+              break;
+
+            case 17:
+            case "end":
+              return _context.stop();
+          }
+        }
+      }, _callee);
+    })
+  );
+}
+
+function queries$1(state, act) {
   if (state === void 0) {
     state = {};
   }
@@ -225,157 +376,11 @@ function objects(state, _) {
 var reducer =
 /*#__PURE__*/
 redux.combineReducers({
-  queries: queries,
+  queries: queries$1,
   objects: objects
 });
 
-var queries$1 = function queries(state) {
-  return state.queries;
-};
-
-var queryData =
-/*#__PURE__*/
-reselect.createSelector(queries$1, function (_, id) {
-  return id;
-}, function (data, id) {
-  return data[id];
-});
-
-var _marked$1 =
-/*#__PURE__*/
-regeneratorRuntime.mark(query);
-
-function query(query, runner) {
-  var _ref, next, options, task, result;
-
-  return regeneratorRuntime.wrap(function query$(_context) {
-    while (1) {
-      switch (_context.prev = _context.next) {
-        case 0:
-          _context.next = 2;
-          return saga.select(function (state) {
-            return queryData(state, query.id);
-          });
-
-        case 2:
-          _ref = _context.sent;
-          next = _ref.next;
-          options = {
-            next: next
-          };
-          _context.prev = 5;
-          _context.next = 8;
-          return saga.race({
-            result: saga.call(runner, options),
-            cancelled: saga.call(cancel, query)
-          });
-
-        case 8:
-          task = _context.sent;
-
-          if (!task.cancelled) {
-            _context.next = 11;
-            break;
-          }
-
-          return _context.abrupt("return");
-
-        case 11:
-          result = task.result;
-
-          if (!defined(result.error)) {
-            _context.next = 14;
-            break;
-          }
-
-          throw result.error;
-
-        case 14:
-          if (!defined(result.data)) {
-            _context.next = 17;
-            break;
-          }
-
-          _context.next = 17;
-          return saga.put(queryResult(query, array(result.data) ? result.data : [result.data], result.next));
-
-        case 17:
-          _context.next = 24;
-          break;
-
-        case 19:
-          _context.prev = 19;
-          _context.t0 = _context["catch"](5);
-          _context.next = 23;
-          return saga.put(queryError(query, _context.t0));
-
-        case 23:
-          return _context.abrupt("return", _context.sent);
-
-        case 24:
-        case "end":
-          return _context.stop();
-      }
-    }
-  }, _marked$1, null, [[5, 19]]);
-}
-
-function init(resolver) {
-  return (
-    /*#__PURE__*/
-    regeneratorRuntime.mark(function _callee() {
-      var triggers, chan, action, query$1, runner;
-      return regeneratorRuntime.wrap(function _callee$(_context) {
-        while (1) {
-          switch (_context.prev = _context.next) {
-            case 0:
-              // Only listen to new requests since cancelation is
-              // handled by internally by specific workers
-              triggers = [QUERY_FETCH]; // Makes sure we don't miss any action no matter what
-
-              _context.next = 3;
-              return saga.actionChannel(triggers);
-
-            case 3:
-              chan = _context.sent;
-
-            case 4:
-
-              _context.next = 7;
-              return saga.take(chan);
-
-            case 7:
-              action = _context.sent;
-              // Get runner
-              query$1 = action.payload.query;
-              _context.next = 11;
-              return saga.call(resolver, query$1);
-
-            case 11:
-              runner = _context.sent;
-
-              if (!(action.type === QUERY_FETCH)) {
-                _context.next = 15;
-                break;
-              }
-
-              _context.next = 15;
-              return saga.spawn(query, query$1, runner);
-
-            case 15:
-              _context.next = 4;
-              break;
-
-            case 17:
-            case "end":
-              return _context.stop();
-          }
-        }
-      }, _callee);
-    })
-  );
-}
-
+// Ours
 function createEngine(_ref) {
   var resolver = _ref.resolver;
   return {
