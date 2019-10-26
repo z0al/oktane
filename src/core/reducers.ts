@@ -6,19 +6,20 @@ import * as actions from './actions';
 import * as is from './internals/is';
 import * as t from './internals/types';
 
-interface QueryObject {
+export interface QueryData {
   id: t.ID;
   type?: 'query';
   dataIds: t.ID[];
   loading?: boolean;
+  next?: any;
   error?: any;
 }
 
-interface Queries {
-  [id: string]: QueryObject;
+export interface Queries {
+  [id: string]: QueryData;
 }
 
-interface Objects {
+export interface Objects {
   [id: string]: t.DataObject;
 }
 
@@ -33,7 +34,7 @@ function queries(state: Queries = {}, act: actions.Action): Queries {
     // TODO: the query type should always be the same between calls
     case actions.QUERY_FETCH: {
       const { query } = act.payload;
-      const obj: QueryObject = { ...state[query.id] } || {};
+      const obj: QueryData = { ...state[query.id] } || {};
 
       obj.id = query.id;
       obj.loading = true;
@@ -54,7 +55,7 @@ function queries(state: Queries = {}, act: actions.Action): Queries {
     //
     case actions.QUERY_ERROR: {
       const { query, error } = act.payload;
-      const obj: QueryObject = { ...state[query.id] } || {};
+      const obj: QueryData = { ...state[query.id] } || {};
 
       obj.error = error;
       obj.loading = false;
@@ -62,16 +63,17 @@ function queries(state: Queries = {}, act: actions.Action): Queries {
       return { ...state, [query.id]: obj };
     }
 
-    // cache/add
+    // query/result
     //
     // * Merge dataIds
     // * Set loading to false
     //
-    case actions.CACHE_ADD: {
-      const { query, data } = act.payload;
-      const obj: QueryObject = { ...state[query.id] } || {};
+    case actions.QUERY_RESULT: {
+      const { query, data, next } = act.payload;
+      const obj: QueryData = { ...state[query.id] } || {};
 
       obj.loading = false;
+      obj.next = next;
 
       const ids = data.map(o => o.id);
       if (is.array(obj.dataIds)) {
@@ -91,4 +93,6 @@ function objects(state: Objects = {}, _: actions.Action): Objects {
   return state;
 }
 
-export default combineReducers({ queries, objects });
+const reducer = combineReducers({ queries, objects });
+export type RootState = ReturnType<typeof reducer>;
+export default reducer;

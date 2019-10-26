@@ -10,16 +10,20 @@ globalThis.__DEV__ = true;
 
 describe('query', () => {
   const query = { id: 'MY_QUERY' };
+  const options = { next: 'NEXT_ID' };
 
   let resolver: any;
   beforeEach(() => {
     resolver = jest.fn();
   });
 
-  it('tries to resolve the query', () => {
-    expect(worker(query, resolver).next().value).toEqual(
+  it('passes resolver options', () => {
+    const gen = worker(query, resolver);
+
+    gen.next();
+    expect(gen.next(options).value).toEqual(
       saga.race({
-        result: saga.call(resolver, {}),
+        result: saga.call(resolver, options),
         cancelled: saga.call(utils.cancel, query),
       })
     );
@@ -29,8 +33,9 @@ describe('query', () => {
     const gen = worker(query, resolver);
     const result = { error: 'FAIL' };
 
-    gen.next(); // calling resolver
-    expect(gen.next({ result }).value).toEqual(
+    gen.next();
+    gen.next(options);
+    expect(gen.next({ result } as any).value).toEqual(
       saga.put(actions.queryError(query, 'FAIL'))
     );
   });
@@ -39,29 +44,32 @@ describe('query', () => {
     const gen = worker(query, resolver);
     const error = new Error('FAIL');
 
-    gen.next(); // calling resolver
+    gen.next();
+    gen.next(options);
     expect(gen.throw(error).value).toEqual(
       saga.put(actions.queryError(query, error))
     );
   });
 
-  it('adds data to cache', () => {
+  it('saves result', () => {
     // Single object
     let gen = worker(query, resolver);
-    let result: any = { data: { id: 1 } };
+    let result: any = { data: { id: 1 }, next: 'NEXT' };
 
-    gen.next(resolver); // calling resolver
-    expect(gen.next({ result }).value).toEqual(
-      saga.put(actions.cacheAdd(query, [{ id: 1 }]))
+    gen.next();
+    gen.next(options);
+    expect(gen.next({ result } as any).value).toEqual(
+      saga.put(actions.queryResult(query, [{ id: 1 }], 'NEXT'))
     );
 
     // Data as array
     gen = worker(query, resolver);
-    result = { data: [{ id: 1 }] };
+    result = { data: [{ id: 1 }], next: null };
 
-    gen.next(resolver); // calling resolver
-    expect(gen.next({ result }).value).toEqual(
-      saga.put(actions.cacheAdd(query, [{ id: 1 }]))
+    gen.next();
+    gen.next(options);
+    expect(gen.next({ result } as any).value).toEqual(
+      saga.put(actions.queryResult(query, [{ id: 1 }], null))
     );
   });
 });

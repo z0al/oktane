@@ -58,16 +58,17 @@ describe(actions.QUERY_ERROR, () => {
   });
 });
 
-describe(actions.CACHE_ADD, () => {
+describe(actions.QUERY_RESULT, () => {
   const query = { id: 'fetch-me' };
   const data = [{ id: 1 }, { id: 2 }, { id: 3 }];
-  const add = actions.cacheAdd(query, data);
+  const add = actions.queryResult(query, data, 'NEXT');
 
   it('sets loading to false', () => {
     const state = reducer(undefined, add);
     expect(state.queries).toEqual({
       [query.id]: expect.objectContaining({
         loading: false,
+        next: 'NEXT',
       }),
     });
   });

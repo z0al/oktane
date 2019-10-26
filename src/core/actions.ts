@@ -26,11 +26,11 @@ export const queryCancel = createAction(
   }
 );
 
-export const CACHE_ADD = 'cache/add';
-export const cacheAdd = createAction(
-  CACHE_ADD,
-  (query: t.Query, data: t.DataObject[]) => {
-    return { payload: { query, data } };
+export const QUERY_RESULT = 'query/result';
+export const queryResult = createAction(
+  QUERY_RESULT,
+  (query: t.Query, data: t.DataObject[], next: any) => {
+    return { payload: { query, data, next } };
   }
 );
 
@@ -38,4 +38,4 @@ export type Action =
   | ReturnType<typeof queryFetch>
   | ReturnType<typeof queryError>
   | ReturnType<typeof queryCancel>
-  | ReturnType<typeof cacheAdd>;
+  | ReturnType<typeof queryResult>;
