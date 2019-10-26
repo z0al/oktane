@@ -4,16 +4,14 @@
 
 Abstract helpers for data-driven JavaScript apps built on the top of [Redux Saga][saga]. Inspired by [Apollo Client][apollo].
 
-## Design
+## Features
 
-### Goals / Principles
+* Idiomatic Redux
+* Query language agnostic
+* Out of the box support: Pagination, and cancellation
+* Powered by Redux Saga
 
-- Idiomatic Redux
-- No magic, no lock-in
-- Query language agnostic
-- Convention over configuration
-
-### Non-goals / Out of scope
+## Out of scope
 
 - Compatibility (or competing) with Apollo client (or similar library)
 - Specific Query Language support (e.g. GraphQL)
@@ -32,6 +30,9 @@ Abstract helpers for data-driven JavaScript apps built on the top of [Redux Saga
 - [ ] Support streaming
 - [ ] TBD. Have something? Open an [issue][issue]
 
+## Documentation
+
+TODO.
 
 ## Acknowledgments
 
