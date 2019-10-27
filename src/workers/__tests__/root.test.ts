@@ -8,7 +8,7 @@ import runQuery from '../query';
 import * as actions from '../../actions';
 
 describe('root', () => {
-  const query = { id: 'RESOLVE_ME' };
+  const query = { __id: 'RESOLVE_ME' };
 
   let resolver: any; // A mocked resolver
   let ch: any; // A mocked channel
@@ -19,11 +19,11 @@ describe('root', () => {
   });
 
   // List of allowed actions to listen to in the root worker
-  const allowed = [actions.QUERY_FETCH];
+  const pattern = [actions.QUERY_REQUEST];
 
   it('creates an actionChannel', () => {
     const gen = init(resolver)();
-    expect(gen.next().value).toEqual(saga.actionChannel(allowed));
+    expect(gen.next().value).toEqual(saga.actionChannel(pattern));
   });
 
   it('listens to necessary actions', () => {
@@ -34,7 +34,7 @@ describe('root', () => {
   });
 
   it('calls resolver to get a runner', () => {
-    const action = actions.queryFetch(query);
+    const action = actions.queryRequest(query, { type: 'query' });
     const gen = init(resolver)();
 
     gen.next(); // create a channel
@@ -43,7 +43,7 @@ describe('root', () => {
   });
 
   it('spawns an appropriate worker', () => {
-    const action = actions.queryFetch(query);
+    const action = actions.queryRequest(query, { type: 'query' });
     const gen = init(resolver)();
     const runner: any = jest.fn();
 
@@ -51,7 +51,7 @@ describe('root', () => {
     gen.next(ch); // listen to it
     gen.next(action); // get a runner
     expect(gen.next(runner).value).toEqual(
-      saga.spawn(runQuery, query, runner)
+      saga.spawn(runQuery, query, runner, { type: 'query' })
     );
   });
 });

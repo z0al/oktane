@@ -1,7 +1,7 @@
 // Ours
 import init from './workers';
-import reducer from './reducers';
-import * as t from './internals/types';
+import reducer from './actions';
+import * as t from './types';
 
 export interface Options {
   resolver: t.QueryResolver;

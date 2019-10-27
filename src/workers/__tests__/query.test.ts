@@ -9,7 +9,7 @@ import * as actions from '../../actions';
 globalThis.__DEV__ = true;
 
 describe('query', () => {
-  const query = { id: 'MY_QUERY' };
+  const query = { __id: 'MY_QUERY' };
   const options = { next: 'NEXT_ID' };
 
   let runner: any;
@@ -18,7 +18,7 @@ describe('query', () => {
   });
 
   it('passes runner options', () => {
-    const gen = worker(query, runner);
+    const gen = worker(query, runner, { type: 'query' });
 
     gen.next();
     expect(gen.next(options).value).toEqual(
@@ -30,7 +30,7 @@ describe('query', () => {
   });
 
   it('fires an action on error', () => {
-    const gen = worker(query, runner);
+    const gen = worker(query, runner, { type: 'query' });
     const result = { error: 'FAIL' };
 
     gen.next();
@@ -41,7 +41,7 @@ describe('query', () => {
   });
 
   it('catches unhandled errors', () => {
-    const gen = worker(query, runner);
+    const gen = worker(query, runner, { type: 'query' });
     const error = new Error('FAIL');
 
     gen.next();
@@ -53,23 +53,23 @@ describe('query', () => {
 
   it('saves result', () => {
     // Single object
-    let gen = worker(query, runner);
+    let gen = worker(query, runner, { type: 'query' });
     let result: any = { data: { id: 1 }, next: 'NEXT' };
 
     gen.next();
     gen.next(options);
     expect(gen.next({ result } as any).value).toEqual(
-      saga.put(actions.queryResult(query, [{ id: 1 }], 'NEXT'))
+      saga.put(actions.queryDone(query, [{ id: 1 }], 'NEXT'))
     );
 
     // Data as array
-    gen = worker(query, runner);
+    gen = worker(query, runner, { type: 'query' });
     result = { data: [{ id: 1 }], next: null };
 
     gen.next();
     gen.next(options);
     expect(gen.next({ result } as any).value).toEqual(
-      saga.put(actions.queryResult(query, [{ id: 1 }], null))
+      saga.put(actions.queryDone(query, [{ id: 1 }], null))
     );
   });
 });

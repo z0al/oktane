@@ -2,29 +2,35 @@
 import * as saga from 'redux-saga/effects';
 
 // Ours
-import runQuery from './query';
-import * as act from '../actions';
-import * as t from '../internals/types';
+import * as t from '../types';
+import * as actions from '../actions';
+import handleQuery from './query';
+
+const workers: any = {
+  query: handleQuery,
+};
 
 function init(resolver: t.QueryResolver) {
-  return function*() {
-    // Only listen to new requests since cancelation is
-    // handled by internally by specific workers
-    const triggers = [act.QUERY_FETCH];
+  // Only listen to new requests since cancelation is handled
+  // internally by specific workers
+  const pattern = [actions.QUERY_REQUEST];
 
-    // Makes sure we don't miss any action no matter what
-    const chan = yield saga.actionChannel(triggers);
+  // Better complete. MUST be the same as those listed above
+  type _Action = ReturnType<typeof actions.queryRequest>;
+
+  return function*() {
+    // Makes sure we don't miss any action no matter what!
+    const chan = yield saga.actionChannel(pattern);
 
     while (true) {
-      const action: act.Action = yield saga.take(chan);
+      const action: _Action = yield saga.take(chan);
 
-      // Get runner
-      const { query } = action.payload;
+      // Get a runner
+      const { query, options } = action.payload;
       const runner = yield saga.call(resolver, query);
 
-      if (action.type === act.QUERY_FETCH) {
-        yield saga.spawn(runQuery, query, runner);
-      }
+      const worker = workers[options.type];
+      yield saga.spawn(worker, query, runner, options);
     }
   };
 }

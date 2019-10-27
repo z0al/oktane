@@ -1,17 +1,17 @@
 // Packages
-import * as saga from 'redux-saga/effects';
+import { take } from 'redux-saga/effects';
 
 // Ours
-import * as act from '../actions';
-import * as t from '../internals/types';
+import * as t from '../types';
+import * as actions from '../actions';
+
+const pattern = [actions.QUERY_CANCEL];
 
 export function* cancel(query: t.Query) {
-  const actions = [act.QUERY_CANCEL];
-
   while (true) {
-    const { payload }: act.Action = yield saga.take(actions);
+    const { payload }: actions.Action = yield take(pattern);
 
-    if (payload.query.id === query.id) {
+    if (payload.query.__id === query.__id) {
       return yield true;
     }
   }

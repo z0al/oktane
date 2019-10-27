@@ -1,24 +1,24 @@
 // Packages
+import is from 'is';
 import * as saga from 'redux-saga/effects';
 
 // Ours
+import * as t from '../types';
 import * as utils from './utils';
 import * as actions from '../actions';
-import * as is from '../internals/is';
 import * as select from '../selectors';
-import * as t from '../internals/types';
 
-function* query(query: t.Query, runner: t.QueryRunner) {
+function* query(q: t.Query, run: t.QueryRunner, op: t.QueryOptions) {
   const { next } = yield saga.select(state =>
-    select.queryData(state, query.id)
+    select.savedQuery(state, q.__id)
   );
 
-  const options = { next };
+  const options = { next, args: op.args };
 
   try {
     const task = yield saga.race({
-      result: saga.call(runner, options),
-      cancelled: saga.call(utils.cancel, query),
+      result: saga.call(run, options),
+      cancelled: saga.call(utils.cancel, q),
     });
 
     if (task.cancelled) {
@@ -32,16 +32,14 @@ function* query(query: t.Query, runner: t.QueryRunner) {
 
     // TODO: Maybe log a warning if result.data is not defined?
     if (is.defined(result.data)) {
-      yield saga.put(
-        actions.queryResult(
-          query,
-          is.array(result.data) ? result.data : [result.data],
-          result.next
-        )
-      );
+      const data: any = is.array(result.data)
+        ? result.data
+        : [result.data];
+
+      yield saga.put(actions.queryDone(q, data, result.next));
     }
   } catch (error) {
-    return yield saga.put(actions.queryError(query, error));
+    return yield saga.put(actions.queryError(q, error));
   }
 }
 
