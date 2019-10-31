@@ -2,7 +2,7 @@
 
 # AnyQL (codename)
 
-Abstract helpers for data-driven JavaScript apps built on the top of [Redux Saga][saga]. Inspired by [Apollo Client][apollo].
+Abstract helpers for data-driven JavaScript apps built on the top of [Redux Saga][saga].
 
 ## Features
 
