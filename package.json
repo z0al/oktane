@@ -1,43 +1,34 @@
 {
-  "name": "anyql",
-  "version": "0.0.1",
-  "private": true,
-  "license": "MIT",
-  "author": "Ahmed T. Ali",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "start": "tsdx watch",
-    "build": "tsdx build",
-    "test": "tsdx test"
-  },
-  "peerDependencies": {
-    "redux": "^4.0.4",
-    "redux-saga": "^1.1.1",
-    "react": "^16.11.0"
-  },
-  "prettier": {
-    "printWidth": 72,
-    "semi": true,
-    "singleQuote": true,
-    "trailingComma": "es5"
-  },
-  "devDependencies": {
-    "@types/is": "0.0.21",
-    "@types/jest": "^24.0.19",
-    "react": "^16.11.0",
-    "redux": "^4.0.4",
-    "redux-saga": "^1.1.1",
-    "tsdx": "^0.11.0",
-    "tslib": "^1.10.0",
-    "typescript": "^3.6.4"
-  },
-  "dependencies": {
-    "fast-deep-equal": "^3.0.0-beta.2",
-    "is": "^3.3.0",
-    "reselect": "^4.0.0"
-  }
+	"name": "epic",
+	"version": "0.0.1",
+	"private": true,
+	"license": "MIT",
+	"author": "Ahmed T. Ali",
+	"main": "dist/index.js",
+	"typings": "dist/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"start": "tsdx watch",
+		"build": "tsdx build",
+		"test": "tsdx test"
+	},
+	"prettier": {
+		"printWidth": 72,
+		"semi": true,
+		"singleQuote": true,
+		"trailingComma": "es5"
+	},
+	"devDependencies": {
+		"@types/is": "0.0.21",
+		"@types/jest": "^24.0.23",
+		"tsdx": "^0.11.0",
+		"tslib": "^1.10.0",
+		"typescript": "^3.7.2"
+	},
+	"dependencies": {
+		"is": "^3.3.0",
+		"redux-saga": "^1.1.3"
+	}
 }
