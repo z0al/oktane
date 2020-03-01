@@ -1,5 +1,5 @@
 // Packages
-import { put, take } from '@redux-saga/core/effects';
+import { put, take } from 'redux-saga/effects';
 
 // Ours
 import InlineWorker from './worker';

@@ -1,5 +1,5 @@
 // Packages
-import { stdChannel, runSaga, Task, Saga } from '@redux-saga/core';
+import { stdChannel, runSaga, Task, Saga } from 'redux-saga';
 
 // Ours
 import { noop } from './utils/noop';

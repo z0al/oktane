@@ -1,13 +1,31 @@
 // Ours
 import { Request } from './request';
+import { Response } from './response';
 
-// Requests
-
-export type TaskEvent = {
-	type: 'task/resolve';
+export type RequestEvent = {
+	type: '@fetch' | '@abort';
 	data: {
 		req: Request;
 	};
 };
 
-export type Event = TaskEvent;
+export type ResponseEvent = {
+	type: '@data';
+	data: {
+		res: Response;
+	};
+};
+
+export type CacheEvent = {
+	type: '@cache/sync';
+	data: {
+		changes: any[];
+	};
+};
+
+export type EventType =
+	| RequestEvent['type']
+	| ResponseEvent['type']
+	| CacheEvent['type'];
+
+export type Event = RequestEvent | ResponseEvent | CacheEvent;
