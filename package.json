@@ -1,5 +1,5 @@
 {
-	"name": "epic",
+	"name": "ql",
 	"version": "0.0.1",
 	"private": true,
 	"license": "MIT",
@@ -18,17 +18,18 @@
 		"printWidth": 72,
 		"semi": true,
 		"singleQuote": true,
-		"trailingComma": "es5"
+		"trailingComma": "es5",
+		"useTabs": true
 	},
 	"devDependencies": {
-		"@types/is": "0.0.21",
-		"@types/jest": "^24.0.23",
-		"tsdx": "^0.11.0",
-		"tslib": "^1.10.0",
-		"typescript": "^3.7.2"
+		"@types/jest": "^25.1.3",
+		"tsdx": "^0.12.3",
+		"tslib": "^1.11.1",
+		"typescript": "^3.8.3"
 	},
 	"dependencies": {
-		"is": "^3.3.0",
-		"redux-saga": "^1.1.3"
+		"fast-safe-stringify": "^2.0.7",
+		"redux-saga": "^1.1.3",
+		"tiny-invariant": "^1.1.0"
 	}
 }
