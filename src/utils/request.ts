@@ -9,7 +9,7 @@ export interface Request {
 	type: 'query' | 'mutation' | 'subscription';
 }
 
-export const createRequest = (req: Request): Required<Request> => {
+export const createRequest = (req: Request): Request => {
 	invariant(req.type, 'request must have a type');
 	invariant(req.query, 'request must have a query');
 
