@@ -9,6 +9,14 @@ export type RequestEvent = {
 	};
 };
 
+export type ErrorEvent = {
+	type: '@failed';
+	data: {
+		req: Partial<Request>;
+		error: Error;
+	};
+};
+
 export type ResponseEvent = {
 	type: '@data';
 	data: {
@@ -25,7 +33,12 @@ export type CacheEvent = {
 
 export type EventType =
 	| RequestEvent['type']
+	| ErrorEvent['type']
 	| ResponseEvent['type']
 	| CacheEvent['type'];
 
-export type Event = RequestEvent | ResponseEvent | CacheEvent;
+export type Event =
+	| RequestEvent
+	| ErrorEvent
+	| ResponseEvent
+	| CacheEvent;
