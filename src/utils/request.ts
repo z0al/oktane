@@ -9,6 +9,12 @@ export interface Request {
 	type: 'query' | 'mutation' | 'subscription';
 }
 
+export interface Response {
+	data?: any;
+	request: Pick<Request, 'id' | 'type'>;
+	done: boolean;
+}
+
 export const createRequest = (req: Request): Request => {
 	invariant(req.type, 'request must have a type');
 	invariant(req.query, 'request must have a query');

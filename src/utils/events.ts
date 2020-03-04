@@ -1,6 +1,5 @@
 // Ours
-import { Request } from './request';
-import { Response } from './response';
+import { Request, Response } from './request';
 
 export type RequestEvent = {
 	type: '@fetch' | '@abort';
