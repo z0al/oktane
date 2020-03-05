@@ -6,13 +6,14 @@ import { cancelled, call } from 'redux-saga/effects';
 // Ours
 import { main, fetch } from './process';
 import { createRequest } from './utils/request';
+import { RequestEvent, ResponseEvent } from './utils/events';
 
 describe('main', () => {
 	let config: any, resolver: any, handler: any;
 
-	const FETCH: any = {
+	const FETCH: RequestEvent = {
 		type: '@fetch',
-		data: {
+		payload: {
 			req: createRequest({
 				id: '1',
 				type: 'query',
@@ -21,15 +22,15 @@ describe('main', () => {
 		},
 	};
 
-	const ABORT: any = {
+	const ABORT: RequestEvent = {
 		type: '@abort',
-		data: {
-			req: { id: '1' },
+		payload: {
+			req: { id: '1' } as any,
 		},
 	};
 
 	beforeEach(() => {
-		handler = jest.fn().mockReturnValue(delayP(150, { ok: true }));
+		handler = jest.fn().mockReturnValue(delayP(100, { ok: true }));
 		resolver = jest.fn().mockResolvedValue(handler);
 
 		config = { resolver };
@@ -43,22 +44,22 @@ describe('main', () => {
 
 	test('should call the resolver with the request', () => {
 		return expectSaga(main, config)
-			.call(config.resolver, FETCH.data.req)
+			.call(config.resolver, FETCH.payload.req)
 			.dispatch(FETCH)
 			.silentRun();
 	});
 
 	test('should fork a fetch call', () => {
 		return expectSaga(main, config)
-			.fork(fetch, FETCH.data.req, handler)
+			.fork(fetch, FETCH.payload.req, handler)
 			.dispatch(FETCH)
 			.silentRun();
 	});
 
 	test('should deduplicate pending requests', () => {
 		return expectSaga(main, config)
-			.fork(fetch, FETCH.data.req, handler)
-			.not.fork(fetch, FETCH.data.req, handler)
+			.fork(fetch, FETCH.payload.req, handler)
+			.not.fork(fetch, FETCH.payload.req, handler)
 			.dispatch(FETCH)
 			.dispatch(FETCH)
 			.silentRun();
@@ -68,7 +69,7 @@ describe('main', () => {
 		let aborted = false;
 		handler.mockImplementation(function*() {
 			try {
-				yield call(delayP, 500);
+				yield call(handler);
 			} finally {
 				if (yield cancelled()) {
 					aborted = true;
@@ -77,9 +78,8 @@ describe('main', () => {
 		});
 
 		return expectSaga(main, config)
-			.fork(fetch, FETCH.data.req, handler)
+			.fork(fetch, FETCH.payload.req, handler)
 			.dispatch(FETCH)
-			.delay(100)
 			.dispatch(ABORT)
 			.silentRun()
 			.finally(() => {
@@ -89,8 +89,8 @@ describe('main', () => {
 
 	test('should do nothing if no pending requests to abort', () => {
 		return expectSaga(main, config)
-			.not.call(resolver, ABORT.data.req)
-			.not.fork(fetch, ABORT.data.req, handler)
+			.not.call(resolver, ABORT.payload.req)
+			.not.fork(fetch, ABORT.payload.req, handler)
 			.dispatch(ABORT)
 			.silentRun();
 	});
@@ -117,7 +117,7 @@ describe('fetch', () => {
 
 		const event = {
 			type: '@failed',
-			data: {
+			payload: {
 				req: {
 					id: req.id,
 					type: req.type,
@@ -132,9 +132,9 @@ describe('fetch', () => {
 	});
 
 	test('should emit data on success', () => {
-		const event = {
+		const event: ResponseEvent = {
 			type: '@data',
-			data: {
+			payload: {
 				res: {
 					data: users,
 					done: true,

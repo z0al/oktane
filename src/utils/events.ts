@@ -3,14 +3,14 @@ import { Request, Response } from './request';
 
 export type RequestEvent = {
 	type: '@fetch' | '@abort';
-	data: {
+	payload: {
 		req: Request;
 	};
 };
 
 export type ErrorEvent = {
 	type: '@failed';
-	data: {
+	payload: {
 		req: Partial<Request>;
 		error: Error;
 	};
@@ -18,14 +18,14 @@ export type ErrorEvent = {
 
 export type ResponseEvent = {
 	type: '@data';
-	data: {
+	payload: {
 		res: Response;
 	};
 };
 
 export type CacheEvent = {
 	type: '@cache/sync';
-	data: {
+	payload: {
 		changes: any[];
 	};
 };

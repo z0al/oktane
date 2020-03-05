@@ -18,7 +18,7 @@ export function* fetch(req: Request, func: HandlerFunc) {
 
 		const success: Event = {
 			type: '@data',
-			data: {
+			payload: {
 				res: {
 					request: {
 						id: req.id,
@@ -34,7 +34,7 @@ export function* fetch(req: Request, func: HandlerFunc) {
 	} catch (error) {
 		const failed: Event = {
 			type: '@failed',
-			data: {
+			payload: {
 				req: {
 					id: req.id,
 					type: req.type,
@@ -56,7 +56,7 @@ export function* main(config: Config) {
 
 	while (true) {
 		const event: RequestEvent = yield take(channel);
-		const { req } = event.data;
+		const { req } = event.payload;
 
 		// Deduplicate or cancel pending requests
 		let task = ongoing.get(req.id);
