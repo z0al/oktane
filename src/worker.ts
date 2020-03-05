@@ -6,9 +6,9 @@ import { noop } from './utils/noop';
 import { Event } from './utils/events';
 
 class InlineWorker implements Worker {
-	_task: Task;
-	_channel = stdChannel();
-	_cache = {};
+	private _process: Task;
+	private _channel = stdChannel();
+	private _cache = {};
 
 	constructor(fn: Saga, ...args: any[]) {
 		const io = {
@@ -21,7 +21,7 @@ class InlineWorker implements Worker {
 			getState: this._getCache.bind(this),
 		};
 
-		this._task = runSaga(io, fn, args);
+		this._process = runSaga(io, fn, args);
 	}
 
 	private _dispatch(data: Event) {
@@ -42,7 +42,7 @@ class InlineWorker implements Worker {
 	}
 
 	terminate() {
-		this._task.cancel();
+		this._process.cancel();
 	}
 
 	// Must be implemented by the client

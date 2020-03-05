@@ -1,5 +1,5 @@
 // Packages
-import { put, take } from 'redux-saga/effects';
+import { put, take, cancelled } from 'redux-saga/effects';
 
 // Ours
 import InlineWorker from './worker';
@@ -10,11 +10,24 @@ const task = function*() {
 };
 
 it('should start/stop the root saga', () => {
-	const w = new InlineWorker(task);
-	expect(w._task.isRunning()).toBe(true);
+	let isRunning = false;
+
+	const forever = function*() {
+		try {
+			isRunning = true;
+			yield take('FOREVER');
+		} finally {
+			if (yield cancelled()) {
+				isRunning = false;
+			}
+		}
+	};
+
+	const w = new InlineWorker(forever);
+	expect(isRunning).toBe(true);
 
 	w.terminate();
-	expect(w._task.isRunning()).toBe(false);
+	expect(isRunning).toBe(false);
 });
 
 it('should throw if onmessage is not implemented', () => {
