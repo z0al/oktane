@@ -1,6 +1,7 @@
 // Packages
 import delayP from '@redux-saga/delay-p';
 import { expectSaga } from 'redux-saga-test-plan';
+import { cancelled, call } from 'redux-saga/effects';
 
 // Ours
 import { main, fetch } from './process';
@@ -64,13 +65,26 @@ describe('main', () => {
 	});
 
 	test('should cancel pending requests on abort events', () => {
+		let aborted = false;
+		handler.mockImplementation(function*() {
+			try {
+				yield call(delayP, 500);
+			} finally {
+				if (yield cancelled()) {
+					aborted = true;
+				}
+			}
+		});
+
 		return expectSaga(main, config)
 			.fork(fetch, FETCH.data.req, handler)
-			.fork(fetch, FETCH.data.req, handler)
 			.dispatch(FETCH)
+			.delay(100)
 			.dispatch(ABORT)
-			.dispatch(FETCH)
-			.silentRun();
+			.silentRun()
+			.finally(() => {
+				expect(aborted).toBeTruthy();
+			});
 	});
 
 	test('should do nothing if no pending requests to abort', () => {
