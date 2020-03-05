@@ -1,4 +1,5 @@
 // Packages
+import { Task } from 'redux-saga';
 import * as effects from 'redux-saga/effects';
 
 // Ours
@@ -46,13 +47,26 @@ export function* fetch(req: Request, resolve: ResolverFn) {
 }
 
 export function* main(config: Config) {
-	const type: EventType = '@fetch';
-	const stream = yield effects.actionChannel(type);
+	const events: EventType[] = ['@fetch', '@abort'];
+	const channel = yield effects.actionChannel(events);
+
+	// Keep a list of ongoing requests
+	const ongoing = new Map<string, Task>();
 
 	while (true) {
-		const { data }: RequestEvent = yield effects.take(stream);
+		const event: RequestEvent = yield effects.take(channel);
+		const { req } = event.data;
 
-		const fn = yield effects.call(config.resolver, data.req);
-		yield effects.spawn(fetch, data.req, fn);
+		// Deduplicate pending requests
+		let task = ongoing.get(req.id);
+		if (task?.isRunning()) {
+			continue;
+		}
+
+		const handler = yield effects.call(config.resolver, req);
+
+		// Run and keep track
+		task = yield effects.fork(fetch, req, handler);
+		ongoing.set(req.id, task);
 	}
 }

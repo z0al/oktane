@@ -7,29 +7,41 @@ import { main, fetch } from './process';
 import { createRequest } from './utils/request';
 
 describe('main', () => {
-	let config: any, pattern: any, events: any, event: any;
+	let config: any, _channel: any;
+
+	const FETCH: any = {
+		type: '@fetch',
+		data: {
+			req: createRequest({
+				id: '1',
+				type: 'query',
+				query: 'test',
+			}),
+		},
+	};
+
+	// const ABORT: any = {
+	// 	type: '@abort',
+	// 	data: {
+	// 		req: { id: '1' },
+	// 	},
+	// };
 
 	beforeEach(() => {
 		config = { resolver: jest.fn() };
-		pattern = effects.actionChannel('@fetch');
-		events = channel();
-
-		event = {
-			type: '@fetch' as any,
-			data: {
-				req: createRequest({ type: 'query', query: 'test' }),
-			},
-		};
+		_channel = channel();
 	});
 
-	test('should listen to fetch events', () => {
+	test('should listen to fetch & abort events', () => {
 		const itr = main(config);
 
 		// Steps
 		// 1. create a channel
-		expect(itr.next().value).toEqual(pattern);
+		expect(itr.next().value).toEqual(
+			effects.actionChannel(['@fetch', '@abort'])
+		);
 		// 2. listen for events
-		expect(itr.next(events).value).toEqual(effects.take(events));
+		expect(itr.next(_channel).value).toEqual(effects.take(_channel));
 	});
 
 	test('should call the resolver with the request', () => {
@@ -39,28 +51,48 @@ describe('main', () => {
 		// 1. create a channel
 		itr.next();
 		// 2. listen for events
-		itr.next(events);
+		itr.next(_channel);
 		// 3. Receive an event
-		expect(itr.next(event).value).toEqual(
-			effects.call(config.resolver, event.data.req)
+		expect(itr.next(FETCH).value).toEqual(
+			effects.call(config.resolver, FETCH.data.req)
 		);
 	});
 
-	test('should spawn a fetch call', () => {
+	test('should fork a fetch call', () => {
 		const itr = main(config);
-		const fn = jest.fn();
+		const fn: any = jest.fn();
 
 		// Steps
 		// 1. create a channel
 		itr.next();
 		// 2. listen for events
-		itr.next(events);
+		itr.next(_channel);
 		// 3. Receive an event
-		itr.next(event);
+		itr.next(FETCH);
 		// 4. Handle the request
-		expect(itr.next(fn as any).value).toEqual(
-			effects.spawn(fetch, event.data.req, fn)
+		expect(itr.next(fn).value).toEqual(
+			effects.fork(fetch, FETCH.data.req, fn)
 		);
+	});
+
+	test('should deduplicate pending requests', () => {
+		const itr = main(config);
+		const fn: any = jest.fn();
+
+		// Workflow
+		// create a channel
+		itr.next();
+		// listen for events
+		itr.next(_channel);
+
+		// Round (1)
+		itr.next(FETCH);
+		expect(itr.next(fn).value).toEqual(
+			effects.fork(fetch, FETCH.data.req, fn)
+		);
+
+		// Round (2)
+		expect(itr.next(FETCH).value).toEqual(effects.take(_channel));
 	});
 });
 
