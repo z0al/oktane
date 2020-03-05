@@ -1,19 +1,20 @@
 // Packages
 import { Task } from 'redux-saga';
-import * as effects from 'redux-saga/effects';
+import { actionChannel } from 'redux-saga/effects';
+import { take, call, put, fork, cancel } from 'redux-saga/effects';
 
 // Ours
 import { Request } from './utils/request';
-import { Resolver, ResolverFn } from './utils/resolver';
+import { Resolver, HandlerFunc } from './utils/resolver';
 import { Event, EventType, RequestEvent } from './utils/events';
 
-type Config = {
+export type Config = {
 	resolver: Resolver;
 };
 
-export function* fetch(req: Request, resolve: ResolverFn) {
+export function* fetch(req: Request, func: HandlerFunc) {
 	try {
-		const result = yield effects.call(resolve);
+		const result = yield call(func);
 
 		const success: Event = {
 			type: '@data',
@@ -29,7 +30,7 @@ export function* fetch(req: Request, resolve: ResolverFn) {
 			},
 		};
 
-		return yield effects.put(success);
+		return yield put(success);
 	} catch (error) {
 		const failed: Event = {
 			type: '@failed',
@@ -42,31 +43,42 @@ export function* fetch(req: Request, resolve: ResolverFn) {
 			},
 		};
 
-		return yield effects.put(failed);
+		return yield put(failed);
 	}
 }
 
 export function* main(config: Config) {
 	const events: EventType[] = ['@fetch', '@abort'];
-	const channel = yield effects.actionChannel(events);
+	const channel = yield actionChannel(events);
 
 	// Keep a list of ongoing requests
 	const ongoing = new Map<string, Task>();
 
 	while (true) {
-		const event: RequestEvent = yield effects.take(channel);
+		const event: RequestEvent = yield take(channel);
 		const { req } = event.data;
 
-		// Deduplicate pending requests
+		// Deduplicate or cancel pending requests
 		let task = ongoing.get(req.id);
 		if (task?.isRunning()) {
+			if (event.type === '@abort') {
+				yield cancel(task);
+				ongoing.delete(req.id);
+			}
+
 			continue;
 		}
 
-		const handler = yield effects.call(config.resolver, req);
+		// Either we didn't recognize the request or it has already
+		// completed.
+		if (event.type === '@abort') {
+			continue;
+		}
+
+		const handler = yield call(config.resolver, req);
 
 		// Run and keep track
-		task = yield effects.fork(fetch, req, handler);
+		task = yield fork(fetch, req, handler);
 		ongoing.set(req.id, task);
 	}
 }

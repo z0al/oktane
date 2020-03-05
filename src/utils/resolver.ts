@@ -1,6 +1,8 @@
 // Ours
 import { Request } from './request';
 
-export type ResolverFn = () => any | Promise<any>;
+export type HandlerFunc = () => any | Promise<any>;
 
-export type Resolver = (req: Request) => ResolverFn;
+export type Resolver = (
+	req: Request
+) => HandlerFunc | Promise<HandlerFunc>;

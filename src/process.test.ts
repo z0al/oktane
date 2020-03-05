@@ -1,13 +1,13 @@
 // Packages
-import { channel } from 'redux-saga';
-import * as effects from 'redux-saga/effects';
+import delayP from '@redux-saga/delay-p';
+import { expectSaga } from 'redux-saga-test-plan';
 
 // Ours
 import { main, fetch } from './process';
 import { createRequest } from './utils/request';
 
 describe('main', () => {
-	let config: any, _channel: any;
+	let config: any, resolver: any, handler: any;
 
 	const FETCH: any = {
 		type: '@fetch',
@@ -20,83 +20,78 @@ describe('main', () => {
 		},
 	};
 
-	// const ABORT: any = {
-	// 	type: '@abort',
-	// 	data: {
-	// 		req: { id: '1' },
-	// 	},
-	// };
+	const ABORT: any = {
+		type: '@abort',
+		data: {
+			req: { id: '1' },
+		},
+	};
 
 	beforeEach(() => {
-		config = { resolver: jest.fn() };
-		_channel = channel();
+		handler = jest.fn().mockReturnValue(delayP(150, { ok: true }));
+		resolver = jest.fn().mockResolvedValue(handler);
+
+		config = { resolver };
 	});
 
-	test('should listen to fetch & abort events', () => {
-		const itr = main(config);
-
-		// Steps
-		// 1. create a channel
-		expect(itr.next().value).toEqual(
-			effects.actionChannel(['@fetch', '@abort'])
-		);
-		// 2. listen for events
-		expect(itr.next(_channel).value).toEqual(effects.take(_channel));
+	test('should listen to @fetch & @abort events', () => {
+		return expectSaga(main, config)
+			.actionChannel(['@fetch', '@abort'])
+			.silentRun();
 	});
 
 	test('should call the resolver with the request', () => {
-		const itr = main(config);
-
-		// Steps
-		// 1. create a channel
-		itr.next();
-		// 2. listen for events
-		itr.next(_channel);
-		// 3. Receive an event
-		expect(itr.next(FETCH).value).toEqual(
-			effects.call(config.resolver, FETCH.data.req)
-		);
+		return expectSaga(main, config)
+			.call(config.resolver, FETCH.data.req)
+			.dispatch(FETCH)
+			.silentRun();
 	});
 
 	test('should fork a fetch call', () => {
-		const itr = main(config);
-		const fn: any = jest.fn();
-
-		// Steps
-		// 1. create a channel
-		itr.next();
-		// 2. listen for events
-		itr.next(_channel);
-		// 3. Receive an event
-		itr.next(FETCH);
-		// 4. Handle the request
-		expect(itr.next(fn).value).toEqual(
-			effects.fork(fetch, FETCH.data.req, fn)
-		);
+		return expectSaga(main, config)
+			.fork(fetch, FETCH.data.req, handler)
+			.dispatch(FETCH)
+			.silentRun();
 	});
 
 	test('should deduplicate pending requests', () => {
-		const itr = main(config);
-		const fn: any = jest.fn();
+		return expectSaga(main, config)
+			.fork(fetch, FETCH.data.req, handler)
+			.not.fork(fetch, FETCH.data.req, handler)
+			.dispatch(FETCH)
+			.dispatch(FETCH)
+			.silentRun();
+	});
 
-		// Workflow
-		// create a channel
-		itr.next();
-		// listen for events
-		itr.next(_channel);
+	test('should cancel pending requests on abort events', () => {
+		return expectSaga(main, config)
+			.fork(fetch, FETCH.data.req, handler)
+			.fork(fetch, FETCH.data.req, handler)
+			.dispatch(FETCH)
+			.dispatch(ABORT)
+			.dispatch(FETCH)
+			.silentRun();
+	});
 
-		// Round (1)
-		itr.next(FETCH);
-		expect(itr.next(fn).value).toEqual(
-			effects.fork(fetch, FETCH.data.req, fn)
-		);
-
-		// Round (2)
-		expect(itr.next(FETCH).value).toEqual(effects.take(_channel));
+	test('should do nothing if no pending requests to abort', () => {
+		return expectSaga(main, config)
+			.not.call(resolver, ABORT.data.req)
+			.not.fork(fetch, ABORT.data.req, handler)
+			.dispatch(ABORT)
+			.silentRun();
 	});
 });
 
 describe('fetch', () => {
+	const users = [{ name: 'A' }, { name: 'B' }];
+	let handler: any;
+
+	beforeEach(() => {
+		handler = jest
+			.fn()
+			.mockResolvedValue([{ name: 'A' }, { name: 'B' }]);
+	});
+
 	const req = createRequest({
 		type: 'query',
 		query: 'test',
@@ -104,10 +99,7 @@ describe('fetch', () => {
 
 	test('should catch errors', () => {
 		const error = new Error('runtime error');
-		const fn = jest.fn();
-
-		const itr = fetch(req, fn);
-		itr.next();
+		handler = jest.fn().mockRejectedValue(error);
 
 		const event = {
 			type: '@failed',
@@ -120,13 +112,12 @@ describe('fetch', () => {
 			},
 		};
 
-		expect(itr.throw(error).value).toEqual(effects.put(event));
+		return expectSaga(fetch, req, handler)
+			.put(event)
+			.silentRun();
 	});
 
 	test('should emit data on success', () => {
-		const fn = jest.fn();
-		const users = [{ name: 'A' }, { name: 'B' }];
-
 		const event = {
 			type: '@data',
 			data: {
@@ -141,8 +132,8 @@ describe('fetch', () => {
 			},
 		};
 
-		const itr = fetch(req, fn);
-		expect(itr.next().value).toEqual(effects.call(fn));
-		expect(itr.next(users).value).toEqual(effects.put(event));
+		return expectSaga(fetch, req, handler)
+			.put(event)
+			.silentRun();
 	});
 });
