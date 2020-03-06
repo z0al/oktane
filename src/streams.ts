@@ -1,4 +1,5 @@
 // Packages
+const isObservable = require('is-observable');
 import { eventChannel, END } from 'redux-saga';
 import { Observable, Observer } from 'zen-observable-ts';
 
@@ -13,8 +14,6 @@ const isFunc = (f: any) => typeof f === 'function';
 
 const isGenerator = (g: any): g is AnyGenerator =>
 	g && isFunc(g.next) && isFunc(g.throw);
-
-const isObservable = (o: any) => o && isFunc(o.subscribe);
 
 export const isStreamable = (s: any): s is Streamable =>
 	isGenerator(s) || isObservable(s);
