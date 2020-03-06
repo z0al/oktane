@@ -1,5 +1,6 @@
 // Packages
-const isObservable = require('is-observable');
+// @ts-ignore
+import isObservable from 'is-observable';
 import { eventChannel, END } from 'redux-saga';
 import { Observable, Observer } from 'zen-observable-ts';
 

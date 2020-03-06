@@ -6,7 +6,7 @@ import { expectSaga } from 'redux-saga-test-plan';
 
 // Ours
 import { createRequest } from './utils/request';
-import { isStreamable, streamChannel } from './stream';
+import { isStreamable, streamChannel } from './streams';
 
 describe('isStreamable', () => {
 	test('should accept (async) generators & observables', () => {
