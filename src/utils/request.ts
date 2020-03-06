@@ -12,7 +12,6 @@ export interface Request {
 export interface Response {
 	data?: any;
 	request: Pick<Request, 'id' | 'type'>;
-	done: boolean;
 }
 
 export const createRequest = (req: Request): Request => {

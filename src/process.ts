@@ -25,7 +25,6 @@ export function* fetch(req: Request, func: HandlerFunc) {
 						type: req.type,
 					},
 					data: result,
-					done: true,
 				},
 			},
 		};

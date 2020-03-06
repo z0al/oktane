@@ -137,7 +137,6 @@ describe('fetch', () => {
 			payload: {
 				res: {
 					data: users,
-					done: true,
 					request: {
 						id: req.id,
 						type: req.type,

@@ -9,7 +9,7 @@ const task = function*() {
 	yield put({ type: 'DONE' });
 };
 
-it('should start/stop the root saga', () => {
+test('should start/stop the root saga', () => {
 	let isRunning = false;
 
 	const forever = function*() {
@@ -30,7 +30,7 @@ it('should start/stop the root saga', () => {
 	expect(isRunning).toBe(false);
 });
 
-it('should throw if onmessage is not implemented', () => {
+test('should throw if onmessage is not implemented', () => {
 	expect(() => {
 		new InlineWorker(function*() {
 			yield put({ type: 'FAIL' });
@@ -38,7 +38,7 @@ it('should throw if onmessage is not implemented', () => {
 	}).toThrowError(/Not implemented/);
 });
 
-it('should throw saga errors', () => {
+test('should throw saga errors', () => {
 	const error = new Error('FAIL');
 
 	expect(() => {
@@ -48,7 +48,7 @@ it('should throw saga errors', () => {
 	}).toThrowError(error);
 });
 
-it('should dispatch events to saga', () => {
+test('should dispatch events to saga', () => {
 	const w = new InlineWorker(task);
 	w.onmessage = jest.fn();
 
