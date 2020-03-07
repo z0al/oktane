@@ -9,19 +9,31 @@ import { Event } from './utils/events';
 import { Request } from './utils/request';
 
 type AnyGenerator = Generator<any> | AsyncGenerator<any>;
-export type Streamable = AnyGenerator | Observable<any>;
+export type Stream = AnyGenerator | Observable<any>;
 
 const isFunc = (f: any) => typeof f === 'function';
 
 const isGenerator = (g: any): g is AnyGenerator =>
 	g && isFunc(g.next) && isFunc(g.throw);
 
-export const isStreamable = (s: any): s is Streamable =>
+export const isStream = (s: any): s is Stream =>
 	isGenerator(s) || isObservable(s);
 
-export const streamChannel = (stream: Streamable, req: Request) =>
+const iter = async (g: AnyGenerator, o: Observer<any>) => {
+	try {
+		for await (const value of g) {
+			o.next(value);
+		}
+	} catch (error) {
+		return o.error(error);
+	}
+
+	return o.complete();
+};
+
+export const streamChannel = (stream: Stream, req: Request) =>
 	eventChannel<Event>(emit => {
-		const observer: Observer<unknown> = {
+		const subscriber: Observer<unknown> = {
 			next: data =>
 				emit({
 					type: '@data',
@@ -36,21 +48,10 @@ export const streamChannel = (stream: Streamable, req: Request) =>
 		};
 
 		if (isGenerator(stream)) {
-			const timeout = setTimeout(async () => {
-				try {
-					for await (let value of stream) {
-						observer.next(value);
-					}
-				} catch (error) {
-					return observer.error(error);
-				}
-
-				return observer.complete();
-			});
-
-			return () => clearTimeout(timeout);
+			iter(stream, subscriber);
+			return () => stream.return(null);
 		}
 
-		const sub = stream.subscribe(observer);
+		const sub = stream.subscribe(subscriber);
 		return () => sub.unsubscribe();
 	});
