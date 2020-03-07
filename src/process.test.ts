@@ -83,7 +83,7 @@ describe('main', () => {
 			.dispatch(ABORT)
 			.silentRun()
 			.finally(() => {
-				expect(aborted).toBeTruthy();
+				expect(aborted).toBe(true);
 			});
 	});
 
