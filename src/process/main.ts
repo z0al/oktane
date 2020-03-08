@@ -13,7 +13,7 @@ export type Config = {
 };
 
 export function* main(config: Config) {
-	const channel = yield actionChannel(['@fetch', '@abort']);
+	const channel = yield actionChannel(['@fetch', '@cancel']);
 
 	// Keep a record of ongoing requests
 	const ongoing = new Map<string, Task>();
@@ -26,7 +26,7 @@ export function* main(config: Config) {
 
 		// Deduplicate or cancel pending requests
 		if (task?.isRunning()) {
-			if (cmd.type === '@abort') {
+			if (cmd.type === '@cancel') {
 				yield cancel(task);
 				ongoing.delete(req.id);
 			}
@@ -36,7 +36,7 @@ export function* main(config: Config) {
 
 		// Either we didn't recognize the request or it has already
 		// completed.
-		if (cmd.type === '@abort') {
+		if (cmd.type === '@cancel') {
 			continue;
 		}
 

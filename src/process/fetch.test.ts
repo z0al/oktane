@@ -1,11 +1,18 @@
 // Packages
+import { runSaga } from 'redux-saga';
 import { Observable } from 'zen-observable-ts';
 import { expectSaga } from 'redux-saga-test-plan';
+import delay from '@redux-saga/delay-p';
 
 // Ours
 import { fetch } from './fetch';
 import { createRequest } from '../utils/request';
-import { Completed, Failure, Response } from '../utils/events';
+import {
+	Completed,
+	Failure,
+	Response,
+	Cancelled,
+} from '../utils/events';
 
 const data = { ok: true };
 const request = createRequest({
@@ -53,4 +60,27 @@ test('should handle streams', async () => {
 		.put(Response(request, 3))
 		.put(Completed(request))
 		.silentRun();
+});
+
+test('should emit @cancelled when necessary', async () => {
+	const gen = async function*() {
+		yield 1;
+		yield 2;
+		await delay(150);
+		yield 3;
+	};
+
+	const values: any[] = [];
+
+	const options = { dispatch: (o: any) => values.push(o) };
+	const task = runSaga(options, fetch, request, gen);
+
+	return delay(50).then(() => {
+		task.cancel();
+		expect(values).toEqual([
+			Response(request, 1),
+			Response(request, 2),
+			Cancelled(request),
+		]);
+	});
 });

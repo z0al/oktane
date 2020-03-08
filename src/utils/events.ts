@@ -6,8 +6,8 @@ export const Fetch = (req: Request) => ({
 	payload: { req },
 });
 
-export const Abort = (req: Request) => ({
-	type: '@abort',
+export const Cancel = (req: Request) => ({
+	type: '@cancel',
 	payload: { req },
 });
 
@@ -21,6 +21,11 @@ export const Failure = (req: Partial<Request>, error: Error) => ({
 	payload: { req, error },
 });
 
+export const Cancelled = (req: Partial<Request>) => ({
+	type: '@cancelled',
+	payload: { req },
+});
+
 export const Completed = (req: Partial<Request>) => ({
 	type: '@completed',
 	payload: { req },
@@ -28,11 +33,12 @@ export const Completed = (req: Partial<Request>) => ({
 
 export type ClientEvent =
 	| ReturnType<typeof Fetch>
-	| ReturnType<typeof Abort>;
+	| ReturnType<typeof Cancel>;
 
 export type WorkerEvent =
 	| ReturnType<typeof Response>
-	| ReturnType<typeof Completed>
-	| ReturnType<typeof Failure>;
+	| ReturnType<typeof Failure>
+	| ReturnType<typeof Cancelled>
+	| ReturnType<typeof Completed>;
 
 export type Event = ClientEvent | WorkerEvent;

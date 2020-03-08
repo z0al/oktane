@@ -5,7 +5,7 @@ import { expectSaga } from 'redux-saga-test-plan';
 // Ours
 import { main } from './main';
 import { fetch } from './fetch';
-import { Fetch, Abort } from '../utils/events';
+import { Fetch, Cancel } from '../utils/events';
 import { createRequest } from '../utils/request';
 
 const request = createRequest({
@@ -14,12 +14,12 @@ const request = createRequest({
 });
 
 const FETCH = Fetch(request);
-const ABORT = Abort(request);
+const CANCEL = Cancel(request);
 
-test('should listen to @fetch & @abort events', () => {
+test('should listen to @fetch & @cancel events', () => {
 	const config: any = {};
 	return expectSaga(main, config)
-		.actionChannel(['@fetch', '@abort'])
+		.actionChannel(['@fetch', '@cancel'])
 		.silentRun();
 });
 
@@ -61,18 +61,18 @@ test('should cancel pending requests on abort events', () => {
 		.fork(fetch, FETCH.payload.req, handler)
 		.fork(fetch, FETCH.payload.req, handler)
 		.dispatch(FETCH)
-		.dispatch(ABORT)
+		.dispatch(CANCEL)
 		.dispatch(FETCH)
 		.silentRun();
 });
 
-test('should do nothing if no pending requests to abort', () => {
+test('should do nothing if no pending requests to cancel', () => {
 	const handler = () => {};
 	const config = { resolver: () => handler };
 
 	return expectSaga(main, config)
-		.not.call(config.resolver, ABORT.payload.req)
-		.not.fork(fetch, ABORT.payload.req, handler)
-		.dispatch(ABORT)
+		.not.call(config.resolver, CANCEL.payload.req)
+		.not.fork(fetch, CANCEL.payload.req, handler)
+		.dispatch(CANCEL)
 		.silentRun();
 });
