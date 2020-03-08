@@ -23,7 +23,7 @@ export function* fetch(req: Request, func: HandlerFunc) {
 			return yield put($.Completed(req));
 		}
 
-		const channel = yield streamChannel(data, req);
+		channel = yield streamChannel(data, req);
 		while (true) {
 			yield put(yield take(channel));
 		}
