@@ -1,43 +1,44 @@
 // Ours
-import { Request, Response } from './request';
+import { Request } from './request';
 
-export type RequestEvent = {
-	type: '@fetch' | '@abort';
-	payload: {
-		req: Request;
-	};
-};
+export const Fetch = (req: Request) => ({
+	type: '@fetch',
+	payload: { req },
+});
 
-export type ErrorEvent = {
-	type: '@failed';
-	payload: {
-		req: Partial<Request>;
-		error: Error;
-	};
-};
+export const Abort = (req: Request) => ({
+	type: '@abort',
+	payload: { req },
+});
 
-export type ResponseEvent = {
-	type: '@data';
-	payload: {
-		res: Response;
-	};
-};
+export const Respond = (req: Partial<Request>, data: any) => ({
+	type: '@reponse',
+	payload: { req, data },
+});
 
-export type CacheEvent = {
-	type: '@cache/sync';
-	payload: {
-		changes: any[];
-	};
-};
+export const Fail = (req: Partial<Request>, error: Error) => ({
+	type: '@failed',
+	payload: { req, error },
+});
+
+export const Complete = (req: Partial<Request>) => ({
+	type: '@completed',
+	payload: { req },
+});
+
+export type RequestEvent =
+	| ReturnType<typeof Fetch>
+	| ReturnType<typeof Abort>;
+
+export type ResponseEvent =
+	| ReturnType<typeof Respond>
+	| ReturnType<typeof Complete>;
+
+export type ErrorEvent = ReturnType<typeof Fail>;
 
 export type EventType =
 	| RequestEvent['type']
 	| ErrorEvent['type']
-	| ResponseEvent['type']
-	| CacheEvent['type'];
+	| ResponseEvent['type'];
 
-export type Event =
-	| RequestEvent
-	| ErrorEvent
-	| ResponseEvent
-	| CacheEvent;
+export type Event = RequestEvent | ErrorEvent | ResponseEvent;

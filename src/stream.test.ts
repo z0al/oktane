@@ -9,6 +9,7 @@ import delayP from '@redux-saga/delay-p';
 // Ours
 import { streamChannel } from './stream';
 import { createRequest } from './utils/request';
+import { Respond, Fail } from './utils/events';
 
 const req = createRequest({
 	type: 'query',
@@ -42,16 +43,6 @@ const saga = function*(s: any, timeout: number = 0) {
 	}
 };
 
-const dataEvent = (data: any) => ({
-	type: '@data',
-	payload: { res: { request: req, data } },
-});
-
-const errorEvent = (error: any) => ({
-	type: '@failed',
-	payload: { error, req },
-});
-
 test('should consume (async) generators', async () => {
 	const gen = function*() {
 		yield 1;
@@ -65,15 +56,15 @@ test('should consume (async) generators', async () => {
 
 	// Normal generator
 	await expectSaga(saga, gen())
-		.put(dataEvent(1))
-		.put(dataEvent(2))
+		.put(Respond(req, 1))
+		.put(Respond(req, 2))
 		.put(END)
 		.silentRun();
 
 	// Async generator
 	return expectSaga(saga, asyncGen())
-		.put(dataEvent(1))
-		.put(dataEvent(2))
+		.put(Respond(req, 1))
+		.put(Respond(req, 2))
 		.put(END)
 		.silentRun();
 });
@@ -87,6 +78,7 @@ test('should cancel (async) generators on abort', async () => {
 			await delayP(150);
 			yield 3;
 		} finally {
+			// This will be called after `delayP` resolves
 			cancelled = true;
 		}
 	};
@@ -94,33 +86,33 @@ test('should cancel (async) generators on abort', async () => {
 	const g = gen();
 
 	await expectSaga(saga, g, 50)
-		.put(dataEvent(1))
-		.put(dataEvent(2))
-		.not.put(dataEvent(3))
+		.put(Respond(req, 1))
+		.put(Respond(req, 2))
+		.not.put(Respond(req, 3))
 		.put(END)
 		.silentRun();
 
-	// We need to wait sometime for `g.return` to resolve
-	await delayP(150);
-	expect(cancelled).toBe(true);
+	return delayP(150).then(() => {
+		expect(cancelled).toBe(true);
+	});
 });
 
 test('should consume observable-like objects', async () => {
 	await expectSaga(saga, Observable.of(1, 2))
-		.put(dataEvent(1))
-		.put(dataEvent(2))
+		.put(Respond(req, 1))
+		.put(Respond(req, 2))
 		.put(END)
 		.silentRun();
 
 	return expectSaga(saga, RxOf(1, 2))
-		.put(dataEvent(1))
-		.put(dataEvent(2))
+		.put(Respond(req, 1))
+		.put(Respond(req, 2))
 		.put(END)
 		.silentRun();
 });
 
 test('should cancel observable subscription on abort', async () => {
-	let closed = false;
+	let cancelled = false;
 
 	const sub = (o: any) => {
 		o.next(1);
@@ -128,28 +120,28 @@ test('should cancel observable subscription on abort', async () => {
 
 		return () => {
 			clearTimeout(timeout);
-			closed = true;
+			cancelled = true;
 		};
 	};
 
 	// Zen Observable
 	await expectSaga(saga, new Observable(sub), 100)
-		.put(dataEvent(1))
-		.not.put(dataEvent(2))
+		.put(Respond(req, 1))
+		.not.put(Respond(req, 2))
 		.put(END)
 		.silentRun();
 
-	expect(closed).toBe(true);
+	expect(cancelled).toBe(true);
 
 	// RxJS Observable
-	closed = false;
+	cancelled = false;
 	await expectSaga(saga, new RxObservable(sub), 100)
-		.put(dataEvent(1))
-		.not.put(dataEvent(2))
+		.put(Respond(req, 1))
+		.not.put(Respond(req, 2))
 		.put(END)
 		.silentRun();
 
-	expect(closed).toBe(true);
+	expect(cancelled).toBe(true);
 });
 
 test('should catch errors and return @failed', async () => {
@@ -160,8 +152,8 @@ test('should catch errors and return @failed', async () => {
 	};
 
 	await expectSaga(saga, gen())
-		.put(dataEvent(1))
-		.put(errorEvent(error))
+		.put(Respond(req, 1))
+		.put(Fail(req, error))
 		.put(END)
 		.silentRun()
 		.finally(() => {});
@@ -173,15 +165,15 @@ test('should catch errors and return @failed', async () => {
 
 	const ob = new Observable(sub);
 	await expectSaga(saga, ob)
-		.put(dataEvent(1))
-		.put(errorEvent(error))
+		.put(Respond(req, 1))
+		.put(Fail(req, error))
 		.put(END)
 		.silentRun();
 
 	const rx = new Observable(sub);
 	return expectSaga(saga, rx)
-		.put(dataEvent(1))
-		.put(errorEvent(error))
+		.put(Respond(req, 1))
+		.put(Fail(req, error))
 		.put(END)
 		.silentRun();
 });

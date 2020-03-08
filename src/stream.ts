@@ -3,8 +3,8 @@ import { Observer } from 'zen-observable-ts';
 import { eventChannel, buffers, END } from 'redux-saga';
 
 // Ours
-import { Event } from './utils/events';
 import { Request } from './utils/request';
+import { Event, Respond, Fail } from './utils/events';
 import { Stream, Iterable, isIterable } from './utils/is';
 
 const iter = async (g: Iterable, o: Observer<any>) => {
@@ -22,16 +22,8 @@ const iter = async (g: Iterable, o: Observer<any>) => {
 export const streamChannel = (stream: Stream, req: Request) =>
 	eventChannel<Event>(emit => {
 		const observer: Observer<any> = {
-			next: data =>
-				emit({
-					type: '@data',
-					payload: { res: { request: req, data } },
-				}),
-			error: error =>
-				emit({
-					type: '@failed',
-					payload: { error, req },
-				}),
+			next: data => emit(Respond(req, data)),
+			error: error => emit(Fail(req, error)),
 			complete: () => emit(END),
 		};
 

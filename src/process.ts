@@ -6,7 +6,7 @@ import { take, call, put, fork, cancel } from 'redux-saga/effects';
 // Ours
 import { Request } from './utils/request';
 import { Resolver, HandlerFunc } from './utils/resolver';
-import { Event, EventType, RequestEvent } from './utils/events';
+import { Respond, Fail, RequestEvent } from './utils/events';
 
 export type Config = {
 	resolver: Resolver;
@@ -15,39 +15,14 @@ export type Config = {
 export function* fetch(req: Request, func: HandlerFunc) {
 	try {
 		const result = yield call(func);
-
-		const success: Event = {
-			type: '@data',
-			payload: {
-				res: {
-					request: {
-						id: req.id,
-						type: req.type,
-					},
-					data: result,
-				},
-			},
-		};
-
-		return yield put(success);
+		return yield put(Respond(req, result));
 	} catch (error) {
-		const failed: Event = {
-			type: '@failed',
-			payload: {
-				req: {
-					id: req.id,
-					type: req.type,
-				},
-				error,
-			},
-		};
-
-		return yield put(failed);
+		return yield put(Fail(req, error));
 	}
 }
 
 export function* main(config: Config) {
-	const events: EventType[] = ['@fetch', '@abort'];
+	const events = ['@fetch', '@abort'];
 	const channel = yield actionChannel(events);
 
 	// Keep a list of ongoing requests

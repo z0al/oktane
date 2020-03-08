@@ -6,29 +6,19 @@ import { cancelled, call } from 'redux-saga/effects';
 // Ours
 import { main, fetch } from './process';
 import { createRequest } from './utils/request';
-import { RequestEvent, ResponseEvent } from './utils/events';
+import { Fetch, Abort, Fail, Respond } from './utils/events';
 
 describe('main', () => {
+	const request = createRequest({
+		id: '1',
+		type: 'query',
+		query: 'test',
+	});
+
+	const FETCH = Fetch(request);
+	const ABORT = Abort(request);
+
 	let config: any, resolver: any, handler: any;
-
-	const FETCH: RequestEvent = {
-		type: '@fetch',
-		payload: {
-			req: createRequest({
-				id: '1',
-				type: 'query',
-				query: 'test',
-			}),
-		},
-	};
-
-	const ABORT: RequestEvent = {
-		type: '@abort',
-		payload: {
-			req: { id: '1' } as any,
-		},
-	};
-
 	beforeEach(() => {
 		handler = jest.fn().mockReturnValue(delayP(100, { ok: true }));
 		resolver = jest.fn().mockResolvedValue(handler);
@@ -98,6 +88,11 @@ describe('main', () => {
 
 describe('fetch', () => {
 	const users = [{ name: 'A' }, { name: 'B' }];
+	const request = createRequest({
+		type: 'query',
+		query: 'test',
+	});
+
 	let handler: any;
 
 	beforeEach(() => {
@@ -106,46 +101,20 @@ describe('fetch', () => {
 			.mockResolvedValue([{ name: 'A' }, { name: 'B' }]);
 	});
 
-	const req = createRequest({
-		type: 'query',
-		query: 'test',
-	});
-
 	test('should catch errors', () => {
 		const error = new Error('runtime error');
+		const event = Fail(request, error);
 		handler = jest.fn().mockRejectedValue(error);
 
-		const event = {
-			type: '@failed',
-			payload: {
-				req: {
-					id: req.id,
-					type: req.type,
-				},
-				error,
-			},
-		};
-
-		return expectSaga(fetch, req, handler)
+		return expectSaga(fetch, request, handler)
 			.put(event)
 			.silentRun();
 	});
 
 	test('should emit data on success', () => {
-		const event: ResponseEvent = {
-			type: '@data',
-			payload: {
-				res: {
-					data: users,
-					request: {
-						id: req.id,
-						type: req.type,
-					},
-				},
-			},
-		};
+		const event = Respond(request, users);
 
-		return expectSaga(fetch, req, handler)
+		return expectSaga(fetch, request, handler)
 			.put(event)
 			.silentRun();
 	});

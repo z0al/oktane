@@ -6,12 +6,7 @@ export interface Request {
 	id?: string;
 	query: any;
 	variables?: any;
-	type: 'query' | 'mutation' | 'subscription';
-}
-
-export interface Response {
-	data?: any;
-	request: Pick<Request, 'id' | 'type'>;
+	type: 'query' | 'mutation' | 'stream';
 }
 
 export const createRequest = (req: Request): Request => {
