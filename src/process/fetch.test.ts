@@ -84,3 +84,30 @@ test('should emit @cancelled when necessary', async () => {
 		]);
 	});
 });
+
+test('should always close the streaming channel', async () => {
+	let closed = false;
+	const o = new Observable(sub => {
+		setTimeout(() => sub.complete(), 150);
+
+		return () => {
+			closed = true;
+		};
+	});
+
+	// Normal execution
+	await expectSaga(fetch, request, () => o)
+		.silentRun()
+		.finally(() => {
+			expect(closed).toBe(true);
+		});
+
+	// Cancelled
+	closed = false;
+	const task = runSaga({ dispatch: () => {} }, fetch, request, () => o);
+
+	return delay(50).then(() => {
+		task.cancel();
+		expect(closed).toBe(true);
+	});
+});
