@@ -11,34 +11,28 @@ export const Abort = (req: Request) => ({
 	payload: { req },
 });
 
-export const Respond = (req: Partial<Request>, data: any) => ({
-	type: '@reponse',
+export const Response = (req: Partial<Request>, data: any) => ({
+	type: '@response',
 	payload: { req, data },
 });
 
-export const Fail = (req: Partial<Request>, error: Error) => ({
-	type: '@failed',
+export const Failure = (req: Partial<Request>, error: Error) => ({
+	type: '@failure',
 	payload: { req, error },
 });
 
-export const Complete = (req: Partial<Request>) => ({
+export const Completed = (req: Partial<Request>) => ({
 	type: '@completed',
 	payload: { req },
 });
 
-export type RequestEvent =
+export type ClientEvent =
 	| ReturnType<typeof Fetch>
 	| ReturnType<typeof Abort>;
 
-export type ResponseEvent =
-	| ReturnType<typeof Respond>
-	| ReturnType<typeof Complete>;
+export type WorkerEvent =
+	| ReturnType<typeof Response>
+	| ReturnType<typeof Completed>
+	| ReturnType<typeof Failure>;
 
-export type ErrorEvent = ReturnType<typeof Fail>;
-
-export type EventType =
-	| RequestEvent['type']
-	| ErrorEvent['type']
-	| ResponseEvent['type'];
-
-export type Event = RequestEvent | ErrorEvent | ResponseEvent;
+export type Event = ClientEvent | WorkerEvent;

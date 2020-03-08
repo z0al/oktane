@@ -6,7 +6,7 @@ import { cancelled, call } from 'redux-saga/effects';
 // Ours
 import { main, fetch } from './process';
 import { createRequest } from './utils/request';
-import { Fetch, Abort, Fail, Respond } from './utils/events';
+import { Fetch, Abort, Failure, Response } from './utils/events';
 
 describe('main', () => {
 	const request = createRequest({
@@ -103,7 +103,7 @@ describe('fetch', () => {
 
 	test('should catch errors', () => {
 		const error = new Error('runtime error');
-		const event = Fail(request, error);
+		const event = Failure(request, error);
 		handler = jest.fn().mockRejectedValue(error);
 
 		return expectSaga(fetch, request, handler)
@@ -112,7 +112,7 @@ describe('fetch', () => {
 	});
 
 	test('should emit data on success', () => {
-		const event = Respond(request, users);
+		const event = Response(request, users);
 
 		return expectSaga(fetch, request, handler)
 			.put(event)

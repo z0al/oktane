@@ -9,7 +9,7 @@ import delayP from '@redux-saga/delay-p';
 // Ours
 import { streamChannel } from './stream';
 import { createRequest } from './utils/request';
-import { Respond, Fail } from './utils/events';
+import { Response, Failure } from './utils/events';
 
 const req = createRequest({
 	type: 'query',
@@ -56,15 +56,15 @@ test('should consume (async) generators', async () => {
 
 	// Normal generator
 	await expectSaga(saga, gen())
-		.put(Respond(req, 1))
-		.put(Respond(req, 2))
+		.put(Response(req, 1))
+		.put(Response(req, 2))
 		.put(END)
 		.silentRun();
 
 	// Async generator
 	return expectSaga(saga, asyncGen())
-		.put(Respond(req, 1))
-		.put(Respond(req, 2))
+		.put(Response(req, 1))
+		.put(Response(req, 2))
 		.put(END)
 		.silentRun();
 });
@@ -86,9 +86,9 @@ test('should cancel (async) generators on abort', async () => {
 	const g = gen();
 
 	await expectSaga(saga, g, 50)
-		.put(Respond(req, 1))
-		.put(Respond(req, 2))
-		.not.put(Respond(req, 3))
+		.put(Response(req, 1))
+		.put(Response(req, 2))
+		.not.put(Response(req, 3))
 		.put(END)
 		.silentRun();
 
@@ -99,14 +99,14 @@ test('should cancel (async) generators on abort', async () => {
 
 test('should consume observable-like objects', async () => {
 	await expectSaga(saga, Observable.of(1, 2))
-		.put(Respond(req, 1))
-		.put(Respond(req, 2))
+		.put(Response(req, 1))
+		.put(Response(req, 2))
 		.put(END)
 		.silentRun();
 
 	return expectSaga(saga, RxOf(1, 2))
-		.put(Respond(req, 1))
-		.put(Respond(req, 2))
+		.put(Response(req, 1))
+		.put(Response(req, 2))
 		.put(END)
 		.silentRun();
 });
@@ -126,8 +126,8 @@ test('should cancel observable subscription on abort', async () => {
 
 	// Zen Observable
 	await expectSaga(saga, new Observable(sub), 100)
-		.put(Respond(req, 1))
-		.not.put(Respond(req, 2))
+		.put(Response(req, 1))
+		.not.put(Response(req, 2))
 		.put(END)
 		.silentRun();
 
@@ -136,24 +136,24 @@ test('should cancel observable subscription on abort', async () => {
 	// RxJS Observable
 	cancelled = false;
 	await expectSaga(saga, new RxObservable(sub), 100)
-		.put(Respond(req, 1))
-		.not.put(Respond(req, 2))
+		.put(Response(req, 1))
+		.not.put(Response(req, 2))
 		.put(END)
 		.silentRun();
 
 	expect(cancelled).toBe(true);
 });
 
-test('should catch errors and return @failed', async () => {
-	const error = new Error('FAIL');
+test('should catch errors and return @Faileded', async () => {
+	const error = new Error('Failure');
 	const gen = async function*() {
 		yield 1;
 		throw error;
 	};
 
 	await expectSaga(saga, gen())
-		.put(Respond(req, 1))
-		.put(Fail(req, error))
+		.put(Response(req, 1))
+		.put(Failure(req, error))
 		.put(END)
 		.silentRun()
 		.finally(() => {});
@@ -165,15 +165,15 @@ test('should catch errors and return @failed', async () => {
 
 	const ob = new Observable(sub);
 	await expectSaga(saga, ob)
-		.put(Respond(req, 1))
-		.put(Fail(req, error))
+		.put(Response(req, 1))
+		.put(Failure(req, error))
 		.put(END)
 		.silentRun();
 
 	const rx = new Observable(sub);
 	return expectSaga(saga, rx)
-		.put(Respond(req, 1))
-		.put(Fail(req, error))
+		.put(Response(req, 1))
+		.put(Failure(req, error))
 		.put(END)
 		.silentRun();
 });
