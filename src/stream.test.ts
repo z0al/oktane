@@ -9,7 +9,7 @@ import delayP from '@redux-saga/delay-p';
 // Ours
 import { streamChannel } from './stream';
 import { createRequest } from './utils/request';
-import { Response, Failure } from './utils/events';
+import { Response, Failure, Completed } from './utils/events';
 
 const req = createRequest({
 	type: 'query',
@@ -58,6 +58,7 @@ test('should consume (async) generators', async () => {
 	await expectSaga(saga, gen())
 		.put(Response(req, 1))
 		.put(Response(req, 2))
+		.put(Completed(req))
 		.put(END)
 		.silentRun();
 
@@ -65,6 +66,7 @@ test('should consume (async) generators', async () => {
 	return expectSaga(saga, asyncGen())
 		.put(Response(req, 1))
 		.put(Response(req, 2))
+		.put(Completed(req))
 		.put(END)
 		.silentRun();
 });
@@ -101,12 +103,14 @@ test('should consume observable-like objects', async () => {
 	await expectSaga(saga, Observable.of(1, 2))
 		.put(Response(req, 1))
 		.put(Response(req, 2))
+		.put(Completed(req))
 		.put(END)
 		.silentRun();
 
 	return expectSaga(saga, RxOf(1, 2))
 		.put(Response(req, 1))
 		.put(Response(req, 2))
+		.put(Completed(req))
 		.put(END)
 		.silentRun();
 });
@@ -154,6 +158,7 @@ test('should catch errors and return @Faileded', async () => {
 	await expectSaga(saga, gen())
 		.put(Response(req, 1))
 		.put(Failure(req, error))
+		.not.put(Completed(req))
 		.put(END)
 		.silentRun()
 		.finally(() => {});
@@ -167,6 +172,7 @@ test('should catch errors and return @Faileded', async () => {
 	await expectSaga(saga, ob)
 		.put(Response(req, 1))
 		.put(Failure(req, error))
+		.not.put(Completed(req))
 		.put(END)
 		.silentRun();
 
@@ -174,6 +180,7 @@ test('should catch errors and return @Faileded', async () => {
 	return expectSaga(saga, rx)
 		.put(Response(req, 1))
 		.put(Failure(req, error))
+		.not.put(Completed(req))
 		.put(END)
 		.silentRun();
 });

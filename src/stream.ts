@@ -4,8 +4,8 @@ import { eventChannel, buffers, END } from 'redux-saga';
 
 // Ours
 import { Request } from './utils/request';
-import { Event, Response, Failure } from './utils/events';
 import { Stream, Iterable, isIterable } from './utils/is';
+import { Event, Response, Failure, Completed } from './utils/events';
 
 const iter = async (g: Iterable, o: Observer<any>) => {
 	try {
@@ -24,7 +24,10 @@ export const streamChannel = (stream: Stream, req: Request) =>
 		const observer: Observer<any> = {
 			next: data => emit(Response(req, data)),
 			error: error => emit(Failure(req, error)),
-			complete: () => emit(END),
+			complete: () => {
+				emit(Completed(req));
+				emit(END);
+			},
 		};
 
 		if (isIterable(stream)) {
