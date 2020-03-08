@@ -1,7 +1,7 @@
 // Packages
 // @ts-ignore
 import isObservable from 'is-observable';
-import { eventChannel, END } from 'redux-saga';
+import { eventChannel, END, buffers } from 'redux-saga';
 import { Observable, Observer } from 'zen-observable-ts';
 
 // Ours
@@ -54,4 +54,4 @@ export const streamChannel = (stream: Stream, req: Request) =>
 
 		const sub = stream.subscribe(subscriber);
 		return () => sub.unsubscribe();
-	});
+	}, buffers.expanding());
