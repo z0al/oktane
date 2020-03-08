@@ -1,25 +1,13 @@
 // Packages
-// @ts-ignore
-import isObservable from 'is-observable';
-import { eventChannel, END, buffers } from 'redux-saga';
-import { Observable, Observer } from 'zen-observable-ts';
+import { Observer } from 'zen-observable-ts';
+import { eventChannel, buffers, END } from 'redux-saga';
 
 // Ours
 import { Event } from './utils/events';
 import { Request } from './utils/request';
+import { Stream, Iterable, isIterable } from './utils/is';
 
-type AnyGenerator = Generator<any> | AsyncGenerator<any>;
-export type Stream = AnyGenerator | Observable<any>;
-
-const isFunc = (f: any) => typeof f === 'function';
-
-const isGenerator = (g: any): g is AnyGenerator =>
-	g && isFunc(g.next) && isFunc(g.throw);
-
-export const isStream = (s: any): s is Stream =>
-	isGenerator(s) || isObservable(s);
-
-const iter = async (g: AnyGenerator, o: Observer<any>) => {
+const iter = async (g: Iterable, o: Observer<any>) => {
 	try {
 		for await (const value of g) {
 			o.next(value);
@@ -33,7 +21,7 @@ const iter = async (g: AnyGenerator, o: Observer<any>) => {
 
 export const streamChannel = (stream: Stream, req: Request) =>
 	eventChannel<Event>(emit => {
-		const subscriber: Observer<unknown> = {
+		const observer: Observer<any> = {
 			next: data =>
 				emit({
 					type: '@data',
@@ -47,11 +35,11 @@ export const streamChannel = (stream: Stream, req: Request) =>
 			complete: () => emit(END),
 		};
 
-		if (isGenerator(stream)) {
-			iter(stream, subscriber);
-			return () => stream.return(null);
+		if (isIterable(stream)) {
+			iter(stream, observer);
+			return () => stream.return?.(null);
 		}
 
-		const sub = stream.subscribe(subscriber);
-		return () => sub.unsubscribe();
+		const $ = stream.subscribe(observer);
+		return () => $.unsubscribe();
 	}, buffers.expanding());
