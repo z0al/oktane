@@ -1,22 +1,22 @@
 {
-  "include": ["src", "types", "test"],
-  "compilerOptions": {
-    "target": "es6",
-    "module": "esnext",
-    "outDir": "dist",
-    "lib": ["dom", "esnext"],
-    "importHelpers": true,
-    "declaration": true,
-    "sourceMap": true,
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node",
-    "jsx": "react",
-    "esModuleInterop": true
-  }
+	"include": ["src", "types", "test"],
+	"compilerOptions": {
+		"target": "es6",
+		"module": "esnext",
+		"outDir": "dist",
+		"lib": ["dom", "esnext"],
+		"importHelpers": true,
+		"declaration": true,
+		"sourceMap": true,
+		"noImplicitAny": true,
+		"noImplicitThis": true,
+		"alwaysStrict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"moduleResolution": "node",
+		"jsx": "react",
+		"esModuleInterop": true
+	}
 }

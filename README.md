@@ -6,10 +6,10 @@ Abstract helpers for data-driven JavaScript apps built on the top of [Redux Saga
 
 ## Features
 
-* Idiomatic Redux
-* Query language agnostic
-* Out of the box support: Pagination, and cancellation
-* Powered by Redux Saga
+- Idiomatic Redux
+- Query language agnostic
+- Out of the box support: Pagination, and cancellation
+- Powered by Redux Saga
 
 ## Out of scope
 
@@ -18,12 +18,7 @@ Abstract helpers for data-driven JavaScript apps built on the top of [Redux Saga
 
 ## Roadmap
 
-- [x] Basic query support (share your [feedback][basic-query])
-	- [x] Resolving queries
-	- [x] Loading indication
-	- [x] Handling query errors
-	- [x] Cancellation support
-	- [x] Pagination support
+- [x] Basic query support (share your [feedback][basic-query]) - [x] Resolving queries - [x] Loading indication - [x] Handling query errors - [x] Cancellation support - [x] Pagination support
 - [ ] React binding (WIP)
 - [ ] Add cache helpers (get by ID, invalidate ..etc)
 - [ ] Support mutations (i.e. write queries)
@@ -38,10 +33,10 @@ TODO.
 
 This project wouldn't have been possible without the following great libraries:
 
-* [React][react]: For all the hooks and re-rendering
-* [Redux][redux]: For not once complaining about how many Todo apps it witnessed
-* [Redux Saga][saga]: For helping us avoid the pain of forking [nocode][nocode]
-* [TSDX][tsdx]: For making dealing with TypeScript no implicit any
+- [React][react]: For all the hooks and re-rendering
+- [Redux][redux]: For not once complaining about how many Todo apps it witnessed
+- [Redux Saga][saga]: For helping us avoid the pain of forking [nocode][nocode]
+- [TSDX][tsdx]: For making dealing with TypeScript no implicit any
 
 Also, a special thanks to Apollo's team for their amazing work on [Apollo Client][apollo] from which we copied some concepts.
 

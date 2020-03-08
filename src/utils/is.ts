@@ -1,5 +1,4 @@
 // Packages
-// @ts-ignore
 import isObservable from 'is-observable';
 import { Observable } from 'zen-observable-ts';
 

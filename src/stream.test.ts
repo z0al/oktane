@@ -78,22 +78,31 @@ test('should consume (async) generators', async () => {
 		.silentRun();
 });
 
-test('should cancel (async) generators on abort', () => {
+test('should cancel (async) generators on abort', async () => {
+	let cancelled = false;
 	const gen = async function*() {
-		yield 1;
-		yield 2;
-		await delayP(150);
-		yield 3;
+		try {
+			yield 1;
+			yield 2;
+			await delayP(150);
+			yield 3;
+		} finally {
+			cancelled = true;
+		}
 	};
 
 	const g = gen();
 
-	return expectSaga(saga, g, 50)
+	await expectSaga(saga, g, 50)
 		.put(dataEvent(1))
 		.put(dataEvent(2))
 		.not.put(dataEvent(3))
 		.put(END)
 		.silentRun();
+
+	// We need to wait sometime for `g.return` to resolve
+	await delayP(150);
+	expect(cancelled).toBe(true);
 });
 
 test('should consume observable-like objects', async () => {
