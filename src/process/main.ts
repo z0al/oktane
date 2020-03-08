@@ -1,29 +1,19 @@
 // Packages
 import { Task } from 'redux-saga';
 import { actionChannel } from 'redux-saga/effects';
-import { take, call, put, fork, cancel } from 'redux-saga/effects';
+import { take, call, fork, cancel } from 'redux-saga/effects';
 
 // Ours
-import { Request } from './utils/request';
-import { Resolver, HandlerFunc } from './utils/resolver';
-import { Response, Failure, ClientEvent } from './utils/events';
+import { fetch } from './fetch';
+import { Resolver } from '../utils/resolver';
+import { ClientEvent } from '../utils/events';
 
 export type Config = {
 	resolver: Resolver;
 };
 
-export function* fetch(req: Request, func: HandlerFunc) {
-	try {
-		const result = yield call(func);
-		return yield put(Response(req, result));
-	} catch (error) {
-		return yield put(Failure(req, error));
-	}
-}
-
 export function* main(config: Config) {
-	const pattern: ClientEvent['type'][] = ['@fetch', '@abort'];
-	const channel = yield actionChannel(pattern);
+	const channel = yield actionChannel(['@fetch', '@abort']);
 
 	// Keep a record of ongoing requests
 	const ongoing = new Map<string, Task>();
