@@ -1,6 +1,6 @@
 // Packages
 import * as Rx from 'rxjs';
-import { Observable } from 'zen-observable-ts';
+import Observable from 'zen-observable';
 
 // Ours
 import { isStream, isIterable } from './is';

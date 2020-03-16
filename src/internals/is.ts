@@ -1,6 +1,6 @@
 // Packages
 import isObservable from 'is-observable';
-import { Observable } from 'zen-observable-ts';
+import Observable from 'zen-observable';
 
 export type Iterable = Generator<any> | AsyncGenerator<any>;
 export type Stream = Iterable | Observable<any>;
