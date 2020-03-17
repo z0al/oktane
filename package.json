@@ -31,8 +31,8 @@
 		"typescript": "^3.8.3"
 	},
 	"dependencies": {
+		"@sindresorhus/is": "^2.1.0",
 		"fast-safe-stringify": "^2.0.7",
-		"is-observable": "^2.0.0",
 		"mitt": "^1.2.0",
 		"redux": "^4.0.5",
 		"tiny-invariant": "^1.1.0",
