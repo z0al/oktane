@@ -25,7 +25,7 @@ export const $reject = (
 
 export const $buffer = (
 	request: Request,
-	data: FetchResult,
+	data: unknown,
 	meta: Meta = {}
 ) => ({
 	type: 'buffer' as 'buffer',
@@ -35,7 +35,7 @@ export const $buffer = (
 
 export const $complete = (
 	request: Request,
-	data?: FetchResult,
+	data?: unknown,
 	meta: Meta = {}
 ) => ({
 	type: 'complete' as 'complete',
@@ -48,10 +48,6 @@ export const $complete = (
  */
 export interface Meta {
 	// TODO: add source?
-}
-
-export interface FetchResult {
-	// TODO
 }
 
 /**
