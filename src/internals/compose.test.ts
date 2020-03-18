@@ -9,7 +9,7 @@ beforeEach(() => {
 	emit = jest.fn();
 });
 
-it('throws if no exchanges were passesd', () => {
+test('should throw if no exchanges were passesd', () => {
 	expect(() => {
 		compose([], emit);
 	}).toThrow(/at least one exchange/i);
@@ -17,7 +17,7 @@ it('throws if no exchanges were passesd', () => {
 	expect(emit).not.toBeCalled();
 });
 
-it('throws if some exchanges are not functions', () => {
+test('should throw if some exchanges are not functions', () => {
 	expect(() => {
 		compose([null], emit);
 	}).toThrow(/must be a function/i);
@@ -33,7 +33,7 @@ it('throws if some exchanges are not functions', () => {
 	expect(emit).not.toBeCalled();
 });
 
-it('throws when emitting during exchange setup', () => {
+test('should throw when emitting during exchange setup', () => {
 	const ex = jest.fn().mockImplementation(({ emit }) => emit());
 
 	expect(() => {
@@ -44,7 +44,7 @@ it('throws when emitting during exchange setup', () => {
 	expect(emit).not.toBeCalled();
 });
 
-it('reduces exchanges from left to right', () => {
+test('should reduce exchanges from left to right', () => {
 	// We don't support strings as "Operation" but that's out of the
 	// scope of `compose`.
 	// @ts-ignore
