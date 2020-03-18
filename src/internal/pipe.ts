@@ -33,7 +33,7 @@ import { Exchange, EmitFunc } from './types';
  * @param exchanges
  * @param emit
  */
-export const compose = (
+export const pipe = (
 	exchanges: Exchange[],
 	emit: EmitFunc
 ): EmitFunc => {

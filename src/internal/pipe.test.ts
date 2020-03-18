@@ -1,5 +1,5 @@
 // Ours
-import { compose } from './compose';
+import { pipe } from './pipe';
 
 globalThis.__DEV__ = true;
 
@@ -11,7 +11,7 @@ beforeEach(() => {
 
 test('should throw if no exchanges were passesd', () => {
 	expect(() => {
-		compose([], emit);
+		pipe([], emit);
 	}).toThrow(/at least one exchange/i);
 
 	expect(emit).not.toBeCalled();
@@ -19,15 +19,15 @@ test('should throw if no exchanges were passesd', () => {
 
 test('should throw if some exchanges are not functions', () => {
 	expect(() => {
-		compose([null], emit);
+		pipe([null], emit);
 	}).toThrow(/must be a function/i);
 
 	expect(() => {
-		compose([{} as any], emit);
+		pipe([{} as any], emit);
 	}).toThrow(/must be a function/i);
 
 	expect(() => {
-		compose([true as any], emit);
+		pipe([true as any], emit);
 	}).toThrow(/must be a function/i);
 
 	expect(emit).not.toBeCalled();
@@ -37,7 +37,7 @@ test('should throw when emitting during exchange setup', () => {
 	const ex = jest.fn().mockImplementation(({ emit }) => emit());
 
 	expect(() => {
-		compose([ex], emit);
+		pipe([ex], emit);
 	}).toThrow(/not allowed/i);
 
 	expect(ex).toBeCalled();
@@ -46,7 +46,7 @@ test('should throw when emitting during exchange setup', () => {
 
 test('should reduce exchanges from left to right', () => {
 	// We don't support strings as "Operation" but that's out of the
-	// scope of `compose`.
+	// scope of `pipe`.
 	// @ts-ignore
 	const a = () => next => op => next(op + 'a');
 	// @ts-ignore
@@ -57,8 +57,8 @@ test('should reduce exchanges from left to right', () => {
 	// @ts-ignore
 	const emit = o => o;
 
-	expect(compose([a, b, c], emit)('+' as any)).toEqual('+cba');
-	expect(compose([c, b, a], emit)('+' as any)).toEqual('+abc');
+	expect(pipe([a, b, c], emit)('+' as any)).toEqual('+cba');
+	expect(pipe([c, b, a], emit)('+' as any)).toEqual('+abc');
 
-	expect(compose([a, a, b], emit)('+' as any)).toEqual('+baa');
+	expect(pipe([a, a, b], emit)('+' as any)).toEqual('+baa');
 });
