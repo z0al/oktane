@@ -1,45 +1,45 @@
 // Ours
 import { pipe } from './pipe';
 import { $buffer } from './operations';
-import { Exchange, EmitFunc } from './types';
+import { Exchange, ExchangeOptions } from './types';
 
 globalThis.__DEV__ = true;
 
-let emit: EmitFunc;
+let options: ExchangeOptions;
 beforeEach(() => {
-	emit = jest.fn();
+	options = { emit: jest.fn() };
 });
 
 test('should throw if no exchanges were passesd', () => {
 	expect(() => {
-		pipe([], emit);
+		pipe([], options);
 	}).toThrow(/at least one exchange/i);
 
-	expect(emit).not.toBeCalled();
+	expect(options.emit).not.toBeCalled();
 });
 
 test('should throw if some exchanges are not valid', () => {
 	expect(() => {
-		pipe([null], emit);
+		pipe([null], options);
 	}).toThrow(/exchange.name/i);
 
 	expect(() => {
-		pipe([{} as any], emit);
+		pipe([{} as any], options);
 	}).toThrow(/exchange.name/i);
 
 	expect(() => {
-		pipe([true as any], emit);
+		pipe([true as any], options);
 	}).toThrow(/exchange.name/i);
 
 	expect(() => {
-		pipe([{ name: 'test' } as any], emit);
+		pipe([{ name: 'test' } as any], options);
 	}).toThrow(/exchange.init/i);
 
 	expect(() => {
-		pipe([{ name: 'test', init: 'invalid' } as any], emit);
+		pipe([{ name: 'test', init: 'invalid' } as any], options);
 	}).toThrow(/exchange.init/i);
 
-	expect(emit).not.toBeCalled();
+	expect(options.emit).not.toBeCalled();
 });
 
 test('should throw if exchange names are not unique', () => {
@@ -54,10 +54,10 @@ test('should throw if exchange names are not unique', () => {
 	};
 
 	expect(() => {
-		pipe([ex, dup], emit);
+		pipe([ex, dup], options);
 	}).toThrow(/unique/i);
 
-	expect(emit).not.toBeCalled();
+	expect(options.emit).not.toBeCalled();
 	expect(ex.init).not.toBeCalled();
 	expect(dup.init).not.toBeCalled();
 });
@@ -69,11 +69,11 @@ test('should throw when emitting during exchange setup', () => {
 	};
 
 	expect(() => {
-		pipe([ex], emit);
+		pipe([ex], options);
 	}).toThrow(/not allowed/i);
 
 	expect(ex.init).toBeCalled();
-	expect(emit).not.toBeCalled();
+	expect(options.emit).not.toBeCalled();
 });
 
 test('should compose exchanges from right to left', () => {
@@ -86,15 +86,15 @@ test('should compose exchanges from right to left', () => {
 	const a = createExchange('a');
 	const b = createExchange('b');
 	const c = createExchange('c');
-	emit = o => o;
+	options.emit = o => o;
 
-	expect(pipe([a, b, c], emit)($buffer(null, '+'))).toEqual(
+	expect(pipe([a, b, c], options)($buffer(null, '+'))).toEqual(
 		$buffer(null, '+abc')
 	);
-	expect(pipe([c, b, a], emit)($buffer(null, '+'))).toEqual(
+	expect(pipe([c, b, a], options)($buffer(null, '+'))).toEqual(
 		$buffer(null, '+cba')
 	);
-	expect(pipe([a, c, b], emit)($buffer(null, '+'))).toEqual(
+	expect(pipe([a, c, b], options)($buffer(null, '+'))).toEqual(
 		$buffer(null, '+acb')
 	);
 });

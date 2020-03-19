@@ -3,7 +3,7 @@ import is from '@sindresorhus/is';
 import invariant from 'tiny-invariant';
 
 // Ours
-import { Exchange, EmitFunc } from './types';
+import { Exchange, ExchangeOptions, EmitFunc } from './types';
 
 /**
  * Setups exchanges and returns emit function. This is very similar
@@ -34,7 +34,7 @@ import { Exchange, EmitFunc } from './types';
  */
 export const pipe = (
 	exchanges: Exchange[],
-	emit: EmitFunc
+	options: ExchangeOptions
 ): EmitFunc => {
 	invariant(
 		exchanges?.length > 0,
@@ -64,14 +64,13 @@ export const pipe = (
 		);
 	}
 
-	let apply: EmitFunc = () => {
+	let emit: EmitFunc = () => {
 		invariant(false, 'emitting during exchange setup is not allowed');
 	};
 
-	const options = { emit: apply };
-	apply = exchanges
-		.map(ex => ex.init(options))
-		.reduce((a, b) => o => a(b(o)))(emit);
+	emit = exchanges
+		.map(ex => ex.init({ ...options, emit }))
+		.reduce((a, b) => o => a(b(o)))(options.emit);
 
-	return apply;
+	return emit;
 };
