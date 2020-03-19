@@ -30,8 +30,12 @@ const from = <T>(value: unknown): Observable<T> => {
 	if (is.asyncIterable(value) || is.generator(value)) {
 		subscriber = o => {
 			(async () => {
-				for await (const v of value) {
-					o.next(v as T);
+				try {
+					for await (const v of value) {
+						o.next(v as T);
+					}
+				} catch (error) {
+					o.error(error);
 				}
 
 				return o.complete();
