@@ -112,7 +112,7 @@ describe('Observable.from', () => {
 				s.next(2);
 			});
 
-			await expectObservable(rx, [1, 1], ERROR);
+			await expectObservable(rx, [1], ERROR);
 			await expectObservable(zen, [1], ERROR);
 		});
 	});
