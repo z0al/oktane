@@ -11,13 +11,13 @@ import { Exchange, ExchangeOptions, EmitFunc } from './types';
  *
  * @example
  * const ex1 = ()=> next => op => {
- * 	console.log('exchange 1')
- *  return next(op)
+ *	console.log('exchange 1')
+ *	return next(op)
  * }
 
  * const ex2 = ()=> next => op => {
- * 	console.log('exchange 2')
- *  return next(op)
+ *	console.log('exchange 2')
+ *	return next(op)
  * }
  *
  * const emit = op => console.log('emitted')
