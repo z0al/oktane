@@ -7,6 +7,7 @@ export interface ExchangeOptions {
 	emit: EmitFunc;
 }
 
-export type Exchange = (
-	o?: ExchangeOptions
-) => (next?: EmitFunc) => EmitFunc;
+export interface Exchange {
+	name: string;
+	init: (o?: ExchangeOptions) => (next?: EmitFunc) => EmitFunc;
+}

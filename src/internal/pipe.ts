@@ -7,8 +7,7 @@ import { Exchange, EmitFunc } from './types';
 
 /**
  * Setups exchanges and returns emit function. This is very similar
- * to Redux's `applyMiddleware` but with the exception that it reduces
- * exchanges from left to right.
+ * to Redux's `applyMiddleware`.
  *
  * @example
  * const ex1 = ()=> next => op => {
@@ -42,8 +41,27 @@ export const pipe = (
 		'At least one exchange must be provided'
 	);
 
+	// Ensure valid exchanges (top-level only)
 	for (const ex of exchanges) {
-		invariant(is.function_(ex), `exchange must be a function: ${ex}`);
+		invariant(
+			is.string(ex?.name),
+			`exchange.name must be a non-empty string. Found: ${ex?.name}`
+		);
+
+		invariant(
+			is.function_(ex?.init),
+			`exchange.init must be a function. Found: ${ex?.init}`
+		);
+	}
+
+	// No duplicated names allowed
+	const names = exchanges.map(e => e.name);
+	for (const name of names) {
+		invariant(
+			names.indexOf(name) === names.lastIndexOf(name),
+			`exchange names must be unique. ` +
+				`Found two or more exchanges with the name: ${name}`
+		);
 	}
 
 	let apply: EmitFunc = () => {
@@ -52,8 +70,8 @@ export const pipe = (
 
 	const options = { emit: apply };
 	apply = exchanges
-		.map(ex => ex(options))
-		.reduce((a, b) => o => b(a(o)))(emit);
+		.map(ex => ex.init(options))
+		.reduce((a, b) => o => a(b(o)))(emit);
 
 	return apply;
 };
