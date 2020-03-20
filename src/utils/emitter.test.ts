@@ -1,8 +1,8 @@
 // Ours
-import { createEmitter } from './emitter';
+import { Emitter } from './emitter';
 
-test('createEmitter', () => {
-	const emitter = createEmitter();
+test('Emitter', () => {
+	const emitter = Emitter();
 
 	const l1 = jest.fn();
 	const l2 = jest.fn();

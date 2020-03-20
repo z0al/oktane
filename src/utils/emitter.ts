@@ -8,7 +8,7 @@ interface EventEmitter extends mitt.Emitter {
 /**
  * Extends `mitt` to track listeners.
  */
-export const createEmitter = (): EventEmitter => {
+export const Emitter = (): EventEmitter => {
 	const listeners = Object.create(null);
 	const listenerCount = (event: string) => {
 		return (listeners[event] ?? []).length;

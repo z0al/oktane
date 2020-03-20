@@ -1,5 +1,5 @@
 // Ours
-import { Request } from '../utils/request';
+import { Request } from '../request';
 
 export const $fetch = (request: Request, meta: Meta = {}) => ({
 	type: 'fetch' as 'fetch',

@@ -3,7 +3,7 @@ import * as RxObservable from 'rxjs';
 import ZenObservable from 'zen-observable';
 
 // Ours
-import Observable from './observable';
+import { Observable } from './observable';
 import { expectObservable } from './test/helpers';
 
 describe('Observable.from', () => {

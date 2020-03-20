@@ -1,13 +1,13 @@
 // Packages
 import is from '@sindresorhus/is';
-import Observable from 'zen-observable';
+import zen from 'zen-observable';
 
 /**
  * Creates a new Observable instance from `value`
  *
  * @param value
  */
-const from = <T>(value: unknown): Observable<T> => {
+const from = <T>(value: unknown): ZenObservable.ObservableLike<T> => {
 	// By default, we simply pass the value through
 	let subscriber: ZenObservable.Subscriber<T> = o => {
 		o.next(value as T);
@@ -65,6 +65,8 @@ const from = <T>(value: unknown): Observable<T> => {
  */
 const create = <T>(
 	subscriber: ZenObservable.Subscriber<T>
-): Observable<T> => new Observable(subscriber);
+): ZenObservable.ObservableLike<T> => new zen(subscriber);
 
-export default { create, from };
+export type Observer = ZenObservable.Observer<any>;
+
+export const Observable = { create, from };
