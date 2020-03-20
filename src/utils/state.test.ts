@@ -158,6 +158,12 @@ const TESTS = [
 		operation: { type: 'complete' },
 		expected: 'completed',
 	},
+	// undefined
+	{
+		current: undefined,
+		operation: { type: 'fetch' },
+		expected: 'pending',
+	},
 ];
 
 test('transition', () => {

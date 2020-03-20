@@ -18,7 +18,7 @@ export type State =
  * @param operation
  */
 export const transition = (
-	state: State,
+	state: State = 'idle',
 	operation: Operation
 ): State => {
 	const event = operation.type;

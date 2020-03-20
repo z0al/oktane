@@ -67,6 +67,5 @@ const create = <T>(
 	subscriber: ZenObservable.Subscriber<T>
 ): ZenObservable.ObservableLike<T> => new zen(subscriber);
 
-export type Observer = ZenObservable.Observer<any>;
-
+export type Observer = ZenObservable.SubscriptionObserver<any>;
 export const Observable = { create, from };

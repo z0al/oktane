@@ -1,7 +1,7 @@
 // Ours
 import { Operation } from './operations';
 
-export type EmitFunc = (op: Operation) => Operation;
+export type EmitFunc = (op: Operation) => Operation | void;
 
 export interface ExchangeOptions {
 	emit: EmitFunc;
