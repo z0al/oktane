@@ -68,8 +68,13 @@ export const pipe = (
 		invariant(false, 'emitting during exchange setup is not allowed');
 	};
 
+	const config: ExchangeOptions = {
+		...options,
+		emit: o => emit(o),
+	};
+
 	emit = exchanges
-		.map(ex => ex.init({ ...options, emit }))
+		.map(ex => ex.init(config))
 		.reduce((a, b) => o => a(b(o)))(options.emit);
 
 	return emit;

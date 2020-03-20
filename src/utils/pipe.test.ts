@@ -63,9 +63,12 @@ test('should throw if exchange names are not unique', () => {
 });
 
 test('should throw when emitting during exchange setup', () => {
-	const ex = {
+	const ex: Exchange = {
 		name: 'test',
-		init: jest.fn().mockImplementation(({ emit }) => emit()),
+		init: jest.fn().mockImplementation(({ emit }) => {
+			emit(null);
+			return (next: any) => (op: any) => next(op);
+		}),
 	};
 
 	expect(() => {
@@ -74,6 +77,27 @@ test('should throw when emitting during exchange setup', () => {
 
 	expect(ex.init).toBeCalled();
 	expect(options.emit).not.toBeCalled();
+});
+
+test('should NOT throw when emitting after exchange setup', () => {
+	let called = false;
+	const ex: Exchange = {
+		name: 'test',
+		init: ({ emit }) => next => op => {
+			if (!called) {
+				called = true;
+				emit(null);
+			}
+
+			return next(op);
+		},
+	};
+
+	expect(() => {
+		pipe([ex], options)($buffer(null, {}));
+	}).not.toThrow();
+
+	expect(options.emit).toBeCalledWith(null);
 });
 
 test('should compose exchanges from right to left', () => {
