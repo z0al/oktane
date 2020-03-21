@@ -4,9 +4,11 @@ import { Request } from './request';
 import { Emitter } from './utils/emitter';
 import { transition, State } from './utils/state';
 import { Exchange, EmitFunc } from './utils/types';
+import { createFetch, FetchHandler } from './fetch';
 import { Operation, $fetch, $cancel } from './utils/operations';
 
 export interface ClientOptions {
+	handler: FetchHandler;
 	exchanges?: Array<Exchange>;
 }
 
@@ -17,9 +19,13 @@ export class Client {
 	private stateMap = new Map<string, State>();
 	private intake: EmitFunc;
 
-	constructor(options?: ClientOptions) {
+	constructor(options: ClientOptions) {
+		const exchanges = options.exchanges ?? [];
+		const fetchExchange = createFetch(options.handler);
+
+		// Setup exchanges
 		const config = { emit: this.emit.bind(this) };
-		this.intake = pipe(options?.exchanges, config);
+		this.intake = pipe([...exchanges, fetchExchange], config);
 	}
 
 	/**

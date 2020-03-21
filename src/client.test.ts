@@ -3,33 +3,40 @@ import delay from 'delay';
 
 // Ours
 import { Client } from './client';
+import { Exchange } from './utils/types';
 import { createRequest } from './request';
-import { Exchange, EmitFunc } from './utils/types';
-import {
-	$fetch,
-	$cancel,
-	$reject,
-	$buffer,
-	$complete,
-} from './utils/operations';
+import { $fetch, $cancel } from './utils/operations';
 
 describe('client', () => {
-	// FIXME: enable this when we have fetch exchange ready
-	it.skip('should not throw when no exchanges were passed', () => {
+	it('should not throw when no exchanges were passed', () => {
 		expect(() => {
-			new Client({});
+			new Client({} as any);
 		}).not.toThrow();
 
 		expect(() => {
-			new Client({ exchanges: [] });
+			const handler = jest.fn();
+			new Client({ handler, exchanges: [] });
+			expect(handler).not.toBeCalled();
 		}).not.toThrow();
 	});
 
 	describe('.fetch', () => {
-		const request = createRequest({
+		const query = createRequest({
 			type: 'query',
 			query: 'test',
 			variables: [1, 2],
+		});
+
+		const stream = createRequest({
+			type: 'stream',
+			query: 'test',
+			variables: [1, 2],
+		});
+
+		let handler: any;
+
+		beforeEach(() => {
+			handler = jest.fn().mockResolvedValue({ pass: true });
 		});
 
 		const logTo = (fn: any): Exchange => ({
@@ -43,102 +50,93 @@ describe('client', () => {
 		it('should emit fetch operation', () => {
 			const fn = jest.fn();
 			const client = new Client({
+				handler,
 				exchanges: [logTo(fn)],
 			});
-			client.fetch(request);
+			client.fetch(query);
 
-			expect(fn).toBeCalledWith($fetch(request));
+			expect(fn).toBeCalledWith($fetch(query));
 		});
 
 		it('should not emit "fetch" if it is already pending', () => {
 			const fn = jest.fn();
 			const client = new Client({
+				handler,
 				exchanges: [logTo(fn)],
 			});
-			client.fetch(request);
-			client.fetch(request);
-			client.fetch(request);
+			client.fetch(query);
+			client.fetch(query);
+			client.fetch(query);
 
-			expect(fn).toBeCalledWith($fetch(request));
+			expect(fn).toBeCalledWith($fetch(query));
 			expect(fn).toBeCalledTimes(1);
 		});
 
-		it('should call subscriber with state updates', () => {
-			let fire: EmitFunc;
+		it('should call subscriber with state updates', async () => {
+			const fetch = () => handler();
 
 			const client = new Client({
-				exchanges: [
-					{
-						name: 'dummy',
-						init: ({ emit }) => next => op => {
-							if (!fire) {
-								fire = emit;
-							}
-							return next(op);
-						},
-					},
-				],
+				handler: fetch,
+				exchanges: [],
 			});
 
-			const sub = jest.fn();
-			client.fetch(request, sub); // 1
+			let sub = jest.fn();
+			client.fetch(query, sub);
+			await delay(1);
 
-			fire($cancel(request)); // 2
-			fire($fetch(request)); // 3
-			fire($reject(request, null)); // 4
-			fire($fetch(request)); // 5
-			fire($buffer(request, null)); // 6
-			fire($complete(request)); // 7
+			expect(sub).toBeCalledWith('pending', null);
+			expect(sub).toBeCalledWith('completed', null);
+			expect(sub).toBeCalledTimes(2);
+
+			sub = jest.fn();
+			client.fetch(query, sub).cancel();
+			await delay(1);
 
 			expect(sub).toBeCalledWith('pending', null);
 			expect(sub).toBeCalledWith('cancelled', null);
+
+			sub = jest.fn();
+			client.fetch(stream, sub);
+			await delay(1);
+
 			expect(sub).toBeCalledWith('pending', null);
-			expect(sub).toBeCalledWith('failed', null);
 			expect(sub).toBeCalledWith('streaming', null);
 			expect(sub).toBeCalledWith('completed', null);
-			expect(sub).toBeCalledTimes(7);
+
+			sub = jest.fn();
+			handler = () => Promise.reject(null);
+			client.fetch(query, sub);
+			await delay(1);
+
+			expect(sub).toBeCalledWith('pending', null);
+			expect(sub).toBeCalledWith('failed', null);
 		});
 
 		it('should emit "cancel" on .cancel()', () => {
 			const fn = jest.fn();
 			const client = new Client({
+				handler,
 				exchanges: [logTo(fn)],
 			});
-			const { cancel } = client.fetch(request);
+			const { cancel } = client.fetch(query);
 			cancel();
 
-			expect(fn).toBeCalledWith($fetch(request));
-			expect(fn).toBeCalledWith($cancel(request));
+			expect(fn).toBeCalledWith($fetch(query));
+			expect(fn).toBeCalledWith($cancel(query));
 		});
 
 		it('should remove listener on .unsubscribe()', async () => {
-			const fn = jest.fn();
-			const sub = jest.fn();
-
 			const client = new Client({
-				exchanges: [
-					logTo(fn),
-					{
-						name: 'cancel',
-						init: ({ emit }) => next => op => {
-							const n = next(op);
-							if (op.type !== 'cancel') {
-								setTimeout(() => {
-									emit($cancel(request));
-								}, 50);
-							}
-							return n;
-						},
-					},
-				],
+				handler,
+				exchanges: [],
 			});
 
-			const { unsubscribe } = client.fetch(request, sub);
+			const sub = jest.fn();
+			const { unsubscribe } = client.fetch(query, sub);
 			unsubscribe();
 
-			await delay(150);
+			await delay(1);
 
-			expect(fn).toBeCalledWith($fetch(request));
 			expect(sub).toBeCalledWith('pending', null);
 			expect(sub).toBeCalledTimes(1);
 		});
