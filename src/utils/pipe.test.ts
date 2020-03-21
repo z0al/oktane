@@ -110,15 +110,13 @@ test('should compose exchanges from right to left', () => {
 	const a = createExchange('a');
 	const b = createExchange('b');
 	const c = createExchange('c');
-	options.emit = o => o;
 
-	expect(pipe([a, b, c], options)($buffer(null, '+'))).toEqual(
-		$buffer(null, '+abc')
-	);
-	expect(pipe([c, b, a], options)($buffer(null, '+'))).toEqual(
-		$buffer(null, '+cba')
-	);
-	expect(pipe([a, c, b], options)($buffer(null, '+'))).toEqual(
-		$buffer(null, '+acb')
-	);
+	pipe([a, b, c], options)($buffer(null, '+'));
+	expect(options.emit).toBeCalledWith($buffer(null, '+abc'));
+
+	pipe([c, b, a], options)($buffer(null, '+'));
+	expect(options.emit).toBeCalledWith($buffer(null, '+cba'));
+
+	pipe([a, c, b], options)($buffer(null, '+'));
+	expect(options.emit).toBeCalledWith($buffer(null, '+acb'));
 });

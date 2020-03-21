@@ -12,8 +12,6 @@ export type State =
 /**
  * Determines the next state given the current `state` and `operation`.
  *
- * Inspired by https://xstate.js.org/
- *
  * @param state
  * @param operation
  */
