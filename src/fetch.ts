@@ -1,8 +1,8 @@
 // Ours
 import { on } from './utils/filter';
 import { Request } from './request';
+import { subscribe } from './utils/streams';
 import { Exchange, ExchangeOptions } from './utils/types';
-import { Observable } from './utils/observable';
 import { $complete, $buffer, $reject } from './utils/operations';
 
 export type FetchHandler = (req: Request) => any;
@@ -30,7 +30,7 @@ const fetch = ({ emit }: ExchangeOptions, fn: FetchHandler) => {
 
 		// May resolve multiple times
 		if (request.type === 'stream') {
-			const sub = Observable.from(fn(request)).subscribe({
+			const sub = subscribe(fn(request), {
 				next: data => emit($buffer(request, data)),
 				error: error => emit($reject(request, error)),
 				complete: () => emit($complete(request)),

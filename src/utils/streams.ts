@@ -1,17 +1,30 @@
 // Packages
 import is from '@sindresorhus/is';
-import ZObservable from 'zen-observable';
+
+interface Observer {
+	next(value: any): void;
+	error(error: any): void;
+	complete(): void;
+}
+
+interface Subscriber extends Observer {
+	closed: boolean;
+}
+
+type SubscriberFunc = (o: Subscriber) => () => void;
 
 /**
- * Creates a new Observable instance from `value`
+ * Return an subscriber from any value
  *
  * @param value
  */
-const from = <T>(value: unknown) => {
+const fromValue = <T>(value: unknown) => {
 	// By default, we simply pass the value through
-	let subscriber: ZenObservable.Subscriber<T> = o => {
+	let subscriber: SubscriberFunc = o => {
 		o.next(value as T);
 		o.complete();
+
+		return () => {};
 	};
 
 	// Handle promises
@@ -23,6 +36,8 @@ const from = <T>(value: unknown) => {
 					o.complete();
 				})
 				.catch(e => o.error(e));
+
+			return () => {};
 		};
 	}
 
@@ -55,17 +70,32 @@ const from = <T>(value: unknown) => {
 		};
 	}
 
-	return create(subscriber);
+	return subscriber;
 };
 
 /**
- * Creates a new Observable instance
  *
- * @param subscriber
+ *
+ * @param value
+ * @param observer
  */
-const create = <T>(subscriber: ZenObservable.Subscriber<T>) =>
-	new ZObservable(subscriber);
+export const subscribe = (value: any, observer: Observer) => {
+	let closed = false;
 
-export type Observer = ZenObservable.Observer<any>;
-export type Subscription = ZenObservable.Subscription;
-export const Observable = { create, from };
+	const closeAnd = (cb: CallableFunction) => (value?: any): void => {
+		closed = true;
+		return cb(value);
+	};
+
+	const subscriber: Subscriber = {
+		closed,
+		next: observer.next,
+		error: closeAnd(observer.error),
+		complete: closeAnd(observer.complete),
+	};
+
+	const cleanup = fromValue(value)(subscriber);
+	const unsubscribe = closeAnd(cleanup);
+
+	return { closed, unsubscribe };
+};

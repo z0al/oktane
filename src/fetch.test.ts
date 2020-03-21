@@ -1,5 +1,7 @@
 // Packages
 import delay from 'delay';
+import * as rx from 'rxjs';
+import * as zen from 'zen-observable';
 
 // Ours
 import { pipe } from './utils/pipe';
@@ -140,4 +142,32 @@ test('should not emit when cancelled', async () => {
 	expect(options.emit).toBeCalledWith($fetch(query));
 	expect(options.emit).toBeCalledWith($cancel(query));
 	expect(options.emit).toBeCalledTimes(2);
+});
+
+test('should work with observables', async () => {
+	let observer: any = rx.from([1, 2, 3]);
+	const handler = jest.fn().mockImplementation(() => observer);
+	const fetch = createFetch(handler);
+	const apply = pipe([fetch], options);
+
+	apply($fetch(stream));
+	await delay(1);
+
+	expect(options.emit).toBeCalledWith($fetch(stream));
+	expect(options.emit).toBeCalledWith($buffer(stream, 1));
+	expect(options.emit).toBeCalledWith($buffer(stream, 2));
+	expect(options.emit).toBeCalledWith($buffer(stream, 3));
+	expect(options.emit).toBeCalledWith($complete(stream));
+	expect(options.emit).toBeCalledTimes(5);
+
+	observer = zen.default.from([4, 5, 6]);
+	apply($fetch(stream));
+	await delay(1);
+
+	expect(options.emit).toBeCalledWith($fetch(stream));
+	expect(options.emit).toBeCalledWith($buffer(stream, 4));
+	expect(options.emit).toBeCalledWith($buffer(stream, 5));
+	expect(options.emit).toBeCalledWith($buffer(stream, 6));
+	expect(options.emit).toBeCalledWith($complete(stream));
+	expect(options.emit).toBeCalledTimes(10);
 });
