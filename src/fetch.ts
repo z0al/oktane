@@ -1,9 +1,9 @@
 // Ours
 import { on } from './utils/filter';
 import { Request } from './request';
-import { subscribe } from './utils/streams';
 import { Exchange, ExchangeOptions } from './utils/types';
 import { $complete, $buffer, $reject } from './utils/operations';
+import { subscribe, fromStream, fromValue } from './utils/streams';
 
 export type FetchHandler = (req: Request) => any;
 
@@ -28,44 +28,30 @@ const fetch = ({ emit }: ExchangeOptions, fn: FetchHandler) => {
 			return;
 		}
 
-		// May resolve multiple times
-		if (request.type === 'stream') {
-			const sub = subscribe(fn(request), {
-				next: data => emit($buffer(request, data)),
-				error: error => emit($reject(request, error)),
-				complete: () => emit($complete(request)),
-			});
+		const value =
+			request.type === 'stream'
+				? fromStream(fn(request))
+				: fromValue(fn(request));
 
-			task = {
-				isRunning: () => !sub.closed,
-				cancel: () => sub.unsubscribe(),
-			};
-		} else {
-			let ended = false;
+		const sub = subscribe(value, {
+			next: data => {
+				// We know for sure that non-streams will only resolve once
+				// Let's save the time and complete them immediately
+				request.type === 'stream'
+					? emit($buffer(request, data))
+					: emit($complete(request, data));
+			},
+			error: error => emit($reject(request, error)),
+			complete: () => {
+				// Non-streams would already be completed on .next above
+				request.type === 'stream' && emit($complete(request));
+			},
+		});
 
-			task = {
-				isRunning: () => !ended,
-				cancel: () => {
-					ended = true;
-				},
-			};
-
-			// Query or Mutation
-			(async () => {
-				try {
-					const data = await fn(request);
-
-					// It maybe have been cancelled
-					if (task.isRunning()) {
-						emit($complete(request, data));
-					}
-				} catch (error) {
-					emit($reject(request, error));
-				} finally {
-					ended = true;
-				}
-			})();
-		}
+		task = {
+			isRunning: () => !sub.closed,
+			cancel: () => sub.unsubscribe(),
+		};
 
 		ongoing.set(request.id, task);
 	});
