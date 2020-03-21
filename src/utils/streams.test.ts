@@ -3,7 +3,7 @@ import * as RxObservable from 'rxjs';
 import ZenObservable from 'zen-observable';
 
 // Ours
-import { subscribe } from './streams';
+import { subscribe, fromStream } from './streams';
 
 const ERROR = new Error('runtime');
 
@@ -16,7 +16,7 @@ const observe = async (
 
 	const toPromise = (source: any) =>
 		new Promise((resolve, reject) => {
-			subscribe(source, {
+			subscribe(fromStream(source), {
 				next: (v: any) => vals.push(v),
 				error: reject,
 				complete: () => resolve(vals),

@@ -14,14 +14,13 @@ interface Subscriber extends Observer {
 type SubscriberFunc = (o: Subscriber) => () => void;
 
 /**
- * Return an subscriber from any value
+ * Convert to a value to a stream that resolves once
  *
  * @param value
  */
-const fromValue = <T>(value: unknown) => {
-	// By default, we simply pass the value through
+export const fromValue = (value: unknown) => {
 	let subscriber: SubscriberFunc = o => {
-		o.next(value as T);
+		o.next(value);
 		o.complete();
 
 		return () => {};
@@ -32,7 +31,7 @@ const fromValue = <T>(value: unknown) => {
 		subscriber = o => {
 			value
 				.then(v => {
-					o.next(v as T);
+					o.next(v);
 					o.complete();
 				})
 				.catch(e => o.error(e));
@@ -41,13 +40,25 @@ const fromValue = <T>(value: unknown) => {
 		};
 	}
 
+	return subscriber;
+};
+
+/**
+ * Return an subscriber from any value
+ *
+ * @param value
+ */
+export const fromStream = (value: unknown) => {
+	// By default, we simply pass the value through
+	let subscriber: SubscriberFunc;
+
 	// DO NOT iterate over plain iterables (e.g Array)
 	if (is.asyncIterable(value) || is.generator(value)) {
 		subscriber = o => {
 			(async () => {
 				try {
 					for await (const v of value) {
-						o.next(v as T);
+						o.next(v);
 					}
 				} catch (error) {
 					o.error(error);
@@ -70,6 +81,10 @@ const fromValue = <T>(value: unknown) => {
 		};
 	}
 
+	if (!subscriber) {
+		subscriber = fromValue(value);
+	}
+
 	return subscriber;
 };
 
@@ -79,22 +94,28 @@ const fromValue = <T>(value: unknown) => {
  * @param value
  * @param observer
  */
-export const subscribe = (value: any, observer: Observer) => {
+export const subscribe = (fn: SubscriberFunc, observer: Observer) => {
 	let closed = false;
 
 	const closeAnd = (cb: CallableFunction) => (value?: any): void => {
-		closed = true;
-		return cb(value);
+		if (!closed) {
+			cb(value);
+			closed = true;
+		}
 	};
 
 	const subscriber: Subscriber = {
 		closed,
-		next: observer.next,
+		next: value => {
+			if (!closed) {
+				observer.next(value);
+			}
+		},
 		error: closeAnd(observer.error),
 		complete: closeAnd(observer.complete),
 	};
 
-	const cleanup = fromValue(value)(subscriber);
+	const cleanup = fn(subscriber);
 	const unsubscribe = closeAnd(cleanup);
 
 	return { closed, unsubscribe };
