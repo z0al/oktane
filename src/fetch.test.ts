@@ -127,3 +127,17 @@ test('should handle errors', async () => {
 	expect(options.emit).toBeCalledWith($reject(stream, error));
 	expect(options.emit).toBeCalledTimes(6);
 });
+
+test('should not emit when cancelled', async () => {
+	const handler = jest.fn().mockReturnValue(delay(1));
+	const fetch = createFetch(handler);
+	const apply = pipe([fetch], options);
+
+	apply($fetch(query));
+	apply($cancel(query));
+	await delay(50);
+
+	expect(options.emit).toBeCalledWith($fetch(query));
+	expect(options.emit).toBeCalledWith($cancel(query));
+	expect(options.emit).toBeCalledTimes(2);
+});

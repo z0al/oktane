@@ -5,14 +5,14 @@ import { Exchange, ExchangeOptions } from './utils/types';
 import { Observable } from './utils/observable';
 import { $complete, $buffer, $reject } from './utils/operations';
 
-export type FetchHanlder = (req: Request) => any;
+export type FetchHandler = (req: Request) => any;
 
 interface Task {
 	isRunning: () => boolean;
 	cancel: () => void;
 }
 
-const fetch = ({ emit }: ExchangeOptions, fn: FetchHanlder) => {
+const fetch = ({ emit }: ExchangeOptions, fn: FetchHandler) => {
 	const ongoing = new Map<string, Task>();
 
 	return on(['fetch', 'cancel'], op => {
@@ -41,31 +41,37 @@ const fetch = ({ emit }: ExchangeOptions, fn: FetchHanlder) => {
 				cancel: () => sub.unsubscribe(),
 			};
 		} else {
-			let running = true;
+			let ended = false;
+
+			task = {
+				isRunning: () => !ended,
+				cancel: () => {
+					ended = true;
+				},
+			};
 
 			// Query or Mutation
 			(async () => {
 				try {
 					const data = await fn(request);
-					emit($complete(request, data));
+
+					// It maybe have been cancelled
+					if (task.isRunning()) {
+						emit($complete(request, data));
+					}
 				} catch (error) {
 					emit($reject(request, error));
 				} finally {
-					running = false;
+					ended = true;
 				}
 			})();
-
-			task = {
-				isRunning: () => running,
-				cancel: () => {},
-			};
 		}
 
 		ongoing.set(request.id, task);
 	});
 };
 
-export const createFetch = (fn: FetchHanlder): Exchange => ({
+export const createFetch = (fn: FetchHandler): Exchange => ({
 	name: 'fetch',
 	init: options => fetch(options, fn),
 });
