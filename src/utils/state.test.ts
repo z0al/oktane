@@ -164,6 +164,42 @@ const TESTS = [
 		operation: { type: 'fetch' },
 		expected: 'pending',
 	},
+	// dispose
+	{
+		current: 'idle',
+		operation: { type: 'dispose' },
+		expected: 'disposed',
+	},
+	{
+		current: 'pending',
+		operation: { type: 'dispose' },
+		expected: 'disposed',
+	},
+	{
+		current: 'streaming',
+		operation: { type: 'dispose' },
+		expected: 'disposed',
+	},
+	{
+		current: 'failed',
+		operation: { type: 'dispose' },
+		expected: 'disposed',
+	},
+	{
+		current: 'cancelled',
+		operation: { type: 'dispose' },
+		expected: 'disposed',
+	},
+	{
+		current: 'completed',
+		operation: { type: 'dispose' },
+		expected: 'disposed',
+	},
+	{
+		current: undefined,
+		operation: { type: 'dispose' },
+		expected: 'disposed',
+	},
 ];
 
 test('transition', () => {

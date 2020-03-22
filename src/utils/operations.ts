@@ -43,6 +43,12 @@ export const $complete = (
 	meta,
 });
 
+export const $dispose = (request: Request, meta: Meta = {}) => ({
+	type: 'dispose' as 'dispose',
+	payload: { request },
+	meta,
+});
+
 /**
  * Metadata to be used by e.g. devtools
  */
@@ -58,4 +64,5 @@ export type Operation =
 	| ReturnType<typeof $cancel>
 	| ReturnType<typeof $reject>
 	| ReturnType<typeof $buffer>
-	| ReturnType<typeof $complete>;
+	| ReturnType<typeof $complete>
+	| ReturnType<typeof $dispose>;

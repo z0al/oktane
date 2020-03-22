@@ -1,42 +1,61 @@
 // Ours
+import {
+	Operation,
+	$fetch,
+	$cancel,
+	$dispose,
+} from './utils/operations';
 import { pipe } from './utils/pipe';
 import { Request } from './request';
 import { Emitter } from './utils/emitter';
 import { transition, State } from './utils/state';
 import { createFetch, FetchHandler } from './fetch';
-import { Operation, $fetch, $cancel } from './utils/operations';
 import { Exchange, EmitFunc, ExchangeOptions } from './utils/types';
+
+export interface GCOptions {
+	// Max age for inactive queries. Default is 30 seconds.
+	maxAge?: number;
+}
 
 export interface ClientOptions {
 	handler: FetchHandler;
+	gc?: GCOptions;
 	exchanges?: Array<Exchange>;
 }
 
-export type Subscriber = (state: State, data: any, error?: any) => void;
+export type Subscriber = (state: State, data: any, err?: any) => void;
 
 export class Client {
-	private intake: EmitFunc;
-	private events = Emitter();
+	// Pass operation to exchanges
+	private pipeThrough: EmitFunc;
+
+	// A simple key-value cache. It uses the request ID as a key.
 	private cacheMap = new Map<string, any>();
+
+	// Holds the state of all requests.
 	private stateMap = new Map<string, State>();
 
-	constructor(options: ClientOptions) {
+	// We rely on this emitter for everything. In fact, Client is just
+	// a wrapper around this.
+	private events = Emitter(this.dispose.bind(this));
+
+	// Keeps track of inactive queries (i.e. no subscribers) so they
+	// can be disposed later (see .dispose()). The value here is the
+	// value returned by `setTimeout()`.
+	private inactive = new Map<string, any>();
+
+	constructor(private options: ClientOptions) {
 		const exchanges = options.exchanges || [];
 		const fetchExchange = createFetch(options.handler);
 
 		// Setup exchanges
 		const config: ExchangeOptions = {
 			emit: this.emit.bind(this),
-			cache: {
-				...this.cacheMap,
-				// @ts-ignore
-				set: undefined,
-				clear: undefined,
-				delete: undefined,
-			},
+			// TODO: find a way to warn the user when modifying cache directly.
+			cache: this.cacheMap,
 		};
 
-		this.intake = pipe([...exchanges, fetchExchange], config);
+		this.pipeThrough = pipe([...exchanges, fetchExchange], config);
 	}
 
 	/**
@@ -63,8 +82,16 @@ export class Client {
 			}
 		}
 
-		this.stateMap.set(key, transition(this.stateMap.get(key), op));
-		this.events.emit(key, op);
+		const next = transition(this.stateMap.get(key), op);
+
+		if (next !== 'disposed') {
+			this.stateMap.set(key, next);
+			this.events.emit(key, op);
+		} else {
+			// Clean-up
+			this.stateMap.delete(key);
+			this.cacheMap.delete(key);
+		}
 	}
 
 	/**
@@ -84,7 +111,23 @@ export class Client {
 			return;
 		}
 
-		this.intake(op);
+		this.pipeThrough(op);
+	}
+
+	private dispose(state: string, id: string /* request id */) {
+		if (state === 'active') {
+			clearTimeout(this.inactive.get(id));
+			this.inactive.delete(id);
+		}
+
+		if (state === 'inactive') {
+			this.inactive.set(
+				id,
+				setTimeout(() => {
+					this.apply($dispose({ id, type: undefined }));
+				}, this.options.gc?.maxAge ?? 30 * 1000)
+			);
+		}
 	}
 
 	/**
@@ -106,6 +149,10 @@ export class Client {
 
 		if (cb) {
 			this.events.on(req.id, notify);
+		} else {
+			// This is probably a prefetching. Mark as inactive so that
+			// it will be disposed if not used.
+			this.dispose('inactive', req.id);
 		}
 
 		this.apply($fetch(req));

@@ -7,7 +7,8 @@ export type State =
 	| 'failed'
 	| 'streaming'
 	| 'cancelled'
-	| 'completed';
+	| 'completed'
+	| 'disposed';
 
 /**
  * Determines the next state given the current `state` and `operation`.
@@ -21,13 +22,18 @@ export const transition = (
 ): State => {
 	const event = operation.type;
 
+	if (event === 'dispose') {
+		return 'disposed';
+	}
+
 	switch (state) {
 		// Expecting:
 		// - fetch
 		case 'idle':
 		case 'failed':
 		case 'cancelled':
-		case 'completed': {
+		case 'completed':
+		case 'disposed': {
 			if (event === 'fetch') {
 				return 'pending';
 			}
