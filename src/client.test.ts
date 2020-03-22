@@ -7,6 +7,8 @@ import { Exchange } from './utils/types';
 import { createRequest } from './request';
 import { $fetch, $cancel, $dispose } from './utils/operations';
 
+globalThis.__DEV__ = true;
+
 describe('client', () => {
 	const query = createRequest({
 		type: 'query',
@@ -69,7 +71,7 @@ describe('client', () => {
 		});
 	});
 
-	it.skip('should pass a readonly cache', () => {
+	it('should pass a readonly cache', () => {
 		expect(() => {
 			new Client({
 				handler: jest.fn(),

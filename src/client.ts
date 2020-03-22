@@ -48,11 +48,35 @@ export class Client {
 		const exchanges = options.exchanges || [];
 		const fetchExchange = createFetch(options.handler);
 
+		let cache: ReadonlyMap<string, any> = this.cacheMap;
+
+		if (__DEV__) {
+			const ReadOnlyCache = class {
+				constructor(private _map: Map<string, any>) {}
+
+				get = this._map.get.bind(this._map);
+				has = this._map.has.bind(this._map);
+				entries = this._map.entries.bind(this._map);
+				forEach = this._map.forEach.bind(this._map);
+				keys = this._map.keys.bind(this._map);
+				values = this._map.values.bind(this._map);
+
+				[Symbol.iterator]() {
+					return this._map.entries();
+				}
+
+				get size() {
+					return this._map.size;
+				}
+			};
+
+			cache = new ReadOnlyCache(this.cacheMap);
+		}
+
 		// Setup exchanges
 		const config: ExchangeOptions = {
 			emit: this.emit.bind(this),
-			// TODO: find a way to warn the user when modifying cache directly.
-			cache: this.cacheMap,
+			cache,
 		};
 
 		this.pipeThrough = pipe([...exchanges, fetchExchange], config);
