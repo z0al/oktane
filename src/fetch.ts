@@ -5,14 +5,18 @@ import { Exchange, ExchangeOptions } from './utils/types';
 import { $complete, $buffer, $reject } from './utils/operations';
 import { subscribe, fromStream, fromValue } from './utils/streams';
 
-export type FetchHandler = (req: Request) => any;
+type FetchContext = {
+	cache: ReadonlyMap<string, any>;
+};
+
+export type FetchHandler = (req: Request, ctx?: FetchContext) => any;
 
 interface Task {
 	isRunning: () => boolean;
 	cancel: () => void;
 }
 
-const fetch = ({ emit }: ExchangeOptions, fn: FetchHandler) => {
+const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchHandler) => {
 	const ongoing = new Map<string, Task>();
 
 	return on(['fetch', 'cancel'], op => {
@@ -28,10 +32,11 @@ const fetch = ({ emit }: ExchangeOptions, fn: FetchHandler) => {
 			return;
 		}
 
+		const context = { cache };
 		const source =
 			request.type === 'stream'
-				? fromStream(fn(request))
-				: fromValue(fn(request));
+				? fromStream(fn(request, context))
+				: fromValue(fn(request, context));
 
 		const { close, closed } = subscribe(source, {
 			error: error => emit($reject(request, error)),

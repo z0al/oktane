@@ -51,7 +51,7 @@ export class Client {
 		let cache: ReadonlyMap<string, any> = this.cacheMap;
 
 		if (__DEV__) {
-			const ReadOnlyCache = class {
+			cache = new (class {
 				constructor(private _map: Map<string, any>) {}
 
 				get = this._map.get.bind(this._map);
@@ -68,9 +68,7 @@ export class Client {
 				get size() {
 					return this._map.size;
 				}
-			};
-
-			cache = new ReadOnlyCache(this.cacheMap);
+			})(this.cacheMap);
 		}
 
 		// Setup exchanges

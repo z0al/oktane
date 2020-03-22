@@ -24,6 +24,7 @@ let options: ExchangeOptions;
 beforeEach(() => {
 	options = {
 		emit: jest.fn(),
+		cache: new Map(),
 	};
 });
 
@@ -42,6 +43,7 @@ test('should only call handler on "fetch" operation', () => {
 	const handler = jest.fn();
 	const fetch = createFetch(handler);
 	const apply = pipe([fetch], options);
+	const context = { cache: options.cache };
 
 	apply($buffer(query, null));
 	expect(handler).not.toBeCalled();
@@ -56,6 +58,7 @@ test('should only call handler on "fetch" operation', () => {
 	expect(handler).not.toBeCalled();
 
 	apply($fetch(query));
+	expect(handler).toBeCalledWith(query, context);
 	expect(handler).toBeCalledTimes(1);
 });
 
@@ -63,15 +66,18 @@ test('should not duplicate requests', () => {
 	const handler = jest.fn().mockReturnValue(delay(300));
 	const fetch = createFetch(handler);
 	const apply = pipe([fetch], options);
+	const context = { cache: options.cache };
 
 	apply($fetch(query));
 	apply($fetch(query));
 	apply($fetch(query));
 	apply($fetch(query));
+	expect(handler).toBeCalledWith(query, context);
 	expect(handler).toBeCalledTimes(1);
 
 	apply($cancel(query));
 	apply($fetch(query));
+	expect(handler).toBeCalledWith(query, context);
 	expect(handler).toBeCalledTimes(2);
 });
 
