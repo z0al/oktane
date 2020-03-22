@@ -20,6 +20,69 @@ describe('client', () => {
 		}).not.toThrow();
 	});
 
+	it('should pass necessary options to exchanges', () => {
+		new Client({
+			handler: jest.fn(),
+			exchanges: [
+				{
+					name: 'test',
+					init: o => {
+						expect(o.emit).toBeTruthy();
+						expect(o.cache).toBeTruthy();
+						return next => op => next(op);
+					},
+				},
+			],
+		});
+	});
+
+	it('should pass a readonly cache', () => {
+		expect(() => {
+			new Client({
+				handler: jest.fn(),
+				exchanges: [
+					{
+						name: 'test',
+						init: o => {
+							(o.cache as any).set('random', 'value');
+							return next => op => next(op);
+						},
+					},
+				],
+			});
+		}).toThrow(/not a function/);
+
+		expect(() => {
+			new Client({
+				handler: jest.fn(),
+				exchanges: [
+					{
+						name: 'test',
+						init: o => {
+							(o.cache as any).delete('key');
+							return next => op => next(op);
+						},
+					},
+				],
+			});
+		}).toThrow(/not a function/);
+
+		expect(() => {
+			new Client({
+				handler: jest.fn(),
+				exchanges: [
+					{
+						name: 'test',
+						init: o => {
+							(o.cache as any).clear();
+							return next => op => next(op);
+						},
+					},
+				],
+			});
+		}).toThrow(/not a function/);
+	});
+
 	describe('.fetch', () => {
 		const query = createRequest({
 			type: 'query',
@@ -33,10 +96,11 @@ describe('client', () => {
 			variables: [1, 2],
 		});
 
-		let handler: any;
+		const data = [{ name: 'A' }, { name: 'B' }];
 
+		let handler: any;
 		beforeEach(() => {
-			handler = jest.fn().mockResolvedValue({ pass: true });
+			handler = jest.fn().mockResolvedValue(data);
 		});
 
 		const logTo = (fn: any): Exchange => ({
@@ -84,32 +148,32 @@ describe('client', () => {
 			client.fetch(query, sub);
 			await delay(1);
 
-			expect(sub).toBeCalledWith('pending', null);
-			expect(sub).toBeCalledWith('completed', null);
+			expect(sub).toBeCalledWith('pending', undefined);
+			expect(sub).toBeCalledWith('completed', data);
 			expect(sub).toBeCalledTimes(2);
 
 			sub = jest.fn();
-			client.fetch(query, sub).cancel();
+			client.fetch({ ...query, id: 'avoid-cache' }, sub).cancel();
 			await delay(1);
 
-			expect(sub).toBeCalledWith('pending', null);
-			expect(sub).toBeCalledWith('cancelled', null);
+			expect(sub).toBeCalledWith('pending', undefined);
+			expect(sub).toBeCalledWith('cancelled', undefined);
 
 			sub = jest.fn();
 			client.fetch(stream, sub);
 			await delay(1);
 
-			expect(sub).toBeCalledWith('pending', null);
-			expect(sub).toBeCalledWith('streaming', null);
-			expect(sub).toBeCalledWith('completed', null);
+			expect(sub).toBeCalledWith('pending', undefined);
+			expect(sub).toBeCalledWith('streaming', data);
+			expect(sub).toBeCalledWith('completed', data);
 
 			sub = jest.fn();
-			handler = () => Promise.reject(null);
-			client.fetch(query, sub);
+			handler = () => Promise.reject({ failed: true });
+			client.fetch({ ...query, id: 'avoid-cache2' }, sub);
 			await delay(1);
 
-			expect(sub).toBeCalledWith('pending', null);
-			expect(sub).toBeCalledWith('failed', null);
+			expect(sub).toBeCalledWith('pending', undefined);
+			expect(sub).toBeCalledWith('failed', undefined, { failed: true });
 		});
 
 		it('should emit "cancel" on .cancel()', () => {
@@ -137,7 +201,7 @@ describe('client', () => {
 
 			await delay(1);
 
-			expect(sub).toBeCalledWith('pending', null);
+			expect(sub).toBeCalledWith('pending', undefined);
 			expect(sub).toBeCalledTimes(1);
 		});
 	});

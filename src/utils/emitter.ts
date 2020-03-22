@@ -11,7 +11,7 @@ interface EventEmitter extends mitt.Emitter {
 export const Emitter = (): EventEmitter => {
 	const listeners = Object.create(null);
 	const listenerCount = (event: string) => {
-		return (listeners[event] ?? []).length;
+		return (listeners[event] || []).length;
 	};
 
 	return { ...mitt(listeners), listenerCount };

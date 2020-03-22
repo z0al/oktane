@@ -7,7 +7,7 @@ globalThis.__DEV__ = true;
 
 let options: ExchangeOptions;
 beforeEach(() => {
-	options = { emit: jest.fn() };
+	options = { cache: new Map(), emit: jest.fn() };
 });
 
 test('should throw if no exchanges were passesd', () => {

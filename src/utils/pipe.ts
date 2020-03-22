@@ -22,7 +22,7 @@ import { Exchange, ExchangeOptions, EmitFunc } from './types';
  *
  * const emit = op => console.log('emitted')
  *
- * let apply = compose([ex1,ext1], emit)
+ * let apply = compose([ex1,ex2], emit)
  * apply({type: 'fetch', ...others})
  * // should log:
  * // exchange 1

@@ -3,28 +3,39 @@ import { pipe } from './utils/pipe';
 import { Request } from './request';
 import { Emitter } from './utils/emitter';
 import { transition, State } from './utils/state';
-import { Exchange, EmitFunc } from './utils/types';
 import { createFetch, FetchHandler } from './fetch';
 import { Operation, $fetch, $cancel } from './utils/operations';
+import { Exchange, EmitFunc, ExchangeOptions } from './utils/types';
 
 export interface ClientOptions {
 	handler: FetchHandler;
 	exchanges?: Array<Exchange>;
 }
 
-export type Subscriber = (state: State, data?: any) => void;
+export type Subscriber = (state: State, data: any, error?: any) => void;
 
 export class Client {
-	private events = Emitter();
-	private stateMap = new Map<string, State>();
 	private intake: EmitFunc;
+	private events = Emitter();
+	private cacheMap = new Map<string, any>();
+	private stateMap = new Map<string, State>();
 
 	constructor(options: ClientOptions) {
-		const exchanges = options.exchanges ?? [];
+		const exchanges = options.exchanges || [];
 		const fetchExchange = createFetch(options.handler);
 
 		// Setup exchanges
-		const config = { emit: this.emit.bind(this) };
+		const config: ExchangeOptions = {
+			emit: this.emit.bind(this),
+			cache: {
+				...this.cacheMap,
+				// @ts-ignore
+				set: undefined,
+				clear: undefined,
+				delete: undefined,
+			},
+		};
+
 		this.intake = pipe([...exchanges, fetchExchange], config);
 	}
 
@@ -44,6 +55,14 @@ export class Client {
 	 */
 	private emit(op: Operation) {
 		const key = this.key(op);
+
+		// Update cache if necessary
+		if (op.type === 'buffer' || op.type === 'complete') {
+			if (op.payload.data !== undefined) {
+				this.cacheMap.set(key, op.payload.data);
+			}
+		}
+
 		this.stateMap.set(key, transition(this.stateMap.get(key), op));
 		this.events.emit(key, op);
 	}
@@ -74,10 +93,15 @@ export class Client {
 	 * @param cb
 	 */
 	fetch(req: Request, cb?: Subscriber) {
-		const notify = () => {
-			const state = this.stateMap.get(req.id) ?? 'idle';
-			// FIXME: how to pass the data here?
-			cb(state, null);
+		const notify = (op: Operation) => {
+			const state = this.stateMap.get(req.id) || 'idle';
+			const data = this.cacheMap.get(req.id);
+
+			if (op.type === 'reject') {
+				return cb(state, data, op.payload.error);
+			}
+
+			return cb(state, data);
 		};
 
 		if (cb) {

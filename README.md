@@ -1,6 +1,6 @@
 > **Disclaimer:** This is pretty much experimental at the moment and I haven't figured out everything yet. If you want to discuss this (or share feedback) feel free to reach me on [Twitter][twitter] or just open an [issue][issue] here.
 
-# Hooli
+# ql
 
 Abstract helpers for data-driven JavaScript apps.
 
