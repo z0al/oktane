@@ -28,12 +28,13 @@ const fetch = ({ emit }: ExchangeOptions, fn: FetchHandler) => {
 			return;
 		}
 
-		const value =
+		const source =
 			request.type === 'stream'
 				? fromStream(fn(request))
 				: fromValue(fn(request));
 
-		const sub = subscribe(value, {
+		const { close, closed } = subscribe(source, {
+			error: error => emit($reject(request, error)),
 			next: data => {
 				// We know for sure that non-streams will only resolve once
 				// Let's save the time and complete them immediately
@@ -41,7 +42,6 @@ const fetch = ({ emit }: ExchangeOptions, fn: FetchHandler) => {
 					? emit($buffer(request, data))
 					: emit($complete(request, data));
 			},
-			error: error => emit($reject(request, error)),
 			complete: () => {
 				// Non-streams would already be completed on .next above
 				request.type === 'stream' && emit($complete(request));
@@ -49,8 +49,8 @@ const fetch = ({ emit }: ExchangeOptions, fn: FetchHandler) => {
 		});
 
 		task = {
-			isRunning: () => !sub.closed,
-			cancel: () => sub.unsubscribe(),
+			isRunning: () => !closed,
+			cancel: () => close(),
 		};
 
 		ongoing.set(request.id, task);

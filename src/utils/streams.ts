@@ -11,60 +11,106 @@ interface Subscriber extends Observer {
 	closed: boolean;
 }
 
-type SubscriberFunc = (o: Subscriber) => () => void;
+interface Subscription {
+	closed: boolean;
+	close: () => void;
+}
+
+type Source = (o: Subscriber) => () => void;
 
 /**
- * Convert to a value to a stream that resolves once
+ * Transforms a value into a {@link Source} that emits the value
+ * and completes immediately afterwards.
+ *
+ * @example From Promise
+ * const promise = Promise.resolve('Works!')
+ * const source = fromValue(promise)
+ *
+ * subscribe(source, {
+ * 	next: value => console.log(value), // should log: Works!
+ *  // ... other handlers
+ * })
+ *
+ * @example Anything else
+ * const anything = 'Works'
+ * const source = fromValue(anything)
+ *
+ * subscribe(source, {
+ * 	next: value => console.log(value), // should log: Works!
+ *  // ... other handlers
+ * })
  *
  * @param value
  */
 export const fromValue = (value: unknown) => {
-	let subscriber: SubscriberFunc = o => {
-		o.next(value);
-		o.complete();
-
-		return () => {};
-	};
+	let source: Source;
 
 	// Handle promises
 	if (is.nativePromise(value)) {
-		subscriber = o => {
+		source = sub => {
 			value
 				.then(v => {
-					o.next(v);
-					o.complete();
+					sub.next(v);
+					sub.complete();
 				})
-				.catch(e => o.error(e));
+				.catch(e => sub.error(e));
 
 			return () => {};
 		};
 	}
 
-	return subscriber;
+	if (!source) {
+		source = sub => {
+			const timeout = setTimeout(() => {
+				sub.next(value);
+				sub.complete();
+			});
+
+			return () => clearTimeout(timeout);
+		};
+	}
+
+	return source;
 };
 
 /**
- * Return an subscriber from any value
+ * Transforms a stream into a {@link Source} that emits value(s) over time.
+ *
+ * A stream can be one of three things:
+ * - Async iterable or
+ * - Generator or
+ * - Observable (tested with RxJS & zen-observable)
+ *
+ * If `value` doesn't satisfy any of the types above we fall back to
+ * {@link fromValue}.
+ *
+ * @example From RxJS Observable
+ * const observable = Rx.from([1,2,3])
+ * const source = fromStream(observable)
+ *
+ * subscribe(source, {
+ * 	next: value => console.log(value), // should log: 1 2 3
+ *  // ... other handlers
+ * })
  *
  * @param value
  */
 export const fromStream = (value: unknown) => {
-	// By default, we simply pass the value through
-	let subscriber: SubscriberFunc;
+	let source: Source;
 
 	// DO NOT iterate over plain iterables (e.g Array)
 	if (is.asyncIterable(value) || is.generator(value)) {
-		subscriber = o => {
+		source = sub => {
 			(async () => {
 				try {
 					for await (const v of value) {
-						o.next(v);
+						sub.next(v);
 					}
 				} catch (error) {
-					o.error(error);
+					sub.error(error);
 				}
 
-				return o.complete();
+				return sub.complete();
 			})();
 
 			return () => value.return?.(null);
@@ -72,35 +118,37 @@ export const fromStream = (value: unknown) => {
 	}
 
 	if (is.observable(value)) {
-		subscriber = o => {
-			const sub = (value.subscribe(
-				o as any
-			) as unknown) as ZenObservable.Subscription;
+		source = sub => {
+			const observable: any = value.subscribe(sub as any);
 
-			return () => sub.unsubscribe();
+			return () => observable?.unsubscribe?.();
 		};
 	}
 
-	if (!subscriber) {
-		subscriber = fromValue(value);
+	if (!source) {
+		source = fromValue(value);
 	}
 
-	return subscriber;
+	return source;
 };
 
 /**
+ * Subscribes to a {@link Source} and a subscription object that
+ * can be used to unsubscribe later.
  *
- *
- * @param value
+ * @param source
  * @param observer
  */
-export const subscribe = (fn: SubscriberFunc, observer: Observer) => {
+export const subscribe = (
+	source: Source,
+	observer: Observer
+): Subscription => {
 	let closed = false;
 
-	const closeAnd = (cb: CallableFunction) => (value?: any): void => {
+	const end = (cb: any) => (value?: any) => {
 		if (!closed) {
-			cb(value);
 			closed = true;
+			cb(value);
 		}
 	};
 
@@ -111,12 +159,12 @@ export const subscribe = (fn: SubscriberFunc, observer: Observer) => {
 				observer.next(value);
 			}
 		},
-		error: closeAnd(observer.error),
-		complete: closeAnd(observer.complete),
+		error: end(observer.error),
+		complete: end(observer.complete),
 	};
 
-	const cleanup = fn(subscriber);
-	const unsubscribe = closeAnd(cleanup);
+	const cleanup = source(subscriber);
+	const close = end(cleanup);
 
-	return { closed, unsubscribe };
+	return { closed, close };
 };

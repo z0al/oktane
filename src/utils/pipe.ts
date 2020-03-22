@@ -41,7 +41,6 @@ export const pipe = (
 		'At least one exchange must be provided'
 	);
 
-	// Ensure valid exchanges (top-level only)
 	for (const ex of exchanges) {
 		invariant(
 			is.string(ex?.name),
