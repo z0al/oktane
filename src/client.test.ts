@@ -7,8 +7,6 @@ import { Exchange } from './utils/types';
 import { createRequest } from './request';
 import { $fetch, $cancel, $dispose } from './utils/operations';
 
-globalThis.__DEV__ = true;
-
 describe('client', () => {
 	const query = createRequest({
 		type: 'query',

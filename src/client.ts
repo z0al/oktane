@@ -30,7 +30,7 @@ export class Client {
 	private pipeThrough: EmitFunc;
 
 	// A simple key-value cache. It uses the request ID as a key.
-	private cacheMap = new Map<string, any>();
+	private cacheMap: Partial<Map<string, any>>;
 
 	// Holds the state of all requests.
 	private stateMap = new Map<string, State>();
@@ -42,34 +42,24 @@ export class Client {
 	// Keeps track of inactive queries (i.e. no subscribers) so they
 	// can be disposed later (see .dispose()). The value here is the
 	// value returned by `setTimeout()`.
-	private inactive = new Map<string, any>();
+	private inactiveMap = new Map<string, any>();
 
 	constructor(private options: ClientOptions) {
 		const exchanges = options.exchanges || [];
 		const fetchExchange = createFetch(options.handler);
 
-		let cache: ReadonlyMap<string, any> = this.cacheMap;
+		const cache: Map<string, any> = new Map();
+		this.cacheMap = {
+			// Keep refs of the methods we use
+			get: cache.get.bind(cache),
+			set: cache.set.bind(cache),
+			delete: cache.delete.bind(cache),
+		};
 
-		if (__DEV__) {
-			cache = new (class {
-				constructor(private _map: Map<string, any>) {}
-
-				get = this._map.get.bind(this._map);
-				has = this._map.has.bind(this._map);
-				entries = this._map.entries.bind(this._map);
-				forEach = this._map.forEach.bind(this._map);
-				keys = this._map.keys.bind(this._map);
-				values = this._map.values.bind(this._map);
-
-				[Symbol.iterator]() {
-					return this._map.entries();
-				}
-
-				get size() {
-					return this._map.size;
-				}
-			})(this.cacheMap);
-		}
+		// Convert cache into a read-only Map
+		cache.set = undefined;
+		cache.clear = undefined;
+		cache.delete = undefined;
 
 		// Setup exchanges
 		const config: ExchangeOptions = {
@@ -138,12 +128,12 @@ export class Client {
 
 	private dispose(state: string, id: string /* request id */) {
 		if (state === 'active') {
-			clearTimeout(this.inactive.get(id));
-			this.inactive.delete(id);
+			clearTimeout(this.inactiveMap.get(id));
+			this.inactiveMap.delete(id);
 		}
 
 		if (state === 'inactive') {
-			this.inactive.set(
+			this.inactiveMap.set(
 				id,
 				setTimeout(() => {
 					this.apply($dispose({ id, type: undefined }));
@@ -153,7 +143,7 @@ export class Client {
 	}
 
 	/**
-	 *
+	 * Resolves a request and
 	 * @param req
 	 * @param cb
 	 */
