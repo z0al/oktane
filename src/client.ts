@@ -143,7 +143,7 @@ export class Client {
 	}
 
 	/**
-	 * Resolves a request and
+	 *
 	 * @param req
 	 * @param cb
 	 */
@@ -162,8 +162,8 @@ export class Client {
 		if (cb) {
 			this.events.on(req.id, notify);
 		} else {
-			// This is probably a prefetching. Mark as inactive so that
-			// it will be disposed if not used.
+			// This is probably a prefetching case. Mark immediately as
+			// inactive so that it will be disposed if not used.
 			this.dispose('inactive', req.id);
 		}
 
@@ -177,5 +177,13 @@ export class Client {
 				cb && this.events.off(req.id, notify);
 			},
 		};
+	}
+
+	/**
+	 *
+	 * @param req
+	 */
+	prefetch(req: Request) {
+		this.fetch(req);
 	}
 }

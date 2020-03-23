@@ -125,7 +125,7 @@ describe('client', () => {
 		});
 
 		// Without subscriber - immediatly inactive
-		client.fetch(query);
+		client.prefetch(query);
 		await delay(15);
 		expect(fn).toBeCalledWith(
 			$dispose({ id: query.id, type: undefined })
@@ -279,6 +279,43 @@ describe('client', () => {
 
 			expect(sub).toBeCalledWith('pending', undefined);
 			expect(sub).toBeCalledTimes(1);
+		});
+	});
+
+	describe('.prefetch', () => {
+		it('should emit fetch operation', () => {
+			const fn = jest.fn();
+			const client = new Client({
+				handler: jest.fn(),
+				exchanges: [logTo(fn)],
+			});
+
+			client.prefetch(query);
+			expect(fn).toBeCalledWith($fetch(query));
+		});
+
+		it('should immediately mark the query as inactive', async () => {
+			const fn = jest.fn();
+			const client = new Client({
+				handler: jest.fn(),
+				gc: { maxAge: 10 },
+				exchanges: [logTo(fn)],
+			});
+
+			client.prefetch(query);
+			await delay(15);
+
+			expect(fn).toBeCalledWith(
+				$dispose({ id: query.id, type: undefined })
+			);
+		});
+
+		it('should be void', () => {
+			const client = new Client({
+				handler: jest.fn(),
+			});
+
+			expect(client.prefetch(query)).toBeUndefined();
 		});
 	});
 });
