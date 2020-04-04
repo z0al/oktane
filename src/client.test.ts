@@ -1,11 +1,18 @@
 // Packages
 import delay from 'delay';
+import Observable from 'zen-observable';
 
 // Ours
 import { createClient } from './client';
 import { Exchange } from './utils/types';
 import { createRequest } from './request';
-import { $fetch, $cancel, $dispose } from './utils/operations';
+import {
+	$fetch,
+	$cancel,
+	$dispose,
+	$buffer,
+	$complete,
+} from './utils/operations';
 
 describe('client', () => {
 	const query = createRequest({
@@ -28,7 +35,7 @@ describe('client', () => {
 
 	const logTo = (fn: any): Exchange => ({
 		name: 'dummy',
-		init: () => next => op => {
+		init: () => (next) => (op) => {
 			fn(op);
 			return next(op);
 		},
@@ -61,7 +68,7 @@ describe('client', () => {
 			exchanges: [
 				{
 					name: 'test',
-					init: o => {
+					init: (o) => {
 						expect(o.emit).toBeDefined();
 						expect(o.cache).toBeDefined();
 						expect(o.cache?.get).toBeDefined();
@@ -71,7 +78,7 @@ describe('client', () => {
 						expect(o.cache?.keys).toBeDefined();
 						expect(o.cache?.size).toBeDefined();
 						expect(o.cache?.values).toBeDefined();
-						return next => op => next(op);
+						return (next) => (op) => next(op);
 					},
 				},
 			],
@@ -85,9 +92,9 @@ describe('client', () => {
 				exchanges: [
 					{
 						name: 'test',
-						init: o => {
+						init: (o) => {
 							(o.cache as any).set('random', 'value');
-							return next => op => next(op);
+							return (next) => (op) => next(op);
 						},
 					},
 				],
@@ -100,9 +107,9 @@ describe('client', () => {
 				exchanges: [
 					{
 						name: 'test',
-						init: o => {
+						init: (o) => {
 							(o.cache as any).delete('key');
-							return next => op => next(op);
+							return (next) => (op) => next(op);
 						},
 					},
 				],
@@ -115,9 +122,9 @@ describe('client', () => {
 				exchanges: [
 					{
 						name: 'test',
-						init: o => {
+						init: (o) => {
 							(o.cache as any).clear();
-							return next => op => next(op);
+							return (next) => (op) => next(op);
 						},
 					},
 				],
@@ -173,7 +180,7 @@ describe('client', () => {
 					name: 'dummy',
 					init: ({ cache }) => {
 						cacheRef = cache;
-						return next => op => {
+						return (next) => (op) => {
 							next(op);
 						};
 					},
@@ -284,10 +291,42 @@ describe('client', () => {
 			const { unsubscribe } = client.fetch(query, sub);
 			unsubscribe();
 
-			await delay(1);
-
 			expect(sub).toBeCalledWith('pending', undefined);
 			expect(sub).toBeCalledTimes(1);
+		});
+
+		it('should cancel inactive requests on .unsubscribe()', async () => {
+			const fn = jest.fn();
+			let resolver = handler;
+			const client = createClient({
+				handler: (...args: []) => resolver(...args),
+				exchanges: [logTo(fn)],
+			});
+
+			// 1. Inactive queries
+			client.fetch(query, jest.fn()).unsubscribe();
+			expect(fn).toBeCalledWith($cancel(query));
+
+			// 2. Active queries
+			client.fetch(mutation, jest.fn()); // prevents cancelation
+			client.fetch(mutation, jest.fn()).unsubscribe();
+			expect(fn).not.toBeCalledWith($cancel(mutation));
+
+			// 3. Inactive queries in streaming state
+			resolver = () =>
+				new Observable((o) => {
+					o.next(1);
+					setTimeout(() => o.next(2), 200);
+				});
+
+			const { unsubscribe } = client.fetch(stream, jest.fn());
+			await delay(50);
+
+			unsubscribe();
+			expect(fn).toBeCalledWith($buffer(stream, 1));
+			expect(fn).not.toBeCalledWith($complete(stream));
+
+			expect(fn).toBeCalledWith($cancel(stream));
 		});
 	});
 

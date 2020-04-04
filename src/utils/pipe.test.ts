@@ -83,7 +83,7 @@ test('should NOT throw when emitting after exchange setup', () => {
 	let called = false;
 	const ex: Exchange = {
 		name: 'test',
-		init: ({ emit }) => next => op => {
+		init: ({ emit }) => (next) => (op) => {
 			if (!called) {
 				called = true;
 				emit(null);
@@ -103,7 +103,7 @@ test('should NOT throw when emitting after exchange setup', () => {
 test('should compose exchanges from right to left', () => {
 	const createExchange = (name: string): Exchange => ({
 		name,
-		init: () => next => op =>
+		init: () => (next) => (op) =>
 			next($buffer(null, (op.payload as any).data + name)),
 	});
 

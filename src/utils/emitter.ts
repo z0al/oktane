@@ -7,7 +7,7 @@ export type TrackerFunc = (e: EventState) => void;
 /**
  * Extends `mitt` to track listeners.
  */
-export const Emitter = (track: TrackerFunc): mitt.Emitter => {
+export const Emitter = (track: TrackerFunc) => {
 	const events = Object.create(null);
 	const emitter = mitt(events);
 
@@ -31,5 +31,6 @@ export const Emitter = (track: TrackerFunc): mitt.Emitter => {
 			}
 		},
 		emit: emitter.emit.bind(emitter),
+		listenerCount,
 	};
 };

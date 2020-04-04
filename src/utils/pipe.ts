@@ -54,7 +54,7 @@ export const pipe = (
 	}
 
 	// No duplicated names allowed
-	const names = exchanges.map(e => e.name);
+	const names = exchanges.map((e) => e.name);
 	for (const name of names) {
 		invariant(
 			names.indexOf(name) === names.lastIndexOf(name),
@@ -69,12 +69,12 @@ export const pipe = (
 
 	const config: ExchangeOptions = {
 		...options,
-		emit: o => emit(o),
+		emit: (o) => emit(o),
 	};
 
 	emit = exchanges
-		.map(ex => ex.init(config))
-		.reduce((a, b) => o => a(b(o)))(options.emit);
+		.map((ex) => ex.init(config))
+		.reduce((a, b) => (o) => a(b(o)))(options.emit);
 
 	return emit;
 };

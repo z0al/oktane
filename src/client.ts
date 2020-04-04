@@ -40,7 +40,7 @@ export const createClient = (options: ClientOptions) => {
 	// We rely on this emitter for everything. In fact, Client is just
 	// a wrapper around it.
 	let track: TrackerFunc;
-	const events = Emitter(e => track(e));
+	const events = Emitter((e) => track(e));
 
 	/**
 	 * Extracts request ID
@@ -170,16 +170,27 @@ export const createClient = (options: ClientOptions) => {
 			track({ type: req.id, state: 'inactive' });
 		}
 
+		const cancel = () => {
+			apply($cancel(req));
+		};
+
+		const unsubscribe = () => {
+			cb && events.off(req.id, notify);
+
+			// Cancel if running but no longer needed
+			if (
+				(stateMap.get(req.id) === 'pending' ||
+					stateMap.get(req.id) === 'streaming') &&
+				events.listenerCount(req.id) === 0
+			) {
+				cancel();
+			}
+		};
+
+		// Perform fetch
 		apply($fetch(req));
 
-		return {
-			cancel: () => {
-				apply($cancel(req));
-			},
-			unsubscribe: () => {
-				cb && events.off(req.id, notify);
-			},
-		};
+		return { cancel, unsubscribe };
 	};
 
 	/**

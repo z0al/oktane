@@ -76,7 +76,7 @@ describe('with iterables', () => {
 
 describe('with generators', () => {
 	it('should iterate over generators', async () => {
-		const it = function*() {
+		const it = function* () {
 			yield 1;
 			yield 2;
 			yield 3;
@@ -86,7 +86,7 @@ describe('with generators', () => {
 	});
 
 	it('should iterate over async generators', async () => {
-		const itAsync = async function*() {
+		const itAsync = async function* () {
 			yield await Promise.resolve(1);
 			yield await Promise.resolve(2);
 			yield await Promise.resolve(3);
@@ -96,12 +96,12 @@ describe('with generators', () => {
 	});
 
 	it('should catch thrown errors', async () => {
-		const it = function*() {
+		const it = function* () {
 			yield 1;
 			throw ERROR;
 		};
 
-		const itAsync = async function*() {
+		const itAsync = async function* () {
 			yield await Promise.resolve(1);
 			throw ERROR;
 		};
@@ -123,13 +123,13 @@ describe('with observables', () => {
 	});
 
 	it('should catch thrown errors', async () => {
-		const rx = new RxObservable.Observable(s => {
+		const rx = new RxObservable.Observable((s) => {
 			s.next(1);
 			s.error(ERROR);
 			s.next(2);
 		});
 
-		const zen = new ZenObservable(s => {
+		const zen = new ZenObservable((s) => {
 			s.next(1);
 			s.error(ERROR);
 			s.next(2);
