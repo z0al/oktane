@@ -11,14 +11,14 @@ test('should keep the tracker updated', () => {
 
 	emitter.on('event', l1);
 	emitter.on('event', l2);
-	expect(track).toBeCalledWith('active', 'event');
+	expect(track).toBeCalledWith({ type: 'event', state: 'active' });
 
 	emitter.off('event', l1);
 	emitter.off('event', l2);
-	expect(track).toBeCalledWith('inactive', 'event');
+	expect(track).toBeCalledWith({ type: 'event', state: 'inactive' });
 	expect(track).toBeCalledTimes(2);
 
 	emitter.on('event', l3);
-	expect(track).toBeCalledWith('active', 'event');
+	expect(track).toBeCalledWith({ type: 'event', state: 'active' });
 	expect(track).toBeCalledTimes(3);
 });

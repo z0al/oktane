@@ -1,7 +1,6 @@
 {
-	"name": "ql",
-	"version": "0.0.0",
-	"private": true,
+	"name": "@z0al/ql",
+	"version": "0.0.1",
 	"license": "MIT",
 	"author": "Ahmed T. Ali",
 	"sideEffects": false,
@@ -27,19 +26,21 @@
 	"dependencies": {
 		"@sindresorhus/is": "^2.1.0",
 		"fast-safe-stringify": "^2.0.7",
-		"hooli": "file:hooli-0.0.0.tgz",
 		"mitt": "^1.2.0",
 		"tiny-invariant": "^1.1.0"
 	},
 	"devDependencies": {
-		"@types/jest": "^25.1.4",
+		"@types/jest": "^25.2.1",
 		"@types/zen-observable": "^0.8.0",
 		"delay": "^4.3.0",
-		"rxjs": "^6.5.4",
-		"tsdx": "^0.13.0",
+		"rxjs": "^6.5.5",
+		"tsdx": "^0.13.1",
 		"tslib": "^1.11.1",
 		"typescript": "^3.8.3",
 		"zen-observable": "^0.8.15"
+	},
+	"publishConfig": {
+		"access": "public"
 	},
 	"engines": {
 		"node": ">=10"

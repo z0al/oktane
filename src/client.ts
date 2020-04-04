@@ -7,9 +7,9 @@ import {
 } from './utils/operations';
 import { pipe } from './utils/pipe';
 import { Request } from './request';
-import { Emitter } from './utils/emitter';
 import { transition, State } from './utils/state';
 import { createFetch, FetchHandler } from './fetch';
+import { Emitter, TrackerFunc } from './utils/emitter';
 import { Exchange, EmitFunc, ExchangeOptions } from './utils/types';
 
 export interface GCOptions {
@@ -25,86 +25,58 @@ export interface ClientOptions {
 
 export type Subscriber = (state: State, data: any, err?: any) => void;
 
-export class Client {
-	// Pass operation to exchanges
-	private pipeThrough: EmitFunc;
-
+export const createClient = (options: ClientOptions) => {
 	// A simple key-value cache. It uses the request ID as a key.
-	private cacheMap: Partial<Map<string, any>>;
+	let cache: Partial<Map<string, any>>;
 
 	// Holds the state of all requests.
-	private stateMap = new Map<string, State>();
-
-	// We rely on this emitter for everything. In fact, Client is just
-	// a wrapper around this.
-	private events = Emitter(this.dispose.bind(this));
+	const stateMap = new Map<string, State>();
 
 	// Keeps track of inactive queries (i.e. no subscribers) so they
 	// can be disposed later (see .dispose()). The value here is the
 	// value returned by `setTimeout()`.
-	private inactiveMap = new Map<string, any>();
+	const inactiveMap = new Map<string, any>();
 
-	constructor(private options: ClientOptions) {
-		const exchanges = options.exchanges || [];
-		const fetchExchange = createFetch(options.handler);
-
-		const cache: Map<string, any> = new Map();
-		this.cacheMap = {
-			// Keep refs of the methods we use
-			get: cache.get.bind(cache),
-			set: cache.set.bind(cache),
-			delete: cache.delete.bind(cache),
-		};
-
-		// Convert cache into a read-only Map
-		cache.set = undefined;
-		cache.clear = undefined;
-		cache.delete = undefined;
-
-		// Setup exchanges
-		const config: ExchangeOptions = {
-			emit: this.emit.bind(this),
-			cache,
-		};
-
-		this.pipeThrough = pipe([...exchanges, fetchExchange], config);
-	}
+	// We rely on this emitter for everything. In fact, Client is just
+	// a wrapper around it.
+	let track: TrackerFunc;
+	const events = Emitter(e => track(e));
 
 	/**
 	 * Extracts request ID
 	 *
 	 * @param op
 	 */
-	private key(op: Operation) {
+	const keyOf = (op: Operation) => {
 		return op.payload.request.id;
-	}
+	};
 
 	/**
 	 * Emits an event of type `request.id` and `op` as a payload
 	 *
 	 * @param op
 	 */
-	private emit(op: Operation) {
-		const key = this.key(op);
+	const emit = (op: Operation) => {
+		const key = keyOf(op);
 
 		// Update cache if necessary
 		if (op.type === 'buffer' || op.type === 'complete') {
 			if (op.payload.data !== undefined) {
-				this.cacheMap.set(key, op.payload.data);
+				cache.set(key, op.payload.data);
 			}
 		}
 
-		const next = transition(this.stateMap.get(key), op);
+		const next = transition(stateMap.get(key), op);
 
 		if (next !== 'disposed') {
-			this.stateMap.set(key, next);
-			this.events.emit(key, op);
+			stateMap.set(key, next);
+			events.emit(key, op);
 		} else {
 			// Clean-up
-			this.stateMap.delete(key);
-			this.cacheMap.delete(key);
+			stateMap.delete(key);
+			cache.delete(key);
 		}
-	}
+	};
 
 	/**
 	 * Compares the next state against the current state and pass
@@ -112,45 +84,76 @@ export class Client {
 	 *
 	 * @param op
 	 */
-	private apply(op: Operation) {
-		const current = this.stateMap.get(this.key(op));
-		const next = transition(current, op);
+	const apply: EmitFunc = (() => {
+		const exchanges = options.exchanges || [];
+		const fetchExchange = createFetch(options.handler);
 
-		// Rule:
-		// If it won't change the current state DO NOT do it.
-		// The ONLY exception is streaming.
-		if (current !== 'streaming' && next === current) {
-			return;
-		}
+		const cacheAPI: Map<string, any> = new Map();
+		cache = {
+			// Keep refs of the methods we use
+			get: cacheAPI.get.bind(cacheAPI),
+			set: cacheAPI.set.bind(cacheAPI),
+			delete: cacheAPI.delete.bind(cacheAPI),
+		};
 
-		this.pipeThrough(op);
-	}
+		// We don't direct cache manipulation
+		cacheAPI.set = undefined;
+		cacheAPI.clear = undefined;
+		cacheAPI.delete = undefined;
 
-	private dispose(state: string, id: string /* request id */) {
+		// Setup exchanges
+		const config: ExchangeOptions = { emit, cache: cacheAPI };
+		const pipeThrough = pipe([...exchanges, fetchExchange], config);
+
+		return (op: Operation) => {
+			const current = stateMap.get(keyOf(op));
+			const next = transition(current, op);
+
+			// Rule:
+			// If it won't change the current state DO NOT do it.
+			// The ONLY exception is streaming.
+			if (current !== 'streaming' && next === current) {
+				return;
+			}
+
+			pipeThrough(op);
+		};
+	})();
+
+	/**
+	 * Disposes inactive requests. A request becomes inactive when
+	 * it has no listeners.
+	 *
+	 * @param eventState
+	 */
+	track = ({ type, state }) => {
+		// We use request id as event type
+		const id = type;
+
 		if (state === 'active') {
-			clearTimeout(this.inactiveMap.get(id));
-			this.inactiveMap.delete(id);
+			clearTimeout(inactiveMap.get(id));
+			inactiveMap.delete(id);
 		}
 
 		if (state === 'inactive') {
-			this.inactiveMap.set(
+			inactiveMap.set(
 				id,
 				setTimeout(() => {
-					this.apply($dispose({ id, type: undefined }));
-				}, this.options.gc?.maxAge ?? 30 * 1000)
+					apply($dispose({ id, type: undefined }));
+				}, options.gc?.maxAge ?? 30 * 1000)
 			);
 		}
-	}
+	};
 
 	/**
 	 *
 	 * @param req
 	 * @param cb
 	 */
-	fetch(req: Request, cb?: Subscriber) {
+	const fetch = (req: Request, cb?: Subscriber) => {
 		const notify = (op: Operation) => {
-			const state = this.stateMap.get(req.id) || 'idle';
-			const data = this.cacheMap.get(req.id);
+			const state = stateMap.get(req.id) || 'idle';
+			const data = cache.get(req.id);
 
 			if (op.type === 'reject') {
 				return cb(state, data, op.payload.error);
@@ -160,30 +163,32 @@ export class Client {
 		};
 
 		if (cb) {
-			this.events.on(req.id, notify);
+			events.on(req.id, notify);
 		} else {
 			// This is probably a prefetching case. Mark immediately as
 			// inactive so that it will be disposed if not used.
-			this.dispose('inactive', req.id);
+			track({ type: req.id, state: 'inactive' });
 		}
 
-		this.apply($fetch(req));
+		apply($fetch(req));
 
 		return {
 			cancel: () => {
-				this.apply($cancel(req));
+				apply($cancel(req));
 			},
 			unsubscribe: () => {
-				cb && this.events.off(req.id, notify);
+				cb && events.off(req.id, notify);
 			},
 		};
-	}
+	};
 
 	/**
 	 *
 	 * @param req
 	 */
-	prefetch(req: Request) {
-		this.fetch(req);
-	}
-}
+	const prefetch = (req: Request) => {
+		fetch(req);
+	};
+
+	return { fetch, prefetch };
+};

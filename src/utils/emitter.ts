@@ -1,7 +1,8 @@
 // Packages
 import mitt from 'mitt';
 
-type TrackerFunc = (s: 'active' | 'inactive', e: string) => void;
+type EventState = { type: string; state: 'active' | 'inactive' };
+export type TrackerFunc = (e: EventState) => void;
 
 /**
  * Extends `mitt` to track listeners.
@@ -19,14 +20,14 @@ export const Emitter = (track: TrackerFunc): mitt.Emitter => {
 			emitter.on(type, handler);
 
 			if (listenerCount(type) === 1) {
-				track('active', type);
+				track({ type, state: 'active' });
 			}
 		},
 		off: (type: string, handler: mitt.Handler) => {
 			emitter.off(type, handler);
 
 			if (listenerCount(type) === 0) {
-				track('inactive', type);
+				track({ type, state: 'inactive' });
 			}
 		},
 		emit: emitter.emit.bind(emitter),

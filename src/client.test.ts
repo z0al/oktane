@@ -2,7 +2,7 @@
 import delay from 'delay';
 
 // Ours
-import { Client } from './client';
+import { createClient } from './client';
 import { Exchange } from './utils/types';
 import { createRequest } from './request';
 import { $fetch, $cancel, $dispose } from './utils/operations';
@@ -34,20 +34,29 @@ describe('client', () => {
 		},
 	});
 
+	it('should expose public interface', () => {
+		const client = createClient({ handler: jest.fn() });
+
+		expect(client).toEqual({
+			fetch: expect.any(Function),
+			prefetch: expect.any(Function),
+		});
+	});
+
 	it('should not throw when no exchanges were passed', () => {
 		expect(() => {
-			new Client({} as any);
+			createClient({} as any);
 		}).not.toThrow();
 
 		expect(() => {
 			const handler = jest.fn();
-			new Client({ handler, exchanges: [] });
+			createClient({ handler, exchanges: [] });
 			expect(handler).not.toBeCalled();
 		}).not.toThrow();
 	});
 
 	it('should pass necessary options to exchanges', () => {
-		new Client({
+		createClient({
 			handler: jest.fn(),
 			exchanges: [
 				{
@@ -71,7 +80,7 @@ describe('client', () => {
 
 	it('should pass a readonly cache', () => {
 		expect(() => {
-			new Client({
+			createClient({
 				handler: jest.fn(),
 				exchanges: [
 					{
@@ -86,7 +95,7 @@ describe('client', () => {
 		}).toThrow(/not a function/);
 
 		expect(() => {
-			new Client({
+			createClient({
 				handler: jest.fn(),
 				exchanges: [
 					{
@@ -101,7 +110,7 @@ describe('client', () => {
 		}).toThrow(/not a function/);
 
 		expect(() => {
-			new Client({
+			createClient({
 				handler: jest.fn(),
 				exchanges: [
 					{
@@ -118,7 +127,7 @@ describe('client', () => {
 
 	it('should dispose inactive queries', async () => {
 		const fn = jest.fn();
-		const client = new Client({
+		const client = createClient({
 			handler: jest.fn(),
 			gc: { maxAge: 10 },
 			exchanges: [logTo(fn)],
@@ -156,7 +165,7 @@ describe('client', () => {
 	it('should clear cache on "dispose"', async () => {
 		let cacheRef: any;
 
-		const client = new Client({
+		const client = createClient({
 			handler: jest.fn().mockResolvedValue(null),
 			gc: { maxAge: 10 },
 			exchanges: [
@@ -189,7 +198,7 @@ describe('client', () => {
 
 		it('should emit fetch operation', () => {
 			const fn = jest.fn();
-			const client = new Client({
+			const client = createClient({
 				handler,
 				exchanges: [logTo(fn)],
 			});
@@ -200,7 +209,7 @@ describe('client', () => {
 
 		it('should not emit "fetch" if it is already pending', () => {
 			const fn = jest.fn();
-			const client = new Client({
+			const client = createClient({
 				handler,
 				exchanges: [logTo(fn)],
 			});
@@ -215,7 +224,7 @@ describe('client', () => {
 		it('should call subscriber with state updates', async () => {
 			const fetch = () => handler();
 
-			const client = new Client({
+			const client = createClient({
 				handler: fetch,
 				exchanges: [],
 			});
@@ -254,7 +263,7 @@ describe('client', () => {
 
 		it('should emit "cancel" on .cancel()', () => {
 			const fn = jest.fn();
-			const client = new Client({
+			const client = createClient({
 				handler,
 				exchanges: [logTo(fn)],
 			});
@@ -266,7 +275,7 @@ describe('client', () => {
 		});
 
 		it('should remove listener on .unsubscribe()', async () => {
-			const client = new Client({
+			const client = createClient({
 				handler,
 				exchanges: [],
 			});
@@ -285,7 +294,7 @@ describe('client', () => {
 	describe('.prefetch', () => {
 		it('should emit fetch operation', () => {
 			const fn = jest.fn();
-			const client = new Client({
+			const client = createClient({
 				handler: jest.fn(),
 				exchanges: [logTo(fn)],
 			});
@@ -296,7 +305,7 @@ describe('client', () => {
 
 		it('should immediately mark the query as inactive', async () => {
 			const fn = jest.fn();
-			const client = new Client({
+			const client = createClient({
 				handler: jest.fn(),
 				gc: { maxAge: 10 },
 				exchanges: [logTo(fn)],
@@ -311,7 +320,7 @@ describe('client', () => {
 		});
 
 		it('should be void', () => {
-			const client = new Client({
+			const client = createClient({
 				handler: jest.fn(),
 			});
 
