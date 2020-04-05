@@ -3,12 +3,10 @@ import React from 'react';
 
 // Ours
 import { Client } from '../client';
-import { State } from '../utils/state';
 
-export type Response = {
-	data: any;
-	error?: any;
-	state: State;
+export type FetchArgs = {
+	id?: string;
+	[x: string]: any;
 };
 
 export const ClientContext = React.createContext<Client>(null);

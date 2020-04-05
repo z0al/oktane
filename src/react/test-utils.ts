@@ -6,11 +6,11 @@ import { renderHook as render } from '@testing-library/react-hooks';
 import { Client } from '../client';
 import { ClientContext } from './types';
 
-export const renderHook = (
-	cb: (props: unknown) => unknown,
+export const renderHook = <R>(
+	cb: (props: unknown) => R,
 	client?: Client
 ) =>
-	render(cb, {
+	render<any, R>(cb, {
 		wrapper: ({ children }) =>
 			React.createElement(
 				ClientContext.Provider,

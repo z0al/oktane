@@ -58,7 +58,7 @@ export const createClient = (options: ClientOptions) => {
 	 *
 	 * @param op
 	 */
-	const emit = (op: Operation) => {
+	const emit: EmitFunc = (op: Operation) => {
 		const key = keyOf(op);
 
 		// Update cache if necessary
