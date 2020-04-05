@@ -62,8 +62,8 @@ test('should only call handler on "fetch" operation', () => {
 	expect(handler).toBeCalledTimes(1);
 });
 
-test('should not duplicate requests', () => {
-	const handler = jest.fn().mockReturnValue(delay(300));
+test('should not duplicate requests', async () => {
+	const handler = jest.fn().mockReturnValue(delay(100));
 	const fetch = createFetch(handler);
 	const apply = pipe([fetch], options);
 	const context = { cache: options.cache };
@@ -79,6 +79,11 @@ test('should not duplicate requests', () => {
 	apply($fetch(query));
 	expect(handler).toBeCalledWith(query, context);
 	expect(handler).toBeCalledTimes(2);
+
+	// Make sure we can refetch when the request completes
+	await delay(150);
+	apply($fetch(query));
+	expect(handler).toBeCalledTimes(3);
 });
 
 test('should emit result(s)', async () => {

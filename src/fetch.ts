@@ -48,6 +48,9 @@ const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchHandler) => {
 					: emit($complete(request, data));
 			},
 			complete: () => {
+				// This avoids ignoring the same request in future
+				ongoing.delete(request.id);
+
 				// Non-streams would already be completed on .next above
 				request.type === 'stream' && emit($complete(request));
 			},
