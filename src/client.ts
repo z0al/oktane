@@ -25,6 +25,8 @@ export interface ClientOptions {
 
 export type Subscriber = (state: State, data: any, err?: any) => void;
 
+export type Client = ReturnType<typeof createClient>;
+
 export const createClient = (options: ClientOptions) => {
 	// A simple key-value cache. It uses the request ID as a key.
 	let cache: Partial<Map<string, any>>;
@@ -43,7 +45,7 @@ export const createClient = (options: ClientOptions) => {
 	const events = Emitter((e) => track(e));
 
 	/**
-	 * Extracts request ID
+	 * Extracts operation key
 	 *
 	 * @param op
 	 */
