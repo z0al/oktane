@@ -47,8 +47,13 @@ export function useQuery(args: FetchArgs): Query {
 	}, [request.id]);
 
 	// Exposed helpers
-	const refetch = () => client.fetch(request);
-	const cancel = () => cancelRef.current?.();
+	const refetch = () => {
+		client.fetch(request);
+	};
+
+	const cancel = () => {
+		cancelRef.current?.();
+	};
 
 	return { ...result, refetch, cancel };
 }
