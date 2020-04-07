@@ -12,7 +12,7 @@ interface Subscriber extends Observer {
 }
 
 interface Subscription {
-	closed: boolean;
+	isClosed: () => boolean;
 	close: () => void;
 }
 
@@ -47,20 +47,20 @@ export const fromValue = (value: unknown) => {
 
 	// Handle promises
 	if (is.nativePromise(value)) {
-		source = (sub) => {
+		source = sub => {
 			value
-				.then((v) => {
+				.then(v => {
 					sub.next(v);
 					sub.complete();
 				})
-				.catch((e) => sub.error(e));
+				.catch(e => sub.error(e));
 
 			return () => {};
 		};
 	}
 
 	if (!source) {
-		source = (sub) => {
+		source = sub => {
 			const timeout = setTimeout(() => {
 				sub.next(value);
 				sub.complete();
@@ -100,7 +100,7 @@ export const fromStream = (value: unknown) => {
 
 	// DO NOT iterate over plain iterables (e.g Array)
 	if (is.asyncIterable(value) || is.generator(value)) {
-		source = (sub) => {
+		source = sub => {
 			(async () => {
 				try {
 					for await (const v of value) {
@@ -118,7 +118,7 @@ export const fromStream = (value: unknown) => {
 	}
 
 	if (is.observable(value)) {
-		source = (sub) => {
+		source = sub => {
 			const observable: any = value.subscribe(sub as any);
 
 			return () => observable?.unsubscribe?.();
@@ -154,7 +154,7 @@ export const subscribe = (
 
 	const subscriber: Subscriber = {
 		closed,
-		next: (value) => {
+		next: value => {
 			if (!closed) {
 				observer.next(value);
 			}
@@ -166,5 +166,5 @@ export const subscribe = (
 	const cleanup = source(subscriber);
 	const close = end(cleanup);
 
-	return { closed, close };
+	return { isClosed: () => closed, close };
 };

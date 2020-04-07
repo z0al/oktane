@@ -19,7 +19,7 @@ interface Task {
 const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchHandler) => {
 	const ongoing = new Map<string, Task>();
 
-	return on(['fetch', 'cancel'], (op) => {
+	return on(['fetch', 'cancel'], op => {
 		const { request } = op.payload;
 		let task = ongoing.get(request.id);
 
@@ -38,9 +38,9 @@ const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchHandler) => {
 				? fromStream(fn(request, context))
 				: fromValue(fn(request, context));
 
-		const { close, closed } = subscribe(source, {
-			error: (error) => emit($reject(request, error)),
-			next: (data) => {
+		const { close, isClosed } = subscribe(source, {
+			error: error => emit($reject(request, error)),
+			next: data => {
 				// We know for sure that non-streams will only resolve once
 				// Let's save the time and complete them immediately
 				request.type === 'stream'
@@ -48,16 +48,13 @@ const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchHandler) => {
 					: emit($complete(request, data));
 			},
 			complete: () => {
-				// This avoids ignoring the same request in future
-				ongoing.delete(request.id);
-
 				// Non-streams would already be completed on .next above
 				request.type === 'stream' && emit($complete(request));
 			},
 		});
 
 		task = {
-			isRunning: () => !closed,
+			isRunning: () => !isClosed(),
 			cancel: () => close(),
 		};
 
@@ -67,5 +64,5 @@ const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchHandler) => {
 
 export const createFetch = (fn: FetchHandler): Exchange => ({
 	name: 'fetch',
-	init: (options) => fetch(options, fn),
+	init: options => fetch(options, fn),
 });
