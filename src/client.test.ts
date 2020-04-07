@@ -35,7 +35,7 @@ describe('client', () => {
 
 	const logTo = (fn: any): Exchange => ({
 		name: 'dummy',
-		init: () => (next) => (op) => {
+		init: () => next => op => {
 			fn(op);
 			return next(op);
 		},
@@ -68,17 +68,15 @@ describe('client', () => {
 			exchanges: [
 				{
 					name: 'test',
-					init: (o) => {
+					init: o => {
 						expect(o.emit).toBeDefined();
 						expect(o.cache).toBeDefined();
 						expect(o.cache?.get).toBeDefined();
 						expect(o.cache?.has).toBeDefined();
 						expect(o.cache?.entries).toBeDefined();
-						expect(o.cache?.forEach).toBeDefined();
 						expect(o.cache?.keys).toBeDefined();
-						expect(o.cache?.size).toBeDefined();
 						expect(o.cache?.values).toBeDefined();
-						return (next) => (op) => next(op);
+						return next => op => next(op);
 					},
 				},
 			],
@@ -92,9 +90,9 @@ describe('client', () => {
 				exchanges: [
 					{
 						name: 'test',
-						init: (o) => {
+						init: o => {
 							(o.cache as any).set('random', 'value');
-							return (next) => (op) => next(op);
+							return next => op => next(op);
 						},
 					},
 				],
@@ -107,9 +105,9 @@ describe('client', () => {
 				exchanges: [
 					{
 						name: 'test',
-						init: (o) => {
+						init: o => {
 							(o.cache as any).delete('key');
-							return (next) => (op) => next(op);
+							return next => op => next(op);
 						},
 					},
 				],
@@ -122,9 +120,9 @@ describe('client', () => {
 				exchanges: [
 					{
 						name: 'test',
-						init: (o) => {
+						init: o => {
 							(o.cache as any).clear();
-							return (next) => (op) => next(op);
+							return next => op => next(op);
 						},
 					},
 				],
@@ -180,7 +178,7 @@ describe('client', () => {
 					name: 'dummy',
 					init: ({ cache }) => {
 						cacheRef = cache;
-						return (next) => (op) => {
+						return next => op => {
 							next(op);
 						};
 					},
@@ -314,7 +312,7 @@ describe('client', () => {
 
 			// 3. Inactive queries in streaming state
 			resolver = () =>
-				new Observable((o) => {
+				new Observable(o => {
 					o.next(1);
 					setTimeout(() => o.next(2), 200);
 				});

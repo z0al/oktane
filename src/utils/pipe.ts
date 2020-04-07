@@ -3,7 +3,7 @@ import is from '@sindresorhus/is';
 import invariant from 'tiny-invariant';
 
 // Ours
-import { Exchange, ExchangeOptions, EmitFunc } from './types';
+import { Exchange, ExchangeAPI, EmitFunc } from './types';
 
 /**
  * Setups exchanges and returns emit function. This is very similar
@@ -34,7 +34,7 @@ import { Exchange, ExchangeOptions, EmitFunc } from './types';
  */
 export const pipe = (
 	exchanges: Exchange[],
-	options: ExchangeOptions
+	config: ExchangeAPI
 ): EmitFunc => {
 	invariant(
 		exchanges?.length > 0,
@@ -54,7 +54,7 @@ export const pipe = (
 	}
 
 	// No duplicated names allowed
-	const names = exchanges.map((e) => e.name);
+	const names = exchanges.map(e => e.name);
 	for (const name of names) {
 		invariant(
 			names.indexOf(name) === names.lastIndexOf(name),
@@ -67,14 +67,14 @@ export const pipe = (
 		invariant(false, 'emitting during exchange setup is not allowed');
 	};
 
-	const config: ExchangeOptions = {
-		...options,
-		emit: (o) => emit(o),
+	const api: ExchangeAPI = {
+		...config,
+		emit: o => emit(o),
 	};
 
 	emit = exchanges
-		.map((ex) => ex.init(config))
-		.reduce((a, b) => (o) => a(b(o)))(options.emit);
+		.map(ex => ex.init(api))
+		.reduce((a, b) => o => a(b(o)))(config.emit);
 
 	return emit;
 };

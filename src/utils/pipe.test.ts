@@ -1,45 +1,45 @@
 // Ours
 import { pipe } from './pipe';
 import { $buffer } from './operations';
-import { Exchange, ExchangeOptions } from './types';
+import { Exchange, ExchangeAPI } from './types';
 
 globalThis.__DEV__ = true;
 
-let options: ExchangeOptions;
+let api: ExchangeAPI;
 beforeEach(() => {
-	options = { cache: new Map(), emit: jest.fn() };
+	api = { cache: new Map(), emit: jest.fn() };
 });
 
 test('should throw if no exchanges were passesd', () => {
 	expect(() => {
-		pipe([], options);
+		pipe([], api);
 	}).toThrow(/at least one exchange/i);
 
-	expect(options.emit).not.toBeCalled();
+	expect(api.emit).not.toBeCalled();
 });
 
 test('should throw if some exchanges are not valid', () => {
 	expect(() => {
-		pipe([null], options);
+		pipe([null], api);
 	}).toThrow(/exchange.name/i);
 
 	expect(() => {
-		pipe([{} as any], options);
+		pipe([{} as any], api);
 	}).toThrow(/exchange.name/i);
 
 	expect(() => {
-		pipe([true as any], options);
+		pipe([true as any], api);
 	}).toThrow(/exchange.name/i);
 
 	expect(() => {
-		pipe([{ name: 'test' } as any], options);
+		pipe([{ name: 'test' } as any], api);
 	}).toThrow(/exchange.init/i);
 
 	expect(() => {
-		pipe([{ name: 'test', init: 'invalid' } as any], options);
+		pipe([{ name: 'test', init: 'invalid' } as any], api);
 	}).toThrow(/exchange.init/i);
 
-	expect(options.emit).not.toBeCalled();
+	expect(api.emit).not.toBeCalled();
 });
 
 test('should throw if exchange names are not unique', () => {
@@ -54,10 +54,10 @@ test('should throw if exchange names are not unique', () => {
 	};
 
 	expect(() => {
-		pipe([ex, dup], options);
+		pipe([ex, dup], api);
 	}).toThrow(/unique/i);
 
-	expect(options.emit).not.toBeCalled();
+	expect(api.emit).not.toBeCalled();
 	expect(ex.init).not.toBeCalled();
 	expect(dup.init).not.toBeCalled();
 });
@@ -72,18 +72,18 @@ test('should throw when emitting during exchange setup', () => {
 	};
 
 	expect(() => {
-		pipe([ex], options);
+		pipe([ex], api);
 	}).toThrow(/not allowed/i);
 
 	expect(ex.init).toBeCalled();
-	expect(options.emit).not.toBeCalled();
+	expect(api.emit).not.toBeCalled();
 });
 
 test('should NOT throw when emitting after exchange setup', () => {
 	let called = false;
 	const ex: Exchange = {
 		name: 'test',
-		init: ({ emit }) => (next) => (op) => {
+		init: ({ emit }) => next => op => {
 			if (!called) {
 				called = true;
 				emit(null);
@@ -94,16 +94,16 @@ test('should NOT throw when emitting after exchange setup', () => {
 	};
 
 	expect(() => {
-		pipe([ex], options)($buffer(null, {}));
+		pipe([ex], api)($buffer(null, {}));
 	}).not.toThrow();
 
-	expect(options.emit).toBeCalledWith(null);
+	expect(api.emit).toBeCalledWith(null);
 });
 
 test('should compose exchanges from right to left', () => {
 	const createExchange = (name: string): Exchange => ({
 		name,
-		init: () => (next) => (op) =>
+		init: () => next => op =>
 			next($buffer(null, (op.payload as any).data + name)),
 	});
 
@@ -111,12 +111,12 @@ test('should compose exchanges from right to left', () => {
 	const b = createExchange('b');
 	const c = createExchange('c');
 
-	pipe([a, b, c], options)($buffer(null, '+'));
-	expect(options.emit).toBeCalledWith($buffer(null, '+abc'));
+	pipe([a, b, c], api)($buffer(null, '+'));
+	expect(api.emit).toBeCalledWith($buffer(null, '+abc'));
 
-	pipe([c, b, a], options)($buffer(null, '+'));
-	expect(options.emit).toBeCalledWith($buffer(null, '+cba'));
+	pipe([c, b, a], api)($buffer(null, '+'));
+	expect(api.emit).toBeCalledWith($buffer(null, '+cba'));
 
-	pipe([a, c, b], options)($buffer(null, '+'));
-	expect(options.emit).toBeCalledWith($buffer(null, '+acb'));
+	pipe([a, c, b], api)($buffer(null, '+'));
+	expect(api.emit).toBeCalledWith($buffer(null, '+acb'));
 });

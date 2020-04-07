@@ -10,7 +10,7 @@ import { Request } from './request';
 import { transition, State } from './utils/state';
 import { createFetch, FetchHandler } from './fetch';
 import { Emitter, TrackerFunc } from './utils/emitter';
-import { Exchange, EmitFunc, ExchangeOptions } from './utils/types';
+import { Exchange, EmitFunc, ExchangeAPI, Cache } from './utils/types';
 
 export interface GCOptions {
 	// Max age for inactive queries. Default is 30 seconds.
@@ -29,7 +29,7 @@ export type Client = ReturnType<typeof createClient>;
 
 export const createClient = (options: ClientOptions) => {
 	// A simple key-value cache. It uses the request ID as a key.
-	let cache: Partial<Map<string, any>>;
+	const cacheMap = new Map<string, any>();
 
 	// Holds the state of all requests.
 	const stateMap = new Map<string, State>();
@@ -42,7 +42,7 @@ export const createClient = (options: ClientOptions) => {
 	// We rely on this emitter for everything. In fact, Client is just
 	// a wrapper around it.
 	let track: TrackerFunc;
-	const events = Emitter((e) => track(e));
+	const events = Emitter(e => track(e));
 
 	/**
 	 * Extracts operation key
@@ -64,7 +64,7 @@ export const createClient = (options: ClientOptions) => {
 		// Update cache if necessary
 		if (op.type === 'buffer' || op.type === 'complete') {
 			if (op.payload.data !== undefined) {
-				cache.set(key, op.payload.data);
+				cacheMap.set(key, op.payload.data);
 			}
 		}
 
@@ -76,7 +76,7 @@ export const createClient = (options: ClientOptions) => {
 		} else {
 			// Clean-up
 			stateMap.delete(key);
-			cache.delete(key);
+			cacheMap.delete(key);
 		}
 	};
 
@@ -90,22 +90,17 @@ export const createClient = (options: ClientOptions) => {
 		const exchanges = options.exchanges || [];
 		const fetchExchange = createFetch(options.handler);
 
-		const cacheAPI: Map<string, any> = new Map();
-		cache = {
-			// Keep refs of the methods we use
-			get: cacheAPI.get.bind(cacheAPI),
-			set: cacheAPI.set.bind(cacheAPI),
-			delete: cacheAPI.delete.bind(cacheAPI),
+		const cache: Cache = {
+			has: cacheMap.has.bind(cacheMap),
+			get: cacheMap.get.bind(cacheMap),
+			keys: cacheMap.keys.bind(cacheMap),
+			values: cacheMap.values.bind(cacheMap),
+			entries: cacheMap.entries.bind(cacheMap),
 		};
 
-		// We don't direct cache manipulation
-		cacheAPI.set = undefined;
-		cacheAPI.clear = undefined;
-		cacheAPI.delete = undefined;
-
 		// Setup exchanges
-		const config: ExchangeOptions = { emit, cache: cacheAPI };
-		const pipeThrough = pipe([...exchanges, fetchExchange], config);
+		const api: ExchangeAPI = { emit, cache };
+		const pipeThrough = pipe([...exchanges, fetchExchange], api);
 
 		return (op: Operation) => {
 			const current = stateMap.get(keyOf(op));
@@ -155,7 +150,7 @@ export const createClient = (options: ClientOptions) => {
 	const fetch = (req: Request, cb?: Subscriber) => {
 		const notify = (op: Operation) => {
 			const state = stateMap.get(req.id) || 'idle';
-			const data = cache.get(req.id);
+			const data = cacheMap.get(req.id);
 
 			if (op.type === 'reject') {
 				return cb(state, data, op.payload.error);

@@ -1,34 +1,34 @@
 // Ours
 import { on } from './utils/filter';
 import { Request } from './request';
-import { Exchange, ExchangeOptions } from './utils/types';
+import { Exchange, ExchangeAPI, Cache } from './utils/types';
 import { $complete, $buffer, $reject } from './utils/operations';
-import { subscribe, fromStream, fromValue } from './utils/streams';
+import {
+	subscribe,
+	fromStream,
+	fromValue,
+	Subscription,
+} from './utils/streams';
 
 type FetchContext = {
-	cache: ReadonlyMap<string, any>;
+	cache: Cache;
 };
 
 export type FetchHandler = (req: Request, ctx?: FetchContext) => any;
 
-interface Task {
-	isRunning: () => boolean;
-	cancel: () => void;
-}
-
-const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchHandler) => {
-	const ongoing = new Map<string, Task>();
+const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
+	const ongoing = new Map<string, Subscription>();
 
 	return on(['fetch', 'cancel'], op => {
 		const { request } = op.payload;
-		let task = ongoing.get(request.id);
+		let subscription = ongoing.get(request.id);
 
 		if (op.type === 'cancel') {
 			ongoing.delete(request.id);
-			return task?.cancel();
+			return subscription?.close();
 		}
 
-		if (task?.isRunning()) {
+		if (subscription && !subscription.isClosed()) {
 			return;
 		}
 
@@ -38,7 +38,7 @@ const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchHandler) => {
 				? fromStream(fn(request, context))
 				: fromValue(fn(request, context));
 
-		const { close, isClosed } = subscribe(source, {
+		subscription = subscribe(source, {
 			error: error => emit($reject(request, error)),
 			next: data => {
 				// We know for sure that non-streams will only resolve once
@@ -53,12 +53,7 @@ const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchHandler) => {
 			},
 		});
 
-		task = {
-			isRunning: () => !isClosed(),
-			cancel: () => close(),
-		};
-
-		ongoing.set(request.id, task);
+		ongoing.set(request.id, subscription);
 	});
 };
 

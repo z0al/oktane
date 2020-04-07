@@ -7,7 +7,7 @@ import * as zen from 'zen-observable';
 import { pipe } from './utils/pipe';
 import { createFetch } from './fetch';
 import { createRequest } from './request';
-import { ExchangeOptions } from './utils/types';
+import { ExchangeAPI } from './utils/types';
 import {
 	$buffer,
 	$complete,
@@ -20,9 +20,9 @@ const query = createRequest({ type: 'query' });
 const mutation = createRequest({ type: 'mutation' });
 const stream = createRequest({ type: 'stream' });
 
-let options: ExchangeOptions;
+let api: ExchangeAPI;
 beforeEach(() => {
-	options = {
+	api = {
 		emit: jest.fn(),
 		cache: new Map(),
 	};
@@ -33,7 +33,7 @@ test('should return a valid exchange', () => {
 	const fetch = createFetch(hanlder);
 
 	expect(() => {
-		pipe([fetch], options);
+		pipe([fetch], api);
 	}).not.toThrow();
 
 	expect(fetch.name).toEqual('fetch');
@@ -42,8 +42,8 @@ test('should return a valid exchange', () => {
 test('should only call handler on "fetch" operation', () => {
 	const handler = jest.fn();
 	const fetch = createFetch(handler);
-	const apply = pipe([fetch], options);
-	const context = { cache: options.cache };
+	const apply = pipe([fetch], api);
+	const context = { cache: api.cache };
 
 	apply($buffer(query, null));
 	expect(handler).not.toBeCalled();
@@ -65,8 +65,8 @@ test('should only call handler on "fetch" operation', () => {
 test('should not duplicate requests', async () => {
 	const handler = jest.fn().mockReturnValue(delay(100));
 	const fetch = createFetch(handler);
-	const apply = pipe([fetch], options);
-	const context = { cache: options.cache };
+	const apply = pipe([fetch], api);
+	const context = { cache: api.cache };
 
 	apply($fetch(query));
 	apply($fetch(query));
@@ -90,95 +90,95 @@ test('should emit result(s)', async () => {
 	const data = { pass: true };
 	const handler = () => Promise.resolve(data);
 	const fetch = createFetch(handler);
-	const apply = pipe([fetch], options);
+	const apply = pipe([fetch], api);
 
 	// Query
 	apply($fetch(query));
 	await delay(1);
 
-	expect(options.emit).toBeCalledWith($fetch(query));
-	expect(options.emit).toBeCalledWith($complete(query, data));
+	expect(api.emit).toBeCalledWith($fetch(query));
+	expect(api.emit).toBeCalledWith($complete(query, data));
 
 	// Mutation
 	apply($fetch(mutation));
 	await delay(1);
 
-	expect(options.emit).toBeCalledWith($fetch(mutation));
-	expect(options.emit).toBeCalledWith($complete(mutation, data));
+	expect(api.emit).toBeCalledWith($fetch(mutation));
+	expect(api.emit).toBeCalledWith($complete(mutation, data));
 
 	// Stream
 	apply($fetch(stream));
 	await delay(1);
 
-	expect(options.emit).toBeCalledWith($fetch(stream));
-	expect(options.emit).toBeCalledWith($buffer(stream, data));
-	expect(options.emit).toBeCalledWith($complete(stream));
+	expect(api.emit).toBeCalledWith($fetch(stream));
+	expect(api.emit).toBeCalledWith($buffer(stream, data));
+	expect(api.emit).toBeCalledWith($complete(stream));
 });
 
 test('should handle errors', async () => {
 	const error = { fail: true };
 	const handler = () => Promise.reject(error);
 	const fetch = createFetch(handler);
-	const apply = pipe([fetch], options);
+	const apply = pipe([fetch], api);
 
 	// Query
 	apply($fetch(query));
 	await delay(1);
 
-	expect(options.emit).toBeCalledWith($reject(query, error));
+	expect(api.emit).toBeCalledWith($reject(query, error));
 
 	// Mutation
 	apply($fetch(mutation));
 	await delay(1);
 
-	expect(options.emit).toBeCalledWith($reject(mutation, error));
+	expect(api.emit).toBeCalledWith($reject(mutation, error));
 
 	// Stream
 	apply($fetch(stream));
 	await delay(1);
 
-	expect(options.emit).toBeCalledWith($reject(stream, error));
-	expect(options.emit).toBeCalledTimes(6);
+	expect(api.emit).toBeCalledWith($reject(stream, error));
+	expect(api.emit).toBeCalledTimes(6);
 });
 
 test('should not emit when cancelled', async () => {
 	const handler = jest.fn().mockReturnValue(delay(1));
 	const fetch = createFetch(handler);
-	const apply = pipe([fetch], options);
+	const apply = pipe([fetch], api);
 
 	apply($fetch(query));
 	apply($cancel(query));
 	await delay(50);
 
-	expect(options.emit).toBeCalledWith($fetch(query));
-	expect(options.emit).toBeCalledWith($cancel(query));
-	expect(options.emit).toBeCalledTimes(2);
+	expect(api.emit).toBeCalledWith($fetch(query));
+	expect(api.emit).toBeCalledWith($cancel(query));
+	expect(api.emit).toBeCalledTimes(2);
 });
 
 test('should work with observables', async () => {
 	let observer: any = rx.from([1, 2, 3]);
 	const handler = jest.fn().mockImplementation(() => observer);
 	const fetch = createFetch(handler);
-	const apply = pipe([fetch], options);
+	const apply = pipe([fetch], api);
 
 	apply($fetch(stream));
 	await delay(1);
 
-	expect(options.emit).toBeCalledWith($fetch(stream));
-	expect(options.emit).toBeCalledWith($buffer(stream, 1));
-	expect(options.emit).toBeCalledWith($buffer(stream, 2));
-	expect(options.emit).toBeCalledWith($buffer(stream, 3));
-	expect(options.emit).toBeCalledWith($complete(stream));
-	expect(options.emit).toBeCalledTimes(5);
+	expect(api.emit).toBeCalledWith($fetch(stream));
+	expect(api.emit).toBeCalledWith($buffer(stream, 1));
+	expect(api.emit).toBeCalledWith($buffer(stream, 2));
+	expect(api.emit).toBeCalledWith($buffer(stream, 3));
+	expect(api.emit).toBeCalledWith($complete(stream));
+	expect(api.emit).toBeCalledTimes(5);
 
 	observer = zen.default.from([4, 5, 6]);
 	apply($fetch(stream));
 	await delay(1);
 
-	expect(options.emit).toBeCalledWith($fetch(stream));
-	expect(options.emit).toBeCalledWith($buffer(stream, 4));
-	expect(options.emit).toBeCalledWith($buffer(stream, 5));
-	expect(options.emit).toBeCalledWith($buffer(stream, 6));
-	expect(options.emit).toBeCalledWith($complete(stream));
-	expect(options.emit).toBeCalledTimes(10);
+	expect(api.emit).toBeCalledWith($fetch(stream));
+	expect(api.emit).toBeCalledWith($buffer(stream, 4));
+	expect(api.emit).toBeCalledWith($buffer(stream, 5));
+	expect(api.emit).toBeCalledWith($buffer(stream, 6));
+	expect(api.emit).toBeCalledWith($complete(stream));
+	expect(api.emit).toBeCalledTimes(10);
 });

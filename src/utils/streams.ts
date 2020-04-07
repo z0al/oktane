@@ -11,7 +11,7 @@ interface Subscriber extends Observer {
 	closed: boolean;
 }
 
-interface Subscription {
+export interface Subscription {
 	isClosed: () => boolean;
 	close: () => void;
 }

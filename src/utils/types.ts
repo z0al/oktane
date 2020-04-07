@@ -3,12 +3,20 @@ import { Operation } from './operations';
 
 export type EmitFunc = (op: Operation) => void;
 
-export interface ExchangeOptions {
+export interface Cache {
+	has(key: string): boolean;
+	get(key: string): any;
+	entries(): IterableIterator<[string, any]>;
+	keys(): IterableIterator<string>;
+	values(): IterableIterator<any>;
+}
+
+export interface ExchangeAPI {
 	emit: EmitFunc;
-	cache: ReadonlyMap<string, any>;
+	cache: Cache;
 }
 
 export interface Exchange {
 	name: string;
-	init: (o?: ExchangeOptions) => (next?: EmitFunc) => EmitFunc;
+	init: (o?: ExchangeAPI) => (next?: EmitFunc) => EmitFunc;
 }
