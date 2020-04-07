@@ -1,140 +1,138 @@
 // Packages
 import is from '@sindresorhus/is';
 
-interface Observer {
+export interface Observer {
 	next(value: any): void;
 	error(error: any): void;
 	complete(): void;
 }
 
-interface Subscriber extends Observer {
+export interface Subscriber extends Observer {
 	closed: boolean;
 }
 
 export interface Subscription {
 	isClosed: () => boolean;
 	close: () => void;
+	lazy?: boolean;
+	next?: () => Promise<void>;
 }
 
-type Source = (o: Subscriber) => () => void;
+export interface Source {
+	(o: Subscriber): () => void;
+	lazy?: boolean;
+	// Emits next value on a lazy source
+	next?: () => Promise<void>;
+}
 
 /**
- * Transforms a value into a {@link Source} that emits the value
- * and completes immediately afterwards.
+ * Transforms a spec-compliant JS Observable into a Source.
  *
- * @example From Promise
- * const promise = Promise.resolve('Works!')
- * const source = fromValue(promise)
- *
- * subscribe(source, {
- * 	next: value => console.log(value), // should log: Works!
- *  // ... other handlers
- * })
- *
- * @example Anything else
- * const anything = 'Works'
- * const source = fromValue(anything)
- *
- * subscribe(source, {
- * 	next: value => console.log(value), // should log: Works!
- *  // ... other handlers
- * })
- *
- * @param value
+ * @param o
  */
-export const fromValue = (value: unknown) => {
-	let source: Source;
+export const fromObservable = (o: any): Source => {
+	return subscriber => {
+		const observable = o.subscribe(subscriber);
 
-	// Handle promises
-	if (is.nativePromise(value)) {
-		source = sub => {
-			value
-				.then(v => {
-					sub.next(v);
-					sub.complete();
-				})
-				.catch(e => sub.error(e));
+		return () => observable?.unsubscribe?.();
+	};
+};
 
-			return () => {};
-		};
-	}
+/**
+ * Transforms a function into a lazy Source.
+ *
+ * @param fn
+ */
+export const fromCallback = (fn: Function): Source => {
+	let subscriber: Subscriber;
 
-	if (!source) {
-		source = sub => {
-			const timeout = setTimeout(() => {
-				sub.next(value);
-				sub.complete();
-			});
+	const next = async () => {
+		try {
+			const value = await fn();
 
-			return () => clearTimeout(timeout);
-		};
-	}
+			// End of stream
+			if (value === undefined || value === null) {
+				subscriber.complete();
+			} else {
+				subscriber.next(value);
+			}
+		} catch (error) {
+			subscriber.error(error);
+		}
+	};
+
+	const source: Source = sub => {
+		// Keep subscriber ref and emit the first value
+		subscriber = sub;
+		next();
+
+		return () => {};
+	};
+
+	source.lazy = true;
+	source.next = next;
 
 	return source;
 };
 
 /**
- * Transforms a stream into a {@link Source} that emits value(s) over time.
+ * Transforms a Promise into a Source that emits the resolved value
+ * or fails if the promise rejected.
  *
- * A stream can be one of three things:
- * - Async iterable or
- * - Generator or
- * - Observable (tested with RxJS & zen-observable)
- *
- * If `value` doesn't satisfy any of the types above we fall back to
- * {@link fromValue}.
- *
- * @example From RxJS Observable
- * const observable = Rx.from([1,2,3])
- * const source = fromStream(observable)
- *
- * subscribe(source, {
- * 	next: value => console.log(value), // should log: 1 2 3
- *  // ... other handlers
- * })
+ * @param p
+ */
+export const fromPromise = (p: Promise<unknown>): Source => {
+	return subscriber => {
+		p.then(v => {
+			subscriber.next(v);
+			subscriber.complete();
+		}).catch(e => subscriber.error(e));
+
+		return () => {};
+	};
+};
+
+/**
+ * Transforms a value into a Source that emits the value and
+ * completes immediately afterwards.
  *
  * @param value
  */
-export const fromStream = (value: unknown) => {
-	let source: Source;
+export const fromValue = (value: unknown): Source => {
+	return subscriber => {
+		const timeout = setTimeout(() => {
+			subscriber.next(value);
+			subscriber.complete();
+		});
 
-	// DO NOT iterate over plain iterables (e.g Array)
-	if (is.asyncIterable(value) || is.generator(value)) {
-		source = sub => {
-			(async () => {
-				try {
-					for await (const v of value) {
-						sub.next(v);
-					}
-				} catch (error) {
-					sub.error(error);
-				}
+		return () => clearTimeout(timeout);
+	};
+};
 
-				return sub.complete();
-			})();
-
-			return () => value.return?.(null);
-		};
+/**
+ * Transforms give value into a Source that emits value(s) over time.
+ *
+ * @param value
+ */
+export const fromAny = (value: unknown): Source => {
+	if (is.function_(value)) {
+		return fromCallback(value);
 	}
 
 	if (is.observable(value)) {
-		source = sub => {
-			const observable: any = value.subscribe(sub as any);
-
-			return () => observable?.unsubscribe?.();
-		};
+		return fromObservable(value);
 	}
 
-	if (!source) {
-		source = fromValue(value);
+	if (is.nativePromise(value)) {
+		return fromPromise(value);
 	}
 
-	return source;
+	return fromValue(value);
 };
 
 /**
- * Subscribes to a {@link Source} and a subscription object that
- * can be used to unsubscribe later.
+ * Subscribes to a Source and a subscription object that can be used
+ * to unsubscribe later.
  *
  * @param source
  * @param observer
@@ -166,5 +164,10 @@ export const subscribe = (
 	const cleanup = source(subscriber);
 	const close = end(cleanup);
 
-	return { isClosed: () => closed, close };
+	return {
+		close,
+		isClosed: () => closed,
+		lazy: source.lazy,
+		next: source.next,
+	};
 };

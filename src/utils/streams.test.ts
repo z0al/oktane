@@ -3,7 +3,14 @@ import * as RxObservable from 'rxjs';
 import ZenObservable from 'zen-observable';
 
 // Ours
-import { subscribe, fromStream } from './streams';
+import {
+	fromAny,
+	fromPromise,
+	fromObservable,
+	fromCallback,
+	Source,
+	subscribe,
+} from './streams';
 
 const ERROR = new Error('runtime');
 
@@ -15,13 +22,24 @@ const observe = async (
 	const vals: any[] = [];
 
 	let isClosed: any;
-	const toPromise = (source: any) =>
+	const toPromise = (source: Source) =>
 		new Promise((resolve, reject) => {
-			isClosed = subscribe(fromStream(source), {
+			isClosed = subscribe(source, {
 				next: (v: any) => vals.push(v),
 				error: reject,
 				complete: () => resolve(vals),
 			}).isClosed;
+
+			const pull = () =>
+				source.next().then(() => {
+					if (!isClosed()) {
+						pull();
+					}
+				});
+
+			if (source.lazy) {
+				pull();
+			}
 		});
 
 	try {
@@ -35,94 +53,29 @@ const observe = async (
 	expect(vals).toEqual(values);
 };
 
-describe('with promises', () => {
+describe('fromPromise', () => {
 	it('should pass resolved value to .next', async () => {
 		const result = { ok: true };
 		const p = Promise.resolve(result);
-		await observe(p, [result]);
+		await observe(fromPromise(p), [result]);
 	});
 
 	it('should pass errors to .error', async () => {
 		const error = { ok: false };
 		const p = Promise.reject(error);
-		await observe(p, [], error);
+		await observe(fromPromise(p), [], error);
 	});
 });
 
-describe('with iterables', () => {
-	it('should NOT iterate over iterables', async () => {
-		const it = [1, 2, 3];
-		await observe(it, [it]);
-	});
-
-	it('should iterate over async iterables', async () => {
-		const it = {
-			[Symbol.asyncIterator]: () => {
-				const max = 3;
-				let current = 0;
-
-				return {
-					async next() {
-						if (current < max) {
-							return { value: ++current, done: false };
-						} else {
-							return { done: true };
-						}
-					},
-				};
-			},
-		};
-
-		await observe(it, [1, 2, 3]);
-	});
-});
-
-describe('with generators', () => {
-	it('should iterate over generators', async () => {
-		const it = function*() {
-			yield 1;
-			yield 2;
-			yield 3;
-		};
-
-		await observe(it(), [1, 2, 3]);
-	});
-
-	it('should iterate over async generators', async () => {
-		const itAsync = async function*() {
-			yield await Promise.resolve(1);
-			yield await Promise.resolve(2);
-			yield await Promise.resolve(3);
-		};
-
-		await observe(itAsync(), [1, 2, 3]);
-	});
-
-	it('should catch thrown errors', async () => {
-		const it = function*() {
-			yield 1;
-			throw ERROR;
-		};
-
-		const itAsync = async function*() {
-			yield await Promise.resolve(1);
-			throw ERROR;
-		};
-
-		await observe(it(), [1], ERROR);
-		await observe(itAsync(), [1], ERROR);
-	});
-});
-
-describe('with observables', () => {
+describe('fromObservables', () => {
 	it('should work with RxJS Observables', async () => {
 		const result = [1, 2, 3];
-		await observe(RxObservable.from(result), result);
+		await observe(fromObservable(RxObservable.from(result)), result);
 	});
 
 	it('should work with zen-observable', async () => {
 		const result = [1, 2, 3];
-		await observe(ZenObservable.from(result), result);
+		await observe(fromObservable(ZenObservable.from(result)), result);
 	});
 
 	it('should catch thrown errors', async () => {
@@ -138,7 +91,93 @@ describe('with observables', () => {
 			s.next(2);
 		});
 
-		await observe(rx, [1], ERROR);
-		await observe(zen, [1], ERROR);
+		await observe(fromObservable(rx), [1], ERROR);
+		await observe(fromObservable(zen), [1], ERROR);
+	});
+});
+
+describe('fromCallback', () => {
+	it('should convert into a pullable source', () => {
+		const fn = jest.fn();
+		expect(fromCallback(fn)).toEqual(
+			expect.objectContaining({
+				lazy: true,
+				next: expect.any(Function),
+			})
+		);
+	});
+
+	it('should emit values on source.next()', async () => {
+		const fn = jest
+			.fn()
+			.mockResolvedValueOnce(1)
+			.mockResolvedValueOnce(2)
+			.mockResolvedValueOnce(3);
+
+		await observe(fromCallback(fn), [1, 2, 3]);
+	});
+
+	it('should complete if received undefined or nulll', async () => {
+		const fn1 = jest
+			.fn()
+			.mockResolvedValueOnce(1)
+			.mockResolvedValue(null);
+
+		const fn2 = jest
+			.fn()
+			.mockResolvedValueOnce(2)
+			.mockResolvedValue(undefined);
+
+		await observe(fromCallback(fn1), [1]);
+		await observe(fromCallback(fn2), [2]);
+	});
+});
+
+describe('fromAny', () => {
+	it('should work with lazy sources/callbacks', async () => {
+		// values
+		let fn = jest
+			.fn()
+			.mockReturnValueOnce({ ok: true })
+			.mockReturnValue(null);
+
+		await observe(fromAny(fn), [{ ok: true }]);
+
+		// errors
+		fn = jest.fn().mockRejectedValue({ error: true });
+		await observe(fromAny(fn), [], { error: true });
+	});
+
+	it('should work with promises', async () => {
+		// values
+		let p = Promise.resolve(1);
+		await observe(fromAny(p), [1]);
+
+		// errors
+		p = Promise.reject({ error: true });
+		await observe(fromAny(p), [], { error: true });
+	});
+
+	it('should work with observables', async () => {
+		// values
+		let o: any = ZenObservable.from([1, 2]);
+		await observe(fromAny(o), [1, 2]);
+
+		// errors
+		o = new RxObservable.Observable(s => {
+			setTimeout(() => {
+				s.error({ error: true });
+			});
+		});
+
+		await observe(fromAny(o), [], { error: true });
+	});
+
+	it('should fallback to basic one-time value', async () => {
+		// values
+		let v: any = { ok: true };
+		await observe(fromAny(v), [{ ok: true }]);
+
+		// errors are not applicable
 	});
 });

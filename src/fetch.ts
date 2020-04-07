@@ -3,12 +3,7 @@ import { on } from './utils/filter';
 import { Request } from './request';
 import { Exchange, ExchangeAPI, Cache } from './utils/types';
 import { $complete, $buffer, $reject } from './utils/operations';
-import {
-	subscribe,
-	fromStream,
-	fromValue,
-	Subscription,
-} from './utils/streams';
+import { subscribe, fromAny, Subscription } from './utils/streams';
 
 type FetchContext = {
 	cache: Cache;
@@ -33,10 +28,7 @@ const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
 		}
 
 		const context = { cache };
-		const source =
-			request.type === 'stream'
-				? fromStream(fn(request, context))
-				: fromValue(fn(request, context));
+		const source = fromAny(fn(request, context));
 
 		subscription = subscribe(source, {
 			error: error => emit($reject(request, error)),
