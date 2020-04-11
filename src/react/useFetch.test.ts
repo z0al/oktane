@@ -5,7 +5,7 @@ import delay from 'delay';
 import { renderHook, act } from './test-utils';
 
 import { createClient, Client } from '../client';
-import { useQuery, Query } from './useQuery';
+import { useFetch, FetchRequest } from './useFetch';
 
 const json = [
 	{ id: 1, name: 'Alice' },
@@ -23,22 +23,22 @@ beforeEach(() => {
 });
 
 test('should expose public interface', async () => {
-	const { result } = renderHook<Query>(() => useQuery({}), client);
-
-	expect(result.current).toEqual(
-		expect.objectContaining({
-			state: 'pending',
-			data: undefined,
-			error: undefined,
-			cancel: expect.any(Function),
-			refetch: expect.any(Function),
-		})
+	const { result } = renderHook<FetchRequest>(
+		() => useFetch({}),
+		client
 	);
+
+	expect(result.current).toEqual({
+		state: 'pending',
+		data: undefined,
+		error: undefined,
+		cancel: expect.any(Function),
+	});
 });
 
 test('should keep "state" on sync', async () => {
-	const { result, waitForNextUpdate } = renderHook<Query>(
-		() => useQuery({}),
+	const { result, waitForNextUpdate } = renderHook<FetchRequest>(
+		() => useFetch({}),
 		client
 	);
 
@@ -48,8 +48,8 @@ test('should keep "state" on sync', async () => {
 });
 
 test('should populate data on response', async () => {
-	const { result, waitForNextUpdate } = renderHook<Query>(
-		() => useQuery({}),
+	const { result, waitForNextUpdate } = renderHook<FetchRequest>(
+		() => useFetch({}),
 		client
 	);
 
@@ -64,8 +64,8 @@ test('should report errors', async () => {
 	const client = createClient({
 		handler: () => Promise.reject(error),
 	});
-	const { result, waitForNextUpdate } = renderHook<Query>(
-		() => useQuery({}),
+	const { result, waitForNextUpdate } = renderHook<FetchRequest>(
+		() => useFetch({}),
 		client
 	);
 
@@ -81,7 +81,10 @@ test('should report errors', async () => {
 
 test('should avoid unnecessary fetching', async () => {
 	const fetch = jest.spyOn(client, 'fetch');
-	const { rerender } = renderHook<Query>(() => useQuery({}), client);
+	const { rerender } = renderHook<FetchRequest>(
+		() => useFetch({}),
+		client
+	);
 
 	rerender();
 	rerender();
@@ -100,14 +103,17 @@ test('should unsubscribe on unmount', async () => {
 		return sub;
 	};
 
-	renderHook<Query>(() => useQuery({}), client).unmount();
+	renderHook<FetchRequest>(() => useFetch({}), client).unmount();
 
 	expect(unsubscribe).toBeCalledTimes(1);
 });
 
 describe('cancel', () => {
 	test('should cancel request when called', async () => {
-		const { result } = renderHook<Query>(() => useQuery({}), client);
+		const { result } = renderHook<FetchRequest>(
+			() => useFetch({}),
+			client
+		);
 
 		expect(result.current.state).toEqual('pending');
 
@@ -116,26 +122,5 @@ describe('cancel', () => {
 		});
 
 		expect(result.current.state).toEqual('cancelled');
-	});
-});
-
-describe('refetch', () => {
-	test('should trigger fetch call', async () => {
-		const { result, waitForNextUpdate } = renderHook<Query>(
-			() => useQuery({}),
-			client
-		);
-
-		expect(result.current.state).toEqual('pending');
-		await waitForNextUpdate();
-		expect(result.current.state).toEqual('completed');
-
-		act(() => {
-			result.current.refetch();
-		});
-
-		expect(result.current.state).toEqual('pending');
-		await waitForNextUpdate();
-		expect(result.current.state).toEqual('completed');
 	});
 });

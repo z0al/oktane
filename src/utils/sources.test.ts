@@ -102,14 +102,12 @@ describe('fromObservables', () => {
 });
 
 describe('fromCallback', () => {
-	it('should convert into a pullable source', () => {
+	it('should convert into a lazy source', () => {
 		const fn = jest.fn();
-		expect(fromCallback(fn)).toEqual(
-			expect.objectContaining({
-				lazy: true,
-				next: expect.any(Function),
-			})
-		);
+		const source = fromCallback(fn);
+
+		expect(source.lazy).toEqual(true);
+		expect(source.next).toEqual(expect.any(Function));
 	});
 
 	it('should emit values on source.next()', async () => {
