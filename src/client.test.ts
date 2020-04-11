@@ -1,41 +1,41 @@
 // Packages
 import delay from 'delay';
 import * as rx from 'rxjs';
-import Observable from 'zen-observable';
 
 // Ours
 import { createClient } from './client';
-import { Exchange } from './utils/types';
 import { createRequest } from './request';
+import { Exchange, Cache } from './utils/types';
 import {
 	$fetch,
 	$cancel,
 	$dispose,
-	$buffer,
 	$complete,
 } from './utils/operations';
 
+const request = createRequest({
+	url: '/api',
+	body: {},
+});
+
+const DATA = [
+	{ id: 1, name: 'React' },
+	{ id: 2, name: 'Svelte' },
+];
+
+const ERROR = new Error('unknown');
+
 describe('client', () => {
-	const query = createRequest({
-		_type: 'query',
-		query: 'test',
-		variables: [1, 2],
+	const logOptions = (fn: any): Exchange => ({
+		name: 'log-options',
+		init: api => {
+			fn(api);
+			return next => op => next(op);
+		},
 	});
 
-	const mutation = createRequest({
-		_type: 'mutation',
-		query: 'test',
-		variables: [1, 2],
-	});
-
-	const stream = createRequest({
-		_type: 'stream',
-		query: 'test',
-		variables: [1, 2],
-	});
-
-	const logTo = (fn: any): Exchange => ({
-		name: 'dummy',
+	const logOperations = (fn: any): Exchange => ({
+		name: 'log-operations',
 		init: () => next => op => {
 			fn(op);
 			return next(op);
@@ -52,301 +52,262 @@ describe('client', () => {
 	});
 
 	it('should not throw when no exchanges were passed', () => {
+		const handler = jest.fn();
+
 		expect(() => {
-			createClient({} as any);
+			createClient({ handler });
 		}).not.toThrow();
 
 		expect(() => {
-			const handler = jest.fn();
 			createClient({ handler, exchanges: [] });
-			expect(handler).not.toBeCalled();
 		}).not.toThrow();
+
+		expect(handler).not.toBeCalled();
 	});
 
 	it('should pass necessary options to exchanges', () => {
+		const api = {
+			emit: expect.any(Function),
+			cache: {
+				get: expect.any(Function),
+				has: expect.any(Function),
+				entries: expect.any(Function),
+				keys: expect.any(Function),
+				values: expect.any(Function),
+			},
+		};
+
+		const log = jest.fn();
 		createClient({
 			handler: jest.fn(),
-			exchanges: [
-				{
-					name: 'test',
-					init: o => {
-						expect(o.emit).toBeDefined();
-						expect(o.cache).toBeDefined();
-						expect(o.cache?.get).toBeDefined();
-						expect(o.cache?.has).toBeDefined();
-						expect(o.cache?.entries).toBeDefined();
-						expect(o.cache?.keys).toBeDefined();
-						expect(o.cache?.values).toBeDefined();
-						return next => op => next(op);
-					},
-				},
-			],
+			exchanges: [logOptions(log)],
 		});
+
+		expect(log).toBeCalledWith(api);
 	});
 
-	it('should pass a readonly cache', () => {
-		expect(() => {
-			createClient({
-				handler: jest.fn(),
-				exchanges: [
-					{
-						name: 'test',
-						init: o => {
-							(o.cache as any).set('random', 'value');
-							return next => op => next(op);
-						},
-					},
-				],
-			});
-		}).toThrow(/not a function/);
-
-		expect(() => {
-			createClient({
-				handler: jest.fn(),
-				exchanges: [
-					{
-						name: 'test',
-						init: o => {
-							(o.cache as any).delete('key');
-							return next => op => next(op);
-						},
-					},
-				],
-			});
-		}).toThrow(/not a function/);
-
-		expect(() => {
-			createClient({
-				handler: jest.fn(),
-				exchanges: [
-					{
-						name: 'test',
-						init: o => {
-							(o.cache as any).clear();
-							return next => op => next(op);
-						},
-					},
-				],
-			});
-		}).toThrow(/not a function/);
-	});
-
-	it('should dispose inactive queries', async () => {
-		const fn = jest.fn();
+	it('should dispose inactive requests', async () => {
+		const log = jest.fn();
 		const client = createClient({
 			handler: jest.fn(),
-			gc: { maxAge: 10 },
-			exchanges: [logTo(fn)],
+			gc: { maxAge: 5 },
+			exchanges: [logOperations(log)],
 		});
 
-		// Without subscriber - immediatly inactive
-		client.prefetch(query);
-		await delay(15);
-		expect(fn).toBeCalledWith($dispose({ id: query.id }));
+		// No subscriber? immediatly inactive
+		client.prefetch(request);
+		await delay(10);
 
-		// With subscriber - wait for .unsubscribe()
-		const sub = client.fetch(mutation, jest.fn());
-		await delay(15);
-		expect(fn).not.toBeCalledWith($dispose({ id: mutation.id }));
+		expect(log).toBeCalledWith($dispose({ id: request.id }));
+
+		// Has subscriber? wait for .unsubscribe()
+		log.mockClear();
+		const sub = client.fetch(request, jest.fn());
+		await delay(10);
+
+		expect(log).not.toBeCalledWith($dispose({ id: request.id }));
 
 		sub.unsubscribe();
-		await delay(15);
-		expect(fn).toBeCalledWith($dispose({ id: mutation.id }));
+		await delay(10);
 
-		// Don't dispose if we still have subscribers
-		client.fetch(stream);
-		client.fetch(stream, jest.fn());
-		await delay(15);
-		expect(fn).not.toBeCalledWith($dispose({ id: stream.id }));
+		expect(log).toBeCalledWith($dispose({ id: request.id }));
+
+		// At least one subscriber? don't dispose
+		log.mockClear();
+		client.fetch(request);
+		client.fetch(request, jest.fn());
+		await delay(10);
+
+		expect(log).not.toBeCalledWith($dispose({ id: request.id }));
 	});
 
 	it('should clear cache on "dispose"', async () => {
-		let cacheRef: any;
+		let cache: Cache;
+
+		const log = (op: any) => {
+			cache = op.cache;
+		};
 
 		const client = createClient({
-			handler: jest.fn().mockResolvedValue(null),
-			gc: { maxAge: 10 },
-			exchanges: [
-				{
-					name: 'dummy',
-					init: ({ cache }) => {
-						cacheRef = cache;
-						return next => op => {
-							next(op);
-						};
-					},
-				},
-			],
+			gc: { maxAge: 5 },
+			handler: async () => DATA,
+			exchanges: [logOptions(log)],
 		});
 
-		// Without subscriber - immediatly inactive
-		client.fetch(query);
-		await delay(15);
+		// Immediatly inactive (no subscriber)
+		client.fetch(request);
+		await delay(10);
 
-		expect(cacheRef.get(query.id)).toBeUndefined();
+		expect(cache.get(request.id)).toBeUndefined();
 	});
 
-	describe('.fetch', () => {
-		const data = [{ name: 'A' }, { name: 'B' }];
-
-		let handler: any;
-		beforeEach(() => {
-			handler = jest.fn().mockResolvedValue(data);
-		});
-
+	describe('.fetch()', () => {
 		it('should emit fetch operation', () => {
-			const fn = jest.fn();
+			const log = jest.fn();
 			const client = createClient({
-				handler,
-				exchanges: [logTo(fn)],
+				handler: jest.fn(),
+				exchanges: [logOperations(log)],
 			});
-			client.fetch(query);
 
-			expect(fn).toBeCalledWith($fetch(query));
+			client.fetch(request);
+
+			expect(log).toBeCalledWith($fetch(request));
 		});
 
-		it('should not emit "fetch" if it is already pending', () => {
-			const fn = jest.fn();
+		it('should not duplicate requests', () => {
+			const log = jest.fn();
 			const client = createClient({
-				handler,
-				exchanges: [logTo(fn)],
+				handler: () => delay(20),
+				exchanges: [logOperations(log)],
 			});
-			client.fetch(query);
-			client.fetch(query);
-			client.fetch(query);
 
-			expect(fn).toBeCalledWith($fetch(query));
-			expect(fn).toBeCalledTimes(1);
+			client.fetch(request);
+			client.fetch(request);
+			client.fetch(request);
+
+			expect(log).toBeCalledWith($fetch(request));
+			expect(log).toBeCalledTimes(1);
 		});
 
-		it('should call subscriber with state updates', async () => {
-			const fetch = () => handler();
+		it('should provide updates to the subscriber', async () => {
+			let handler: any = () => delay(5).then(() => DATA);
 
 			const client = createClient({
-				handler: fetch,
-				exchanges: [],
+				handler: () => handler(),
 			});
 
-			let sub = jest.fn();
-			client.fetch(query, sub);
-			await delay(1);
+			// success
+			const subscriber = jest.fn();
+			client.fetch(request, subscriber);
+			await delay(10);
 
-			expect(sub).toBeCalledWith('pending', undefined);
-			expect(sub).toBeCalledWith('completed', data);
-			expect(sub).toBeCalledTimes(2);
+			expect(subscriber).toBeCalledWith('pending', undefined);
+			expect(subscriber).toBeCalledWith('completed', DATA);
+			expect(subscriber).toBeCalledTimes(2);
 
-			sub = jest.fn();
-			client.fetch({ ...query, id: 'test-cancellation' }, sub).cancel();
-			await delay(1);
+			// cancellation
+			subscriber.mockClear();
+			client.fetch(request).cancel();
+			await delay(10);
 
-			expect(sub).toBeCalledWith('pending', undefined);
-			expect(sub).toBeCalledWith('cancelled', undefined);
-			expect(sub).toBeCalledTimes(2);
+			expect(subscriber).toBeCalledWith('pending', DATA);
+			expect(subscriber).toBeCalledWith('cancelled', DATA);
+			expect(subscriber).toBeCalledTimes(2);
 
-			sub = jest.fn();
-			handler = () => rx.from(Promise.resolve(data));
-			client.fetch(stream, sub);
-			await delay(1);
+			// buffering
+			subscriber.mockClear();
+			handler = () => rx.from(delay(5).then(() => DATA));
+			client.fetch(request);
+			await delay(10);
 
-			expect(sub).toBeCalledWith('pending', undefined);
-			expect(sub).toBeCalledWith('streaming', data);
-			expect(sub).toBeCalledWith('completed', data);
+			expect(subscriber).toBeCalledWith('pending', DATA);
+			expect(subscriber).toBeCalledWith('streaming', DATA);
+			expect(subscriber).toBeCalledWith('completed', DATA);
 
-			sub = jest.fn();
-			handler = () => Promise.reject({ failed: true });
-			client.fetch({ ...query, id: 'test-reject' }, sub);
-			await delay(1);
+			// failure
+			subscriber.mockClear();
+			handler = () => Promise.reject(ERROR);
+			client.fetch(request);
+			await delay(10);
 
-			expect(sub).toBeCalledWith('pending', undefined);
-			expect(sub).toBeCalledWith('failed', undefined, { failed: true });
+			expect(subscriber).toBeCalledWith('pending', DATA);
+			expect(subscriber).toBeCalledWith('failed', DATA, ERROR);
 		});
 
-		it('should emit "cancel" on .cancel()', () => {
-			const fn = jest.fn();
-			const client = createClient({
-				handler,
-				exchanges: [logTo(fn)],
-			});
-			const { cancel } = client.fetch(query);
-			cancel();
+		describe('.cancel()', () => {
+			it('should emit "cancel"', () => {
+				const log = jest.fn();
 
-			expect(fn).toBeCalledWith($fetch(query));
-			expect(fn).toBeCalledWith($cancel(query));
-		});
-
-		it('should remove listener on .unsubscribe()', async () => {
-			const client = createClient({
-				handler,
-				exchanges: [],
-			});
-
-			const sub = jest.fn();
-			const { unsubscribe } = client.fetch(query, sub);
-			unsubscribe();
-
-			expect(sub).toBeCalledWith('pending', undefined);
-			expect(sub).toBeCalledTimes(1);
-		});
-
-		it('should cancel inactive requests on .unsubscribe()', async () => {
-			const fn = jest.fn();
-			let resolver = handler;
-			const client = createClient({
-				handler: (...args: []) => resolver(...args),
-				exchanges: [logTo(fn)],
-			});
-
-			// 1. Inactive queries
-			client.fetch(query, jest.fn()).unsubscribe();
-			expect(fn).toBeCalledWith($cancel(query));
-
-			// 2. Active queries
-			client.fetch(mutation, jest.fn()); // prevents cancelation
-			client.fetch(mutation, jest.fn()).unsubscribe();
-			expect(fn).not.toBeCalledWith($cancel(mutation));
-
-			// 3. Inactive queries in streaming state
-			resolver = () =>
-				new Observable(o => {
-					o.next(1);
-					setTimeout(() => o.next(2), 200);
+				const client = createClient({
+					handler: jest.fn(),
+					exchanges: [logOperations(log)],
 				});
 
-			const { unsubscribe } = client.fetch(stream, jest.fn());
-			await delay(50);
+				client.fetch(request).cancel();
 
-			unsubscribe();
-			expect(fn).toBeCalledWith($buffer(stream, 1));
-			expect(fn).not.toBeCalledWith($complete(stream));
+				expect(log).toBeCalledWith($fetch(request));
+				expect(log).toBeCalledWith($cancel(request));
+			});
+		});
 
-			expect(fn).toBeCalledWith($cancel(stream));
+		describe('.unsubscribe()', () => {
+			it('should remove listener', async () => {
+				const client = createClient({
+					handler: jest.fn(),
+				});
+
+				const subscriber = jest.fn();
+				client.fetch(request, subscriber).unsubscribe();
+
+				await delay(10);
+
+				expect(subscriber).toBeCalledWith('pending', undefined);
+				expect(subscriber).toBeCalledTimes(1);
+			});
+
+			it('should cancel inactive requests', async () => {
+				const log = jest.fn();
+				let handler = async () => delay(5).then(() => DATA);
+
+				const client = createClient({
+					handler: () => handler(),
+					exchanges: [logOperations(log)],
+				});
+
+				// Has no subscriber? cancel
+				client.fetch(request, jest.fn()).unsubscribe();
+
+				expect(log).toBeCalledWith($fetch(request));
+				expect(log).toBeCalledWith($cancel(request));
+				expect(log).toBeCalledTimes(2);
+
+				// Has some subscriber? don't cancel
+				log.mockClear();
+				const { cancel } = client.fetch(request, jest.fn()); // <--- (R)
+				client.fetch(request, jest.fn()).unsubscribe();
+
+				expect(log).toBeCalledWith($fetch(request));
+				expect(log).not.toBeCalledWith($cancel(request));
+				expect(log).toBeCalledTimes(1);
+
+				// Request completed? too late cancel
+				log.mockClear();
+				await delay(10); // wait for (R)
+				cancel();
+
+				expect(log).toBeCalledWith($complete(request, DATA));
+				expect(log).not.toBeCalledWith($cancel(request));
+			});
 		});
 	});
 
-	describe('.prefetch', () => {
+	describe('.prefetch()', () => {
 		it('should emit fetch operation', () => {
-			const fn = jest.fn();
+			const log = jest.fn();
+
 			const client = createClient({
 				handler: jest.fn(),
-				exchanges: [logTo(fn)],
+				exchanges: [logOperations(log)],
 			});
 
-			client.prefetch(query);
-			expect(fn).toBeCalledWith($fetch(query));
+			client.prefetch(request);
+
+			expect(log).toBeCalledWith($fetch(request));
 		});
 
-		it('should immediately mark the query as inactive', async () => {
-			const fn = jest.fn();
+		it('should immediately mark the request as inactive', async () => {
+			const log = jest.fn();
+
 			const client = createClient({
 				handler: jest.fn(),
-				gc: { maxAge: 10 },
-				exchanges: [logTo(fn)],
+				gc: { maxAge: 5 },
+				exchanges: [logOperations(log)],
 			});
 
-			client.prefetch(query);
-			await delay(15);
+			client.prefetch(request);
+			await delay(10);
 
-			expect(fn).toBeCalledWith($dispose({ id: query.id }));
+			expect(log).toBeCalledWith($dispose({ id: request.id }));
 		});
 
 		it('should be void', () => {
@@ -354,7 +315,7 @@ describe('client', () => {
 				handler: jest.fn(),
 			});
 
-			expect(client.prefetch(query)).toBeUndefined();
+			expect(client.prefetch(request)).toBeUndefined();
 		});
 	});
 });

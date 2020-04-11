@@ -12,22 +12,33 @@ type FetchContext = {
 export type FetchHandler = (req: Request, ctx?: FetchContext) => any;
 
 const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
-	const ongoing = new Map<string, Stream>();
+	// holds ongoing requests
+	const queue = new Map<string, Stream>();
+
+	// holds busy streams. In other words, a previous call to
+	// stream.next() is pending.
+	const busy = new Map<string, boolean>();
 
 	return on(['fetch', 'cancel'], op => {
 		const { request } = op.payload;
-		let stream = ongoing.get(request.id);
+		let stream = queue.get(request.id);
 
 		if (op.type === 'cancel') {
-			ongoing.delete(request.id);
+			queue.delete(request.id);
 			return stream?.close();
 		}
 
 		// Is streaming?
 		if (stream && !stream.isClosed()) {
+			const isBusy = busy.get(request.id) ?? false;
+
 			// Lazy? pull next value
-			if (stream.lazy) {
-				stream.next();
+			if (stream.lazy && !isBusy) {
+				busy.set(request.id, true);
+
+				stream.next().finally(() => {
+					busy.set(request.id, false);
+				});
 			}
 
 			return;
@@ -48,7 +59,7 @@ const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
 			},
 		});
 
-		ongoing.set(request.id, stream);
+		queue.set(request.id, stream);
 	});
 };
 
