@@ -1,5 +1,6 @@
 // Packages
 import delay from 'delay';
+import * as rx from 'rxjs';
 import Observable from 'zen-observable';
 
 // Ours
@@ -16,19 +17,19 @@ import {
 
 describe('client', () => {
 	const query = createRequest({
-		type: 'query',
+		_type: 'query',
 		query: 'test',
 		variables: [1, 2],
 	});
 
 	const mutation = createRequest({
-		type: 'mutation',
+		_type: 'mutation',
 		query: 'test',
 		variables: [1, 2],
 	});
 
 	const stream = createRequest({
-		type: 'stream',
+		_type: 'stream',
 		query: 'test',
 		variables: [1, 2],
 	});
@@ -141,30 +142,22 @@ describe('client', () => {
 		// Without subscriber - immediatly inactive
 		client.prefetch(query);
 		await delay(15);
-		expect(fn).toBeCalledWith(
-			$dispose({ id: query.id, type: undefined })
-		);
+		expect(fn).toBeCalledWith($dispose({ id: query.id }));
 
 		// With subscriber - wait for .unsubscribe()
 		const sub = client.fetch(mutation, jest.fn());
 		await delay(15);
-		expect(fn).not.toBeCalledWith(
-			$dispose({ id: mutation.id, type: undefined })
-		);
+		expect(fn).not.toBeCalledWith($dispose({ id: mutation.id }));
 
 		sub.unsubscribe();
 		await delay(15);
-		expect(fn).toBeCalledWith(
-			$dispose({ id: mutation.id, type: undefined })
-		);
+		expect(fn).toBeCalledWith($dispose({ id: mutation.id }));
 
 		// Don't dispose if we still have subscribers
 		client.fetch(stream);
 		client.fetch(stream, jest.fn());
 		await delay(15);
-		expect(fn).not.toBeCalledWith(
-			$dispose({ id: stream.id, type: undefined })
-		);
+		expect(fn).not.toBeCalledWith($dispose({ id: stream.id }));
 	});
 
 	it('should clear cache on "dispose"', async () => {
@@ -243,13 +236,15 @@ describe('client', () => {
 			expect(sub).toBeCalledTimes(2);
 
 			sub = jest.fn();
-			client.fetch({ ...query, id: 'avoid-cache' }, sub).cancel();
+			client.fetch({ ...query, id: 'test-cancellation' }, sub).cancel();
 			await delay(1);
 
 			expect(sub).toBeCalledWith('pending', undefined);
 			expect(sub).toBeCalledWith('cancelled', undefined);
+			expect(sub).toBeCalledTimes(2);
 
 			sub = jest.fn();
+			handler = () => rx.from(Promise.resolve(data));
 			client.fetch(stream, sub);
 			await delay(1);
 
@@ -259,7 +254,7 @@ describe('client', () => {
 
 			sub = jest.fn();
 			handler = () => Promise.reject({ failed: true });
-			client.fetch({ ...query, id: 'avoid-cache2' }, sub);
+			client.fetch({ ...query, id: 'test-reject' }, sub);
 			await delay(1);
 
 			expect(sub).toBeCalledWith('pending', undefined);
@@ -351,9 +346,7 @@ describe('client', () => {
 			client.prefetch(query);
 			await delay(15);
 
-			expect(fn).toBeCalledWith(
-				$dispose({ id: query.id, type: undefined })
-			);
+			expect(fn).toBeCalledWith($dispose({ id: query.id }));
 		});
 
 		it('should be void', () => {

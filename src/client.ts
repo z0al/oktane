@@ -136,7 +136,7 @@ export const createClient = (options: ClientOptions) => {
 			inactiveMap.set(
 				id,
 				setTimeout(() => {
-					apply($dispose({ id, type: undefined }));
+					apply($dispose({ id }));
 				}, options.gc?.maxAge ?? 30 * 1000)
 			);
 		}

@@ -16,9 +16,20 @@ import {
 	$fetch,
 } from './utils/operations';
 
-const query = createRequest({ type: 'query' });
-const mutation = createRequest({ type: 'mutation' });
-const stream = createRequest({ type: 'stream' });
+const query = createRequest({
+	_type: 'query',
+	url: '/api/posts',
+});
+
+const mutation = createRequest({
+	_type: 'mutation',
+	url: '/api/posts',
+});
+
+const stream = createRequest({
+	_type: 'stream',
+	url: '/api/posts',
+});
 
 let api: ExchangeAPI;
 beforeEach(() => {
@@ -88,7 +99,15 @@ test('should not duplicate requests', async () => {
 
 test('should emit result(s)', async () => {
 	const data = { pass: true };
-	const handler = () => Promise.resolve(data);
+	const handler = (req: any) => {
+		const p = Promise.resolve(data);
+		if (req === stream) {
+			return rx.from(p);
+		}
+
+		return p;
+	};
+
 	const fetch = createFetch(handler);
 	const apply = pipe([fetch], api);
 
@@ -117,7 +136,15 @@ test('should emit result(s)', async () => {
 
 test('should handle errors', async () => {
 	const error = { fail: true };
-	const handler = () => Promise.reject(error);
+	const handler = (req: any) => {
+		const p = Promise.reject(error);
+		if (req === stream) {
+			return rx.from(p);
+		}
+
+		return p;
+	};
+
 	const fetch = createFetch(handler);
 	const apply = pipe([fetch], api);
 

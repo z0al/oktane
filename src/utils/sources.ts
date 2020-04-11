@@ -4,7 +4,7 @@ import is from '@sindresorhus/is';
 export interface Observer {
 	next(value: any): void;
 	error(error: any): void;
-	complete(): void;
+	complete(value?: any): void;
 }
 
 export interface Subscriber extends Observer {
@@ -50,7 +50,7 @@ export const fromCallback = (fn: Function): Source => {
 		try {
 			const value = await fn();
 
-			// End of stream
+			// End of source
 			if (value === undefined || value === null) {
 				subscriber.complete();
 			} else {
@@ -84,8 +84,7 @@ export const fromCallback = (fn: Function): Source => {
 export const fromPromise = (p: Promise<unknown>): Source => {
 	return subscriber => {
 		p.then(v => {
-			subscriber.next(v);
-			subscriber.complete();
+			subscriber.complete(v);
 		}).catch(e => subscriber.error(e));
 
 		return () => {};
@@ -99,14 +98,7 @@ export const fromPromise = (p: Promise<unknown>): Source => {
  * @param value
  */
 export const fromValue = (value: unknown): Source => {
-	return subscriber => {
-		const timeout = setTimeout(() => {
-			subscriber.next(value);
-			subscriber.complete();
-		});
-
-		return () => clearTimeout(timeout);
-	};
+	return fromPromise(Promise.resolve(value));
 };
 
 /**

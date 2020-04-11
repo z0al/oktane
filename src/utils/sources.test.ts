@@ -10,7 +10,7 @@ import {
 	fromCallback,
 	Source,
 	subscribe,
-} from './streams';
+} from './sources';
 
 const ERROR = new Error('runtime');
 
@@ -27,7 +27,12 @@ const observe = async (
 			isClosed = subscribe(source, {
 				next: (v: any) => vals.push(v),
 				error: reject,
-				complete: () => resolve(vals),
+				complete: (v: any) => {
+					if (v) {
+						vals.push(v);
+					}
+					resolve(vals);
+				},
 			}).isClosed;
 
 			const pull = () =>

@@ -3,8 +3,6 @@ import { pipe } from './pipe';
 import { $buffer } from './operations';
 import { Exchange, ExchangeAPI } from './types';
 
-globalThis.__DEV__ = true;
-
 let api: ExchangeAPI;
 beforeEach(() => {
 	api = { cache: new Map(), emit: jest.fn() };

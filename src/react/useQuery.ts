@@ -21,10 +21,7 @@ export function useQuery(args: FetchArgs): Query {
 		state: 'idle' as State,
 	});
 
-	const request = createRequest({
-		...args,
-		type: 'query',
-	});
+	const request = createRequest(args);
 
 	const client = useClient();
 	const cancelRef = React.useRef<() => void>();
