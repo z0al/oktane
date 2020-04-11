@@ -18,20 +18,23 @@ export interface Subscription {
 	next?: () => Promise<void>;
 }
 
-export interface Source {
+/**
+ * A stream is a source that emits value(s) over time.
+ */
+export interface Stream {
 	(o: Subscriber): () => void;
 	lazy?: boolean;
-	// Emits next value on a lazy source
+	// Emits next value on a lazy stream
 	next?: () => Promise<void>;
 }
 
 /**
- * Transforms a spec-compliant JS Observable into a Source.
+ * Transforms a spec-compliant JS Observable into a Stream.
  *
  * @param o
  */
-export const fromObservable = (o: any): Source => {
-	return subscriber => {
+export const fromObservable = (o: any): Stream => {
+	return (subscriber) => {
 		const observable = o.subscribe(subscriber);
 
 		return () => observable?.unsubscribe?.();
@@ -39,18 +42,18 @@ export const fromObservable = (o: any): Source => {
 };
 
 /**
- * Transforms a function into a lazy Source.
+ * Transforms a function into a lazy Stream.
  *
  * @param fn
  */
-export const fromCallback = (fn: Function): Source => {
+export const fromCallback = (fn: Function): Stream => {
 	let subscriber: Subscriber;
 
 	const next = async () => {
 		try {
 			const value = await fn();
 
-			// End of source
+			// End of Stream
 			if (value === undefined || value === null) {
 				subscriber.complete();
 			} else {
@@ -61,7 +64,7 @@ export const fromCallback = (fn: Function): Source => {
 		}
 	};
 
-	const source: Source = sub => {
+	const stream: Stream = (sub) => {
 		// Keep subscriber ref and emit the first value
 		subscriber = sub;
 		next();
@@ -69,44 +72,44 @@ export const fromCallback = (fn: Function): Source => {
 		return () => {};
 	};
 
-	source.lazy = true;
-	source.next = next;
+	stream.lazy = true;
+	stream.next = next;
 
-	return source;
+	return stream;
 };
 
 /**
- * Transforms a Promise into a Source that emits the resolved value
+ * Transforms a Promise into a Stream that emits the resolved value
  * or fails if the promise rejected.
  *
  * @param p
  */
-export const fromPromise = (p: Promise<unknown>): Source => {
-	return subscriber => {
-		p.then(v => {
+export const fromPromise = (p: Promise<unknown>): Stream => {
+	return (subscriber) => {
+		p.then((v) => {
 			subscriber.complete(v);
-		}).catch(e => subscriber.error(e));
+		}).catch((e) => subscriber.error(e));
 
 		return () => {};
 	};
 };
 
 /**
- * Transforms a value into a Source that emits the value and
+ * Transforms a value into a Stream that emits the value and
  * completes immediately afterwards.
  *
  * @param value
  */
-export const fromValue = (value: unknown): Source => {
+export const fromValue = (value: unknown): Stream => {
 	return fromPromise(Promise.resolve(value));
 };
 
 /**
- * Transforms give value into a Source that emits value(s) over time.
+ * Transforms give value into a Stream.
  *
  * @param value
  */
-export const fromAny = (value: unknown): Source => {
+export const from = (value: unknown): Stream => {
 	if (is.function_(value)) {
 		return fromCallback(value);
 	}
@@ -123,14 +126,14 @@ export const fromAny = (value: unknown): Source => {
 };
 
 /**
- * Subscribes to a Source and a subscription object that can be used
+ * Subscribes to a Stream and a subscription object that can be used
  * to unsubscribe later.
  *
- * @param source
+ * @param stream
  * @param observer
  */
 export const subscribe = (
-	source: Source,
+	stream: Stream,
 	observer: Observer
 ): Subscription => {
 	let closed = false;
@@ -144,7 +147,7 @@ export const subscribe = (
 
 	const subscriber: Subscriber = {
 		closed,
-		next: value => {
+		next: (value) => {
 			if (!closed) {
 				observer.next(value);
 			}
@@ -153,13 +156,13 @@ export const subscribe = (
 		complete: end(observer.complete),
 	};
 
-	const cleanup = source(subscriber);
+	const cleanup = stream(subscriber);
 	const close = end(cleanup);
 
 	return {
 		close,
 		isClosed: () => closed,
-		lazy: source.lazy,
-		next: source.next,
+		lazy: stream.lazy,
+		next: stream.next,
 	};
 };

@@ -2,8 +2,8 @@
 import { on } from './utils/filter';
 import { Request } from './request';
 import { Exchange, ExchangeAPI, Cache } from './utils/types';
+import { from, subscribe, Subscription } from './utils/streams';
 import { $complete, $buffer, $reject } from './utils/operations';
-import { subscribe, fromAny, Subscription } from './utils/sources';
 
 type FetchContext = {
 	cache: Cache;
@@ -28,9 +28,9 @@ const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
 		}
 
 		const context = { cache };
-		const source = fromAny(fn(request, context));
+		const stream = from(fn(request, context));
 
-		subscription = subscribe(source, {
+		subscription = subscribe(stream, {
 			next(data) {
 				emit($buffer(request, data));
 			},

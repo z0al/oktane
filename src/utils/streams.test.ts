@@ -4,27 +4,27 @@ import ZenObservable from 'zen-observable';
 
 // Ours
 import {
-	fromAny,
+	from,
 	fromPromise,
 	fromObservable,
 	fromCallback,
-	Source,
+	Stream,
 	subscribe,
-} from './sources';
+} from './streams';
 
 const ERROR = new Error('runtime');
 
 const observe = async (
-	source: any,
+	stream: any,
 	values: any[],
 	error: any = 'SHOULD_NOT_THROW'
 ) => {
 	const vals: any[] = [];
 
 	let isClosed: any;
-	const toPromise = (source: Source) =>
+	const toPromise = (stream: Stream) =>
 		new Promise((resolve, reject) => {
-			isClosed = subscribe(source, {
+			isClosed = subscribe(stream, {
 				next: (v: any) => vals.push(v),
 				error: reject,
 				complete: (v: any) => {
@@ -36,19 +36,19 @@ const observe = async (
 			}).isClosed;
 
 			const pull = () =>
-				source.next().then(() => {
+				stream.next().then(() => {
 					if (!isClosed()) {
 						pull();
 					}
 				});
 
-			if (source.lazy) {
+			if (stream.lazy) {
 				pull();
 			}
 		});
 
 	try {
-		await toPromise(source);
+		await toPromise(stream);
 	} catch (e) {
 		expect(isClosed()).toEqual(true);
 		expect(e).toEqual(error);
@@ -102,85 +102,99 @@ describe('fromObservables', () => {
 });
 
 describe('fromCallback', () => {
-	it('should convert into a lazy source', () => {
+	it('should convert into a lazy stream', () => {
 		const fn = jest.fn();
-		const source = fromCallback(fn);
+		const stream = fromCallback(fn);
 
-		expect(source.lazy).toEqual(true);
-		expect(source.next).toEqual(expect.any(Function));
+		expect(stream.lazy).toEqual(true);
+		expect(stream.next).toEqual(expect.any(Function));
 	});
 
-	it('should emit values on source.next()', async () => {
-		const fn = jest
-			.fn()
-			.mockResolvedValueOnce(1)
-			.mockResolvedValueOnce(2)
-			.mockResolvedValueOnce(3);
+	it('should emit values on stream.next()', async () => {
+		const gen = (function*() {
+			yield 1;
+			yield 2;
+			yield 3;
+		})();
+
+		const fn = () => gen.next().value;
 
 		await observe(fromCallback(fn), [1, 2, 3]);
 	});
 
 	it('should complete if received undefined or nulll', async () => {
-		const fn1 = jest
-			.fn()
-			.mockResolvedValueOnce(1)
-			.mockResolvedValue(null);
+		let gen = (function*() {
+			yield 1;
+			yield 2;
+			yield null;
+			yield 3;
+		})();
 
-		const fn2 = jest
-			.fn()
-			.mockResolvedValueOnce(2)
-			.mockResolvedValue(undefined);
+		const fn = () => gen.next().value;
 
-		await observe(fromCallback(fn1), [1]);
-		await observe(fromCallback(fn2), [2]);
+		await observe(fromCallback(fn), [1, 2]);
+
+		// ignores => 3
+		gen.next();
+
+		await observe(fromCallback(fn), []);
 	});
 });
 
-describe('fromAny', () => {
-	it('should work with lazy sources/callbacks', async () => {
-		// values
-		let fn = jest
-			.fn()
-			.mockReturnValueOnce({ ok: true })
-			.mockReturnValue(null);
+describe('from', () => {
+	it('should work with callbacks', async () => {
+		// success
+		let called = false;
+		let fn: any = () => {
+			if (!called) {
+				called = true;
+				return { ok: true };
+			}
+			return null;
+		};
 
-		await observe(fromAny(fn), [{ ok: true }]);
+		await observe(from(fn), [{ ok: true }]);
 
-		// errors
-		fn = jest.fn().mockRejectedValue({ error: true });
-		await observe(fromAny(fn), [], { error: true });
+		// failure
+		const error = new Error('unknown');
+		fn = () => Promise.reject(error);
+
+		await observe(from(fn), [], error);
 	});
 
 	it('should work with promises', async () => {
-		// values
+		// success
 		let p = Promise.resolve(1);
-		await observe(fromAny(p), [1]);
+		await observe(from(p), [1]);
 
-		// errors
-		p = Promise.reject({ error: true });
-		await observe(fromAny(p), [], { error: true });
+		// failure
+		const error = new Error('unknown');
+		p = Promise.reject(error);
+		await observe(from(p), [], error);
 	});
 
 	it('should work with observables', async () => {
-		// values
+		// success
 		let o: any = ZenObservable.from([1, 2]);
-		await observe(fromAny(o), [1, 2]);
+		await observe(from(o), [1, 2]);
 
-		// errors
+		// failure
+		const error = new Error('unknown');
 		o = new RxObservable.Observable(s => {
 			setTimeout(() => {
-				s.error({ error: true });
+				s.error(error);
 			});
 		});
 
-		await observe(fromAny(o), [], { error: true });
+		await observe(from(o), [], error);
 	});
 
 	it('should fallback to basic one-time value', async () => {
-		// values
+		// success
 		let v: any = { ok: true };
-		await observe(fromAny(v), [{ ok: true }]);
+		await observe(from(v), [{ ok: true }]);
 
-		// errors are not applicable
+		// failure
+		// Not applicable
 	});
 });
