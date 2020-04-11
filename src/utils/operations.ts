@@ -50,10 +50,11 @@ export const $dispose = (request: Request, meta: Meta = {}) => ({
 });
 
 /**
- * Metadata to be used by e.g. devtools
+ * Request Metadata
  */
 export interface Meta {
-	// TODO: add source?
+	// lazy stream?
+	lazy?: boolean;
 }
 
 /**

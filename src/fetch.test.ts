@@ -156,6 +156,7 @@ test('should work with observables', async () => {
 });
 
 test('should work with lazy streams', async () => {
+	const meta = { lazy: true };
 	let gen: any = (function*() {
 		yield DATA[0];
 		yield DATA[1];
@@ -170,13 +171,13 @@ test('should work with lazy streams', async () => {
 	await delay(1);
 
 	expect(emit).toBeCalledWith($fetch(request));
-	expect(emit).toBeCalledWith($buffer(request, DATA[0]));
+	expect(emit).toBeCalledWith($buffer(request, DATA[0], meta));
 
 	fetch($fetch(request));
 	await delay(1);
 
 	expect(emit).toBeCalledWith($fetch(request));
-	expect(emit).toBeCalledWith($buffer(request, DATA[1]));
+	expect(emit).toBeCalledWith($buffer(request, DATA[1], meta));
 
 	fetch($fetch(request));
 	await delay(1);
@@ -194,60 +195,11 @@ test('should work with lazy streams', async () => {
 	await delay(1);
 
 	expect(emit).toBeCalledWith($fetch(request));
-	expect(emit).toBeCalledWith($buffer(request, DATA));
+	expect(emit).toBeCalledWith($buffer(request, DATA, meta));
 
 	fetch($fetch(request));
 	await delay(1);
 
 	expect(emit).toBeCalledWith($fetch(request));
 	expect(emit).toBeCalledWith($reject(request, ERROR));
-});
-
-test('should not wait lazy calls to resolve before making more', async () => {
-	const gen: any = (async function*() {
-		await delay(5);
-		yield DATA[0];
-		await delay(5);
-		yield DATA[1];
-	})();
-
-	const resolve = jest.fn().mockImplementation(async () => {
-		return (await gen.next()).value;
-	});
-
-	handler = () => () => resolve();
-
-	fetch($fetch(request));
-	fetch($fetch(request));
-	fetch($fetch(request));
-	fetch($fetch(request));
-	fetch($fetch(request));
-	fetch($fetch(request));
-	await delay(10);
-
-	expect(emit).toBeCalledWith($fetch(request));
-	expect(emit).toBeCalledWith($buffer(request, DATA[0]));
-
-	fetch($fetch(request));
-	fetch($fetch(request));
-	fetch($fetch(request));
-	fetch($fetch(request));
-	fetch($fetch(request));
-	await delay(10);
-
-	expect(emit).toBeCalledWith($fetch(request));
-	expect(emit).toBeCalledWith($buffer(request, DATA[1]));
-
-	fetch($fetch(request));
-	fetch($fetch(request));
-	fetch($fetch(request));
-	fetch($fetch(request));
-	fetch($fetch(request));
-	fetch($fetch(request));
-	await delay(10);
-
-	expect(emit).toBeCalledWith($fetch(request));
-	expect(emit).toBeCalledWith($complete(request));
-
-	expect(resolve).toBeCalledTimes(3);
 });

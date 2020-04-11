@@ -2,7 +2,7 @@
 import { Operation } from './operations';
 
 export type State =
-	| 'idle'
+	| 'ready'
 	| 'pending'
 	| 'failed'
 	| 'streaming'
@@ -17,7 +17,7 @@ export type State =
  * @param operation
  */
 export const transition = (
-	state: State = 'idle',
+	state: State = 'ready',
 	operation: Operation
 ): State => {
 	const event = operation.type;
@@ -29,7 +29,7 @@ export const transition = (
 	switch (state) {
 		// Expecting:
 		// - fetch
-		case 'idle':
+		case 'ready':
 		case 'failed':
 		case 'cancelled':
 		case 'completed':
@@ -46,10 +46,15 @@ export const transition = (
 		// - reject
 		// - cancel
 		// - complete
+		case 'ready':
 		case 'pending':
 		case 'streaming': {
 			switch (event) {
 				case 'buffer':
+					if (operation.meta?.lazy) {
+						return 'ready';
+					}
+
 					return 'streaming';
 				case 'reject':
 					return 'failed';

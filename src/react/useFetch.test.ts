@@ -33,6 +33,8 @@ test('should expose public interface', async () => {
 		data: undefined,
 		error: undefined,
 		cancel: expect.any(Function),
+		hasMore: expect.any(Function),
+		fetchMore: expect.any(Function),
 	});
 });
 

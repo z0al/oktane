@@ -2,31 +2,31 @@
 import { transition } from './state';
 
 const TESTS = [
-	// idle
+	// ready
 	{
-		current: 'idle',
+		current: 'ready',
 		operation: { type: 'fetch' },
 		expected: 'pending',
 	},
 	{
-		current: 'idle',
+		current: 'ready',
 		operation: { type: 'cancel' },
-		expected: 'idle',
+		expected: 'ready',
 	},
 	{
-		current: 'idle',
+		current: 'ready',
 		operation: { type: 'reject' },
-		expected: 'idle',
+		expected: 'ready',
 	},
 	{
-		current: 'idle',
+		current: 'ready',
 		operation: { type: 'buffer' },
-		expected: 'idle',
+		expected: 'ready',
 	},
 	{
-		current: 'idle',
+		current: 'ready',
 		operation: { type: 'complete' },
-		expected: 'idle',
+		expected: 'ready',
 	},
 	// pending
 	{
@@ -48,6 +48,11 @@ const TESTS = [
 		current: 'pending',
 		operation: { type: 'buffer' },
 		expected: 'streaming',
+	},
+	{
+		current: 'pending',
+		operation: { type: 'buffer', meta: { lazy: true } },
+		expected: 'ready',
 	},
 	{
 		current: 'pending',
@@ -166,7 +171,7 @@ const TESTS = [
 	},
 	// dispose
 	{
-		current: 'idle',
+		current: 'ready',
 		operation: { type: 'dispose' },
 		expected: 'disposed',
 	},

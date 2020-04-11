@@ -15,10 +15,6 @@ const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
 	// holds ongoing requests
 	const queue = new Map<string, Stream>();
 
-	// holds busy streams. In other words, a previous call to
-	// stream.next() is pending.
-	const busy = new Map<string, boolean>();
-
 	return on(['fetch', 'cancel'], op => {
 		const { request } = op.payload;
 		let stream = queue.get(request.id);
@@ -30,15 +26,9 @@ const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
 
 		// Is streaming?
 		if (stream && !stream.isClosed()) {
-			const isBusy = busy.get(request.id) ?? false;
-
 			// Lazy? pull next value
-			if (stream.lazy && !isBusy) {
-				busy.set(request.id, true);
-
-				stream.next().finally(() => {
-					busy.set(request.id, false);
-				});
+			if (stream.lazy) {
+				stream.next();
 			}
 
 			return;
@@ -46,10 +36,11 @@ const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
 
 		const context = { cache };
 		const source = from(fn(request, context));
+		const meta = { lazy: source.lazy };
 
 		stream = subscribe(source, {
 			next(data) {
-				emit($buffer(request, data));
+				emit($buffer(request, data, meta));
 			},
 			error(err) {
 				emit($reject(request, err));

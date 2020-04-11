@@ -11,6 +11,7 @@ import {
 	$cancel,
 	$dispose,
 	$complete,
+	$buffer,
 } from './utils/operations';
 
 const request = createRequest({
@@ -157,7 +158,7 @@ describe('client', () => {
 		it('should not duplicate requests', () => {
 			const log = jest.fn();
 			const client = createClient({
-				handler: () => delay(20),
+				handler: () => delay(10),
 				exchanges: [logOperations(log)],
 			});
 
@@ -219,7 +220,7 @@ describe('client', () => {
 				const log = jest.fn();
 
 				const client = createClient({
-					handler: jest.fn(),
+					handler: () => delay(10),
 					exchanges: [logOperations(log)],
 				});
 
@@ -277,6 +278,161 @@ describe('client', () => {
 
 				expect(log).toBeCalledWith($complete(request, DATA));
 				expect(log).not.toBeCalledWith($cancel(request));
+			});
+		});
+
+		describe('.hasMore()', () => {
+			it('should success if a lazy source is ready', async () => {
+				let gen = (async function*() {
+					await delay(5);
+					yield DATA;
+				})();
+
+				let handler: any = () => async () => {
+					return (await gen.next()).value;
+				};
+
+				const client = createClient({
+					handler: () => handler(),
+				});
+
+				const stream = client.fetch(request);
+
+				// pending
+				expect(stream.hasMore()).toEqual(false);
+
+				// ready
+				await delay(10);
+				expect(stream.hasMore()).toEqual(true);
+
+				// cancelled
+				client.fetch(request).cancel();
+				expect(stream.hasMore()).toEqual(false);
+
+				// failure
+				gen = (async function*() {
+					await delay(5);
+					throw ERROR;
+				})();
+
+				client.fetch(request);
+				await delay(10);
+				expect(stream.hasMore()).toEqual(false);
+
+				// streaming
+				handler = () =>
+					new rx.Observable(o => {
+						Promise.resolve()
+							.then(() => o.next(DATA))
+							.then(() => delay(10))
+							.then(() => o.next(DATA))
+							.finally(() => o.complete());
+					});
+
+				client.fetch(request);
+				await delay(5);
+
+				expect(stream.hasMore()).toEqual(false);
+			});
+		});
+
+		describe('.fetchMore()', () => {
+			it('should emit fetch operation(s)', async () => {
+				const meta = { lazy: true };
+				const log = jest.fn();
+				const gen = (function*() {
+					yield 1;
+					yield 2;
+					yield 3;
+				})();
+
+				const client = createClient({
+					handler: () => () => gen.next().value,
+					exchanges: [logOperations(log)],
+				});
+
+				const stream = client.fetch(request);
+				await delay(10);
+
+				expect(log).toBeCalledWith($fetch(request));
+				expect(log).toBeCalledWith($buffer(request, 1, meta));
+				expect(log).toBeCalledTimes(2);
+
+				log.mockClear();
+				stream.fetchMore();
+				await delay(10);
+
+				expect(log).toBeCalledWith($fetch(request));
+				expect(log).toBeCalledWith($buffer(request, 2, meta));
+				expect(log).toBeCalledTimes(2);
+
+				log.mockClear();
+				stream.fetchMore();
+				await delay(10);
+
+				expect(log).toBeCalledWith($fetch(request));
+				expect(log).toBeCalledWith($buffer(request, 3, meta));
+				expect(log).toBeCalledTimes(2);
+
+				log.mockClear();
+				stream.fetchMore();
+				await delay(10);
+
+				expect(log).toBeCalledWith($fetch(request));
+				expect(log).toBeCalledWith($complete(request));
+				expect(log).toBeCalledTimes(2);
+
+				log.mockClear();
+				stream.fetchMore();
+				await delay(10);
+
+				expect(log).not.toBeCalledWith($fetch(request));
+				expect(log).toBeCalledTimes(0);
+			});
+
+			it('should dedeuplicate calls', async () => {
+				const meta = { lazy: true };
+				const log = jest.fn();
+				const gen = (function*() {
+					yield DATA[0];
+					yield DATA[1];
+				})();
+
+				const client = createClient({
+					handler: () => () => gen.next().value,
+					exchanges: [logOperations(log)],
+				});
+
+				const stream = client.fetch(request);
+				await delay(10);
+
+				expect(log).toBeCalledWith($fetch(request));
+				expect(log).toBeCalledWith($buffer(request, DATA[0], meta));
+				expect(log).toBeCalledTimes(2);
+
+				log.mockClear();
+				stream.fetchMore();
+				stream.fetchMore();
+				stream.fetchMore();
+				stream.fetchMore();
+				stream.fetchMore();
+				await delay(10);
+
+				expect(log).toBeCalledWith($fetch(request));
+				expect(log).toBeCalledWith($buffer(request, DATA[1], meta));
+				expect(log).toBeCalledTimes(2);
+
+				log.mockClear();
+				stream.fetchMore();
+				stream.fetchMore();
+				stream.fetchMore();
+				stream.fetchMore();
+				stream.fetchMore();
+				await delay(10);
+
+				expect(log).toBeCalledWith($fetch(request));
+				expect(log).toBeCalledWith($complete(request));
+				expect(log).toBeCalledTimes(2);
 			});
 		});
 	});

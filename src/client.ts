@@ -149,7 +149,7 @@ export const createClient = (options: ClientOptions) => {
 	 */
 	const fetch = (req: Request, cb?: Subscriber) => {
 		const notify = (op: Operation) => {
-			const state = stateMap.get(req.id) || 'idle';
+			const state = stateMap.get(req.id);
 			const data = cacheMap.get(req.id);
 
 			if (op.type === 'reject') {
@@ -166,6 +166,18 @@ export const createClient = (options: ClientOptions) => {
 			// inactive so that it will be disposed if not used.
 			track({ type: req.id, state: 'inactive' });
 		}
+
+		const hasMore = () => {
+			// Lazy streams don't go to "streaming" state but rather
+			// got back to "ready".
+			return stateMap.get(req.id) === 'ready';
+		};
+
+		const fetchMore = () => {
+			if (hasMore()) {
+				apply($fetch(req));
+			}
+		};
 
 		const cancel = () => {
 			apply($cancel(req));
@@ -187,7 +199,12 @@ export const createClient = (options: ClientOptions) => {
 		// Perform fetch
 		apply($fetch(req));
 
-		return { cancel, unsubscribe };
+		return {
+			cancel,
+			hasMore,
+			fetchMore,
+			unsubscribe,
+		};
 	};
 
 	/**
