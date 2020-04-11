@@ -8,23 +8,23 @@ import {
 	fromPromise,
 	fromObservable,
 	fromCallback,
-	Stream,
+	Source,
 	subscribe,
 } from './streams';
 
-const ERROR = new Error('runtime');
+const ERROR = new Error('unknown');
 
 const observe = async (
-	stream: any,
+	source: any,
 	values: any[],
 	error: any = 'SHOULD_NOT_THROW'
 ) => {
 	const vals: any[] = [];
 
 	let isClosed: any;
-	const toPromise = (stream: Stream) =>
+	const toPromise = (source: Source) =>
 		new Promise((resolve, reject) => {
-			isClosed = subscribe(stream, {
+			isClosed = subscribe(source, {
 				next: (v: any) => vals.push(v),
 				error: reject,
 				complete: (v: any) => {
@@ -36,19 +36,19 @@ const observe = async (
 			}).isClosed;
 
 			const pull = () =>
-				stream.next().then(() => {
+				source.next().then(() => {
 					if (!isClosed()) {
 						pull();
 					}
 				});
 
-			if (stream.lazy) {
+			if (source.lazy) {
 				pull();
 			}
 		});
 
 	try {
-		await toPromise(stream);
+		await toPromise(source);
 	} catch (e) {
 		expect(isClosed()).toEqual(true);
 		expect(e).toEqual(error);
@@ -122,7 +122,7 @@ describe('fromCallback', () => {
 		await observe(fromCallback(fn), [1, 2, 3]);
 	});
 
-	it('should complete if received undefined or nulll', async () => {
+	it('should complete if received undefined or null', async () => {
 		let gen = (function*() {
 			yield 1;
 			yield 2;

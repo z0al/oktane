@@ -1,13 +1,11 @@
 // Packages
 import delay from 'delay';
 import * as rx from 'rxjs';
-import * as zen from 'zen-observable';
 
 // Ours
 import { pipe } from './utils/pipe';
 import { createFetch } from './fetch';
 import { createRequest } from './request';
-import { ExchangeAPI } from './utils/types';
 import {
 	$buffer,
 	$complete,
@@ -16,196 +14,191 @@ import {
 	$fetch,
 } from './utils/operations';
 
-const query = createRequest({
-	_type: 'query',
-	url: '/api/posts',
-});
+const DATA = [
+	{ id: 1, name: 'Dan' },
+	{ id: 2, name: 'Kent' },
+];
 
-const mutation = createRequest({
-	_type: 'mutation',
-	url: '/api/posts',
-});
+const ERROR = new Error('unknown');
 
-const stream = createRequest({
-	_type: 'stream',
-	url: '/api/posts',
-});
+const request = createRequest({ url: '/api/users' });
 
-let api: ExchangeAPI;
+let emit: any, cache: any, handler: any, fetch: any;
+
 beforeEach(() => {
-	api = {
-		emit: jest.fn(),
-		cache: new Map(),
-	};
+	emit = jest.fn();
+	cache = new Map();
+	const api = { emit, cache };
+
+	// actual handler is implemented inside each test
+	const fetchHandler = (...args: any[]) => handler(...args);
+	fetch = pipe([createFetch(fetchHandler)], api);
 });
 
 test('should return a valid exchange', () => {
-	const hanlder = jest.fn();
-	const fetch = createFetch(hanlder);
+	const exchange = createFetch(jest.fn());
 
-	expect(() => {
-		pipe([fetch], api);
-	}).not.toThrow();
-
-	expect(fetch.name).toEqual('fetch');
+	expect(exchange.name).toEqual('fetch');
+	expect(exchange.init).toEqual(expect.any(Function));
+	expect(
+		exchange.init({
+			emit: jest.fn(),
+			cache: new Map(),
+		})
+	).toEqual(expect.any(Function));
 });
 
-test('should only call handler on "fetch" operation', () => {
-	const handler = jest.fn();
-	const fetch = createFetch(handler);
-	const apply = pipe([fetch], api);
-	const context = { cache: api.cache };
+test('should call handler on "fetch" operation', () => {
+	handler = jest.fn();
+	const context = { cache };
 
-	apply($buffer(query, null));
+	fetch($buffer(request, null));
 	expect(handler).not.toBeCalled();
 
-	apply($cancel(query));
+	fetch($cancel(request));
 	expect(handler).not.toBeCalled();
 
-	apply($complete(query));
+	fetch($complete(request));
 	expect(handler).not.toBeCalled();
 
-	apply($reject(query, null));
+	fetch($reject(request, null));
 	expect(handler).not.toBeCalled();
 
-	apply($fetch(query));
-	expect(handler).toBeCalledWith(query, context);
+	fetch($fetch(request));
+	expect(handler).toBeCalledWith(request, context);
 	expect(handler).toBeCalledTimes(1);
 });
 
 test('should not duplicate requests', async () => {
-	const handler = jest.fn().mockReturnValue(delay(100));
-	const fetch = createFetch(handler);
-	const apply = pipe([fetch], api);
-	const context = { cache: api.cache };
+	const context = { cache };
+	handler = jest.fn().mockReturnValue(delay(100));
 
-	apply($fetch(query));
-	apply($fetch(query));
-	apply($fetch(query));
-	apply($fetch(query));
-	expect(handler).toBeCalledWith(query, context);
+	// ignores when pending
+	fetch($fetch(request));
+	fetch($fetch(request));
+	fetch($fetch(request));
+	fetch($fetch(request));
+	expect(handler).toBeCalledWith(request, context);
 	expect(handler).toBeCalledTimes(1);
 
-	apply($cancel(query));
-	apply($fetch(query));
-	expect(handler).toBeCalledWith(query, context);
+	// re-fetches after cancellation
+	fetch($cancel(request));
+	fetch($fetch(request));
+	expect(handler).toBeCalledWith(request, context);
 	expect(handler).toBeCalledTimes(2);
 
-	// Make sure we can refetch when the request completes
+	// re-fetches after completion
 	await delay(150);
-	apply($fetch(query));
+	fetch($fetch(request));
 	expect(handler).toBeCalledTimes(3);
 });
 
-test('should emit result(s)', async () => {
-	const data = { pass: true };
-	const handler = (req: any) => {
-		const p = Promise.resolve(data);
-		if (req === stream) {
-			return rx.from(p);
-		}
-
-		return p;
-	};
-
-	const fetch = createFetch(handler);
-	const apply = pipe([fetch], api);
-
-	// Query
-	apply($fetch(query));
-	await delay(1);
-
-	expect(api.emit).toBeCalledWith($fetch(query));
-	expect(api.emit).toBeCalledWith($complete(query, data));
-
-	// Mutation
-	apply($fetch(mutation));
-	await delay(1);
-
-	expect(api.emit).toBeCalledWith($fetch(mutation));
-	expect(api.emit).toBeCalledWith($complete(mutation, data));
-
-	// Stream
-	apply($fetch(stream));
-	await delay(1);
-
-	expect(api.emit).toBeCalledWith($fetch(stream));
-	expect(api.emit).toBeCalledWith($buffer(stream, data));
-	expect(api.emit).toBeCalledWith($complete(stream));
-});
-
-test('should handle errors', async () => {
-	const error = { fail: true };
-	const handler = (req: any) => {
-		const p = Promise.reject(error);
-		if (req === stream) {
-			return rx.from(p);
-		}
-
-		return p;
-	};
-
-	const fetch = createFetch(handler);
-	const apply = pipe([fetch], api);
-
-	// Query
-	apply($fetch(query));
-	await delay(1);
-
-	expect(api.emit).toBeCalledWith($reject(query, error));
-
-	// Mutation
-	apply($fetch(mutation));
-	await delay(1);
-
-	expect(api.emit).toBeCalledWith($reject(mutation, error));
-
-	// Stream
-	apply($fetch(stream));
-	await delay(1);
-
-	expect(api.emit).toBeCalledWith($reject(stream, error));
-	expect(api.emit).toBeCalledTimes(6);
-});
-
 test('should not emit when cancelled', async () => {
-	const handler = jest.fn().mockReturnValue(delay(1));
-	const fetch = createFetch(handler);
-	const apply = pipe([fetch], api);
+	handler = () => delay(10);
 
-	apply($fetch(query));
-	apply($cancel(query));
-	await delay(50);
+	fetch($fetch(request));
+	fetch($cancel(request));
+	await delay(15);
 
-	expect(api.emit).toBeCalledWith($fetch(query));
-	expect(api.emit).toBeCalledWith($cancel(query));
-	expect(api.emit).toBeCalledTimes(2);
+	expect(emit).toBeCalledWith($fetch(request));
+	expect(emit).toBeCalledWith($cancel(request));
+	expect(emit).toBeCalledTimes(2);
+});
+
+test('should work with Promises', async () => {
+	handler = jest
+		.fn()
+		.mockResolvedValueOnce(DATA)
+		.mockRejectedValueOnce(ERROR);
+
+	// success
+	fetch($fetch(request));
+	await delay(1);
+
+	expect(emit).toBeCalledWith($fetch(request));
+	expect(emit).toBeCalledWith($complete(request, DATA));
+
+	// failure
+	fetch($fetch(request));
+	await delay(1);
+
+	expect(emit).toBeCalledWith($reject(request, ERROR));
 });
 
 test('should work with observables', async () => {
-	let observer: any = rx.from([1, 2, 3]);
-	const handler = jest.fn().mockImplementation(() => observer);
-	const fetch = createFetch(handler);
-	const apply = pipe([fetch], api);
+	handler = jest
+		.fn()
+		.mockReturnValueOnce(rx.from(Promise.resolve(DATA)))
+		.mockReturnValueOnce(
+			new rx.Observable(o => {
+				setTimeout(() => {
+					o.error(ERROR);
+				});
+			})
+		);
 
-	apply($fetch(stream));
+	// success
+	fetch($fetch(request));
 	await delay(1);
 
-	expect(api.emit).toBeCalledWith($fetch(stream));
-	expect(api.emit).toBeCalledWith($buffer(stream, 1));
-	expect(api.emit).toBeCalledWith($buffer(stream, 2));
-	expect(api.emit).toBeCalledWith($buffer(stream, 3));
-	expect(api.emit).toBeCalledWith($complete(stream));
-	expect(api.emit).toBeCalledTimes(5);
+	expect(emit).toBeCalledWith($fetch(request));
+	expect(emit).toBeCalledWith($buffer(request, DATA));
+	expect(emit).toBeCalledWith($complete(request));
+	expect(emit).toBeCalledTimes(3);
 
-	observer = zen.default.from([4, 5, 6]);
-	apply($fetch(stream));
+	// failure
+	fetch($fetch(request));
 	await delay(1);
 
-	expect(api.emit).toBeCalledWith($fetch(stream));
-	expect(api.emit).toBeCalledWith($buffer(stream, 4));
-	expect(api.emit).toBeCalledWith($buffer(stream, 5));
-	expect(api.emit).toBeCalledWith($buffer(stream, 6));
-	expect(api.emit).toBeCalledWith($complete(stream));
-	expect(api.emit).toBeCalledTimes(10);
+	expect(emit).toBeCalledWith($fetch(request));
+	expect(emit).toBeCalledWith($reject(request, ERROR));
+	expect(emit).toBeCalledTimes(5);
+});
+
+test('should work with lazy streams', async () => {
+	let gen: any = (function*() {
+		yield DATA[0];
+		yield DATA[1];
+	})();
+
+	handler = jest.fn().mockImplementation(() => () => {
+		return gen.next().value;
+	});
+
+	// success
+	fetch($fetch(request));
+	await delay(1);
+
+	expect(emit).toBeCalledWith($fetch(request));
+	expect(emit).toBeCalledWith($buffer(request, DATA[0]));
+
+	fetch($fetch(request));
+	await delay(1);
+
+	expect(emit).toBeCalledWith($fetch(request));
+	expect(emit).toBeCalledWith($buffer(request, DATA[1]));
+
+	fetch($fetch(request));
+	await delay(1);
+
+	expect(emit).toBeCalledWith($fetch(request));
+	expect(emit).toBeCalledWith($complete(request));
+
+	// failure
+	gen = (function*() {
+		yield DATA;
+		throw ERROR;
+	})();
+
+	fetch($fetch(request));
+	await delay(1);
+
+	expect(emit).toBeCalledWith($fetch(request));
+	expect(emit).toBeCalledWith($buffer(request, DATA));
+
+	fetch($fetch(request));
+	await delay(1);
+
+	expect(emit).toBeCalledWith($fetch(request));
+	expect(emit).toBeCalledWith($reject(request, ERROR));
 });

@@ -1,8 +1,8 @@
 // Ours
 import { on } from './utils/filter';
 import { Request } from './request';
+import { from, subscribe, Stream } from './utils/streams';
 import { Exchange, ExchangeAPI, Cache } from './utils/types';
-import { from, subscribe, Subscription } from './utils/streams';
 import { $complete, $buffer, $reject } from './utils/operations';
 
 type FetchContext = {
@@ -12,25 +12,31 @@ type FetchContext = {
 export type FetchHandler = (req: Request, ctx?: FetchContext) => any;
 
 const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
-	const ongoing = new Map<string, Subscription>();
+	const ongoing = new Map<string, Stream>();
 
 	return on(['fetch', 'cancel'], op => {
 		const { request } = op.payload;
-		let subscription = ongoing.get(request.id);
+		let stream = ongoing.get(request.id);
 
 		if (op.type === 'cancel') {
 			ongoing.delete(request.id);
-			return subscription?.close();
+			return stream?.close();
 		}
 
-		if (subscription && !subscription.isClosed()) {
+		// Is streaming?
+		if (stream && !stream.isClosed()) {
+			// Lazy? pull next value
+			if (stream.lazy) {
+				stream.next();
+			}
+
 			return;
 		}
 
 		const context = { cache };
-		const stream = from(fn(request, context));
+		const source = from(fn(request, context));
 
-		subscription = subscribe(stream, {
+		stream = subscribe(source, {
 			next(data) {
 				emit($buffer(request, data));
 			},
@@ -42,7 +48,7 @@ const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
 			},
 		});
 
-		ongoing.set(request.id, subscription);
+		ongoing.set(request.id, stream);
 	});
 };
 
