@@ -12,7 +12,7 @@
 	],
 	"scripts": {
 		"build": "tsdx build",
-		"prepare": "tsdx build",
+		"prepublishOnly": "npm run build",
 		"start": "tsdx watch",
 		"test": "tsdx test"
 	},
