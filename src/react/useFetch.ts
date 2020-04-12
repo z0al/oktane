@@ -5,9 +5,9 @@ import invariant from 'tiny-invariant';
 import { useState, useEffect, useRef } from 'react';
 
 // Ours
-import { State } from '../utils/state';
 import { useClient } from './useClient';
-import { buildRequest, Request } from '../request';
+import { buildRequest } from '../request';
+import { Request, State } from '../utils/types';
 
 export type FetchResult = {
 	state: State;

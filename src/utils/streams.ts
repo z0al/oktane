@@ -1,13 +1,13 @@
 // Packages
 import is from '@sindresorhus/is';
 
-export interface Observer {
+export interface SourceObserver {
 	next(value: any): void;
 	error(error: any): void;
 	complete(value?: any): void;
 }
 
-export interface Subscriber extends Observer {
+export interface SourceSubscriber extends SourceObserver {
 	closed: boolean;
 }
 
@@ -26,7 +26,7 @@ export interface Stream {
  * subscribed to.
  */
 export interface Source {
-	(o: Subscriber): () => void;
+	(s: SourceSubscriber): () => void;
 	lazy?: boolean;
 	// Emits next value on a lazy stream
 	next?: () => Promise<void>;
@@ -51,7 +51,7 @@ export const fromObservable = (o: any): Source => {
  * @param fn
  */
 export const fromCallback = (fn: Function): Source => {
-	let subscriber: Subscriber;
+	let subscriber: SourceSubscriber;
 
 	const next = async () => {
 		try {
@@ -137,7 +137,7 @@ export const from = (value: unknown): Source => {
  */
 export const subscribe = (
 	source: Source,
-	observer: Observer
+	observer: SourceObserver
 ): Stream => {
 	let closed = false;
 
@@ -148,7 +148,7 @@ export const subscribe = (
 		}
 	};
 
-	const subscriber: Subscriber = {
+	const subscriber: SourceSubscriber = {
 		closed,
 		next: (value) => {
 			if (!closed) {

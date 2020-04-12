@@ -5,13 +5,13 @@ import * as rx from 'rxjs';
 // Ours
 import { createClient } from './client';
 import { buildRequest } from './request';
-import { Exchange, Cache } from './utils/types';
+import { Exchange, Store } from './utils/types';
 import {
 	$fetch,
 	$cancel,
 	$dispose,
 	$complete,
-	$buffer,
+	$put,
 } from './utils/operations';
 
 const request = buildRequest({
@@ -29,15 +29,15 @@ const ERROR = new Error('unknown');
 describe('client', () => {
 	const logOptions = (fn: any): Exchange => ({
 		name: 'log-options',
-		init: api => {
+		init: (api) => {
 			fn(api);
-			return next => op => next(op);
+			return (next) => (op) => next(op);
 		},
 	});
 
 	const logOperations = (fn: any): Exchange => ({
 		name: 'log-operations',
-		init: () => next => op => {
+		init: () => (next) => (op) => {
 			fn(op);
 			return next(op);
 		},
@@ -69,13 +69,13 @@ describe('client', () => {
 	it('should pass necessary options to exchanges', () => {
 		const api = {
 			emit: expect.any(Function),
-			cache: {
+			store: expect.objectContaining({
 				get: expect.any(Function),
 				has: expect.any(Function),
 				entries: expect.any(Function),
 				keys: expect.any(Function),
 				values: expect.any(Function),
-			},
+			}),
 		};
 
 		const log = jest.fn();
@@ -91,7 +91,7 @@ describe('client', () => {
 		const log = jest.fn();
 		const client = createClient({
 			handler: jest.fn(),
-			gc: { maxAge: 5 },
+			store: { maxAge: 5 },
 			exchanges: [logOperations(log)],
 		});
 
@@ -122,15 +122,15 @@ describe('client', () => {
 		expect(log).not.toBeCalledWith($dispose({ id: request.id }));
 	});
 
-	it('should clear cache on "dispose"', async () => {
-		let cache: Cache;
+	it('should clear store on "dispose"', async () => {
+		let store: Store;
 
 		const log = (op: any) => {
-			cache = op.cache;
+			store = op.store;
 		};
 
 		const client = createClient({
-			gc: { maxAge: 5 },
+			store: { maxAge: 5 },
 			handler: async () => DATA,
 			exchanges: [logOptions(log)],
 		});
@@ -139,7 +139,7 @@ describe('client', () => {
 		client.fetch(request);
 		await delay(10);
 
-		expect(cache.get(request.id)).toBeUndefined();
+		expect(store.get(request.id)).toBeUndefined();
 	});
 
 	describe('.fetch()', () => {
@@ -202,7 +202,7 @@ describe('client', () => {
 			await delay(10);
 
 			expect(subscriber).toBeCalledWith('pending', DATA);
-			expect(subscriber).toBeCalledWith('streaming', DATA);
+			expect(subscriber).toBeCalledWith('buffering', DATA);
 			expect(subscriber).toBeCalledWith('completed', DATA);
 
 			// failure
@@ -319,9 +319,9 @@ describe('client', () => {
 				await delay(10);
 				expect(stream.hasMore()).toEqual(false);
 
-				// streaming
+				// buffering
 				handler = () =>
-					new rx.Observable(o => {
+					new rx.Observable((o) => {
 						Promise.resolve()
 							.then(() => o.next(DATA))
 							.then(() => delay(10))
@@ -355,7 +355,7 @@ describe('client', () => {
 				await delay(10);
 
 				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($buffer(request, 1, meta));
+				expect(log).toBeCalledWith($put(request, 1, meta));
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
@@ -363,7 +363,7 @@ describe('client', () => {
 				await delay(10);
 
 				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($buffer(request, 2, meta));
+				expect(log).toBeCalledWith($put(request, 2, meta));
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
@@ -371,7 +371,7 @@ describe('client', () => {
 				await delay(10);
 
 				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($buffer(request, 3, meta));
+				expect(log).toBeCalledWith($put(request, 3, meta));
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
@@ -407,7 +407,7 @@ describe('client', () => {
 				await delay(10);
 
 				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($buffer(request, DATA[0], meta));
+				expect(log).toBeCalledWith($put(request, DATA[0], meta));
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
@@ -419,7 +419,7 @@ describe('client', () => {
 				await delay(10);
 
 				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($buffer(request, DATA[1], meta));
+				expect(log).toBeCalledWith($put(request, DATA[1], meta));
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
@@ -480,7 +480,7 @@ describe('client', () => {
 			await delay(10);
 
 			expect(log).toBeCalledWith($fetch(request));
-			expect(log).toBeCalledWith($buffer(request, 2, meta));
+			expect(log).toBeCalledWith($put(request, 2, meta));
 			expect(sub).toBeCalledWith('ready', 2);
 		});
 
@@ -489,7 +489,7 @@ describe('client', () => {
 
 			const client = createClient({
 				handler: jest.fn(),
-				gc: { maxAge: 5 },
+				store: { maxAge: 5 },
 				exchanges: [logOperations(log)],
 			});
 

@@ -1,81 +1,55 @@
 // Ours
-import {
-	Operation,
-	$fetch,
-	$cancel,
-	$dispose,
-	$buffer,
-} from './utils/operations';
+import * as t from './utils/types';
+import * as o from './utils/operations';
+
 import { pipe } from './utils/pipe';
-import { Request } from './request';
+import { createFetch } from './fetch';
 import { Emitter } from './utils/emitter';
-import { transition, State } from './utils/state';
-import { createFetch, FetchHandler } from './fetch';
-import { Exchange, ExchangeAPI, Cache } from './utils/types';
-
-export interface GCOptions {
-	// Max age for inactive queries. Default is 30 seconds.
-	maxAge?: number;
-}
-
-export interface ClientOptions {
-	handler: FetchHandler;
-	gc?: GCOptions;
-	exchanges?: Array<Exchange>;
-}
-
-export type Subscriber = (state: State, data: any, err?: any) => void;
+import { transition } from './utils/state';
 
 export type Client = ReturnType<typeof createClient>;
 
-export const createClient = (options: ClientOptions) => {
-	// A simple key-value cache. It uses the request ID as a key.
-	const cacheMap = new Map<string, any>();
-
-	// Holds the state of all requests.
-	const stateMap = new Map<string, State>();
-
-	// Keeps track of prefetched requests so we can avoid unnecessary
-	// fetching.
-	const prefetched = new Set<string>();
-
+export const createClient = (options: t.ClientOptions) => {
 	//The heart of this whole thing.
 	const events = Emitter();
+
+	// tracks prefetched requests to avoid potential refetching.
+	const prefetched = new Set<string>();
+
+	// A key-value cache that maps requests to their state & data
+	const store = new Map<string, { state: t.State; data?: any }>();
 
 	/**
 	 * Extracts operation key
 	 *
 	 * @param op
 	 */
-	const keyOf = (op: Operation) => {
+	const keyOf = (op: o.Operation) => {
 		return op.payload.request.id;
 	};
 
 	/**
-	 * Emits an event of type `request.id` and `op` as a payload
+	 * updates store based on operation type and notify subscribers.
 	 *
 	 * @param op
 	 */
-	const emit = (op: Operation) => {
+	const update = (op: o.Operation) => {
 		const key = keyOf(op);
 
-		// Update cache if necessary
-		if (op.type === 'buffer' || op.type === 'complete') {
-			if (op.payload.data !== undefined) {
-				cacheMap.set(key, op.payload.data);
-			}
-		}
+		let { state, data } = store.get(key) || {};
 
-		const next = transition(stateMap.get(key), op);
+		const next = transition(state, op);
 
 		if (next === 'disposed') {
-			// Clean-up
-			stateMap.delete(key);
-			cacheMap.delete(key);
+			store.delete(key);
 			return;
 		}
 
-		stateMap.set(key, next);
+		if (op.type === 'put' || op.type === 'complete') {
+			data = op.payload.data !== undefined ? op.payload.data : data;
+		}
+
+		store.set(key, { state: next, data });
 		events.emit(key, op);
 	};
 
@@ -89,26 +63,18 @@ export const createClient = (options: ClientOptions) => {
 		const exchanges = options.exchanges || [];
 		const fetchExchange = createFetch(options.handler);
 
-		const cache: Cache = {
-			has: cacheMap.has.bind(cacheMap),
-			get: cacheMap.get.bind(cacheMap),
-			keys: cacheMap.keys.bind(cacheMap),
-			values: cacheMap.values.bind(cacheMap),
-			entries: cacheMap.entries.bind(cacheMap),
-		};
-
 		// Setup exchanges
-		const api: ExchangeAPI = { emit, cache };
+		const api = { emit: update, store };
 		const pipeThrough = pipe([...exchanges, fetchExchange], api);
 
-		return (op: Operation) => {
-			const current = stateMap.get(keyOf(op));
+		return (op: o.Operation) => {
+			const current = store.get(keyOf(op))?.state;
 			const next = transition(current, op);
 
 			// Rule:
 			// If it won't change the current state DO NOT do it.
-			// The ONLY exception is streaming.
-			if (current !== 'streaming' && next === current) {
+			// The ONLY exception is buffering.
+			if (current !== 'buffering' && next === current) {
 				return;
 			}
 
@@ -118,7 +84,7 @@ export const createClient = (options: ClientOptions) => {
 
 	/**
 	 * Disposes unused requests. A request becomes unused if it had
-	 * no listeners for `options.gc.maxAge` period.
+	 * no listeners for `options.store.maxAge` period.
 	 *
 	 * @param eventState
 	 */
@@ -126,25 +92,26 @@ export const createClient = (options: ClientOptions) => {
 		// Holds result of setTimeout() calls
 		const timers = new Map<string, any>();
 
-		return (r: Request, keep?: boolean) => {
-			if (keep) {
-				clearTimeout(timers.get(r.id));
-				timers.delete(r.id);
+		return (r: t.Request, dispose = true) => {
+			if (dispose) {
+				const collect = () => {
+					apply(o.$dispose({ id: r.id }));
+				};
+
+				// schedule disposal
+				const timeout = setTimeout(
+					collect,
+					options.store?.maxAge ?? 30 * 1000
+				);
+
+				timers.set(r.id, timeout);
 
 				return;
 			}
 
-			const dispose = () => {
-				apply($dispose({ id: r.id }));
-			};
-
-			// schedule disposal
-			const timeout = setTimeout(
-				dispose,
-				options.gc?.maxAge ?? 30 * 1000
-			);
-
-			timers.set(r.id, timeout);
+			// keep
+			clearTimeout(timers.get(r.id));
+			timers.delete(r.id);
 		};
 	})();
 
@@ -153,10 +120,9 @@ export const createClient = (options: ClientOptions) => {
 	 * @param request
 	 * @param cb
 	 */
-	const fetch = (request: Request, cb?: Subscriber) => {
-		const notify = (op: Operation) => {
-			const state = stateMap.get(request.id);
-			const data = cacheMap.get(request.id);
+	const fetch = (request: t.Request, cb?: t.Subscriber) => {
+		const notify = (op: o.Operation) => {
+			const { state, data } = store.get(request.id) || {};
 
 			if (op.type === 'reject') {
 				return cb(state, data, op.payload.error);
@@ -167,7 +133,7 @@ export const createClient = (options: ClientOptions) => {
 
 		if (cb) {
 			// cancel disposal if scheduled
-			garbage(request, true);
+			garbage(request, false);
 
 			events.on(request.id, notify);
 		} else {
@@ -177,36 +143,28 @@ export const createClient = (options: ClientOptions) => {
 		}
 
 		const hasMore = () => {
-			// Lazy streams don't go to "streaming" state but rather
+			// Lazy streams don't go to "buffering" state but rather
 			// got back to "ready".
-			return stateMap.get(request.id) === 'ready';
+			return store.get(request.id)?.state === 'ready';
 		};
 
 		const fetchMore = () => {
 			if (hasMore()) {
-				apply($fetch(request));
+				apply(o.$fetch(request));
 			}
 		};
 
 		const cancel = () => {
-			apply($cancel(request));
+			apply(o.$cancel(request));
 		};
 
 		const unsubscribe = () => {
 			cb && events.off(request.id, notify);
 
-			// mark as garbage if necessary
-			if (events.listenerCount(request.id) === 0) {
-				garbage(request);
-			}
-
-			// Cancel if running but no longer needed
-			if (
-				(stateMap.get(request.id) === 'pending' ||
-					stateMap.get(request.id) === 'streaming') &&
-				events.listenerCount(request.id) === 0
-			) {
+			// cancel and schedule disposal if no longer needed
+			if (!events.hasSubscribers(request.id)) {
 				cancel();
+				garbage(request);
 			}
 		};
 
@@ -214,13 +172,14 @@ export const createClient = (options: ClientOptions) => {
 		const isPrefetched = prefetched.has(request.id);
 
 		if (!isPrefetched) {
-			apply($fetch(request));
+			apply(o.$fetch(request));
 		} else {
 			prefetched.delete(request.id);
 
 			// Notify subscriber. The type of operation we use has no
 			// effect unless it's "reject".
-			notify($buffer(request, cacheMap.get(request.id)));
+			const { data } = store.get(request.id) || {};
+			notify(o.$put(request, data));
 		}
 
 		return {
@@ -235,7 +194,7 @@ export const createClient = (options: ClientOptions) => {
 	 *
 	 * @param request
 	 */
-	const prefetch = (request: Request) => {
+	const prefetch = (request: t.Request) => {
 		if (!prefetched.has(request.id)) {
 			fetch(request);
 

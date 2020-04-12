@@ -1,21 +1,22 @@
 // Ours
-import { on } from './utils/filter';
-import { Request } from './request';
+import * as t from './utils/types';
+import * as o from './utils/operations';
+
 import { from, subscribe, Stream } from './utils/streams';
-import { Exchange, ExchangeAPI, Cache } from './utils/types';
-import { $complete, $buffer, $reject } from './utils/operations';
 
-type FetchContext = {
-	cache: Cache;
-};
-
-export type FetchHandler = (req: Request, ctx?: FetchContext) => any;
-
-const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
+/**
+ *
+ * @param options
+ * @param fn
+ */
+const fetch = (
+	{ emit, store }: t.ExchangeOptions,
+	fn: t.FetchHandler
+) => {
 	// holds ongoing requests
 	const queue = new Map<string, Stream>();
 
-	return on(['fetch', 'cancel'], op => {
+	const handle = (op: o.Operation) => {
 		const { request } = op.payload;
 		let stream = queue.get(request.id);
 
@@ -24,7 +25,7 @@ const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
 			return stream?.close();
 		}
 
-		// Is streaming?
+		// Is running?
 		if (stream && !stream.isClosed()) {
 			// Lazy? pull next value
 			if (stream.lazy) {
@@ -34,27 +35,37 @@ const fetch = ({ emit, cache }: ExchangeAPI, fn: FetchHandler) => {
 			return;
 		}
 
-		const context = { cache };
+		const context = { store };
 		const source = from(fn(request, context));
 		const meta = { lazy: source.lazy };
 
 		stream = subscribe(source, {
 			next(data) {
-				emit($buffer(request, data, meta));
+				emit(o.$put(request, data, meta));
 			},
 			error(err) {
-				emit($reject(request, err));
+				emit(o.$reject(request, err));
 			},
 			complete(data) {
-				emit($complete(request, data));
+				emit(o.$complete(request, data));
 			},
 		});
 
 		queue.set(request.id, stream);
-	});
+	};
+
+	return (next: t.EmitFunc) => (op: o.Operation) => {
+		// ignore irrelevant operations
+		if (op.type === 'cancel' || op.type === 'fetch') {
+			handle(op);
+		}
+
+		// next exchange
+		return next(op);
+	};
 };
 
-export const createFetch = (fn: FetchHandler): Exchange => ({
+export const createFetch = (fn: t.FetchHandler): t.Exchange => ({
 	name: 'fetch',
-	init: options => fetch(options, fn),
+	init: (options) => fetch(options, fn),
 });

@@ -13,6 +13,7 @@
 	"scripts": {
 		"build": "tsdx build",
 		"test": "tsdx test",
+		"posttest": "tsc --noEmit",
 		"test:watch": "tsdx test --watch",
 		"prepublishOnly": "npm run build"
 	},
@@ -21,7 +22,8 @@
 		"semi": true,
 		"singleQuote": true,
 		"trailingComma": "es5",
-		"useTabs": true
+		"useTabs": true,
+		"arrowParens": "always"
 	},
 	"dependencies": {
 		"@sindresorhus/is": "^2.1.0",

@@ -84,13 +84,13 @@ describe('fromObservables', () => {
 	});
 
 	it('should catch thrown errors', async () => {
-		const rx = new RxObservable.Observable(s => {
+		const rx = new RxObservable.Observable((s) => {
 			s.next(1);
 			s.error(ERROR);
 			s.next(2);
 		});
 
-		const zen = new ZenObservable(s => {
+		const zen = new ZenObservable((s) => {
 			s.next(1);
 			s.error(ERROR);
 			s.next(2);
@@ -180,7 +180,7 @@ describe('from', () => {
 
 		// failure
 		const error = new Error('unknown');
-		o = new RxObservable.Observable(s => {
+		o = new RxObservable.Observable((s) => {
 			setTimeout(() => {
 				s.error(error);
 			});

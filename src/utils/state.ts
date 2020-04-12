@@ -1,14 +1,6 @@
 // Ours
+import { State } from './types';
 import { Operation } from './operations';
-
-export type State =
-	| 'ready'
-	| 'pending'
-	| 'failed'
-	| 'streaming'
-	| 'cancelled'
-	| 'completed'
-	| 'disposed';
 
 /**
  * Determines the next state given the current `state` and `operation`.
@@ -42,20 +34,20 @@ export const transition = (
 		}
 
 		// Expecting:
-		// - buffer
+		// - put
 		// - reject
 		// - cancel
 		// - complete
 		case 'ready':
 		case 'pending':
-		case 'streaming': {
+		case 'buffering': {
 			switch (event) {
-				case 'buffer':
+				case 'put':
 					if (operation.meta?.lazy) {
 						return 'ready';
 					}
 
-					return 'streaming';
+					return 'buffering';
 				case 'reject':
 					return 'failed';
 				case 'cancel':

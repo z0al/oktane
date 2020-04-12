@@ -1,7 +1,7 @@
 // Ours
 import { Emitter } from './emitter';
 
-test('should keep track of listeners', () => {
+test('hasSubscribers', () => {
 	const emitter = Emitter();
 
 	const l1 = jest.fn();
@@ -10,12 +10,12 @@ test('should keep track of listeners', () => {
 
 	emitter.on('event', l1);
 	emitter.on('event', l2);
-	expect(emitter.listenerCount('event')).toEqual(2);
+	expect(emitter.hasSubscribers('event')).toEqual(true);
 
 	emitter.off('event', l1);
 	emitter.off('event', l2);
-	expect(emitter.listenerCount('event')).toEqual(0);
+	expect(emitter.hasSubscribers('event')).toEqual(false);
 
 	emitter.on('event', l3);
-	expect(emitter.listenerCount('event')).toEqual(1);
+	expect(emitter.hasSubscribers('event')).toEqual(true);
 });

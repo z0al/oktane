@@ -2,4 +2,4 @@ declare global {
 	var __DEV__: boolean;
 }
 
-export * from './client';
+export { createClient } from './client';

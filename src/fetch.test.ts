@@ -7,7 +7,7 @@ import { pipe } from './utils/pipe';
 import { createFetch } from './fetch';
 import { buildRequest } from './request';
 import {
-	$buffer,
+	$put,
 	$complete,
 	$cancel,
 	$reject,
@@ -23,12 +23,12 @@ const ERROR = new Error('unknown');
 
 const request = buildRequest({ url: '/api/users' });
 
-let emit: any, cache: any, handler: any, fetch: any;
+let emit: any, store: any, handler: any, fetch: any;
 
 beforeEach(() => {
 	emit = jest.fn();
-	cache = new Map();
-	const api = { emit, cache };
+	store = new Map();
+	const api = { emit, store };
 
 	// actual handler is implemented inside each test
 	const fetchHandler = (...args: any[]) => handler(...args);
@@ -43,16 +43,16 @@ test('should return a valid exchange', () => {
 	expect(
 		exchange.init({
 			emit: jest.fn(),
-			cache: new Map(),
+			store: new Map(),
 		})
 	).toEqual(expect.any(Function));
 });
 
 test('should call handler on "fetch" operation', () => {
 	handler = jest.fn();
-	const context = { cache };
+	const context = { store };
 
-	fetch($buffer(request, null));
+	fetch($put(request, null));
 	expect(handler).not.toBeCalled();
 
 	fetch($cancel(request));
@@ -70,7 +70,7 @@ test('should call handler on "fetch" operation', () => {
 });
 
 test('should not duplicate requests', async () => {
-	const context = { cache };
+	const context = { store };
 	handler = jest.fn().mockReturnValue(delay(100));
 
 	// ignores when pending
@@ -130,7 +130,7 @@ test('should work with observables', async () => {
 		.fn()
 		.mockReturnValueOnce(rx.from(Promise.resolve(DATA)))
 		.mockReturnValueOnce(
-			new rx.Observable(o => {
+			new rx.Observable((o) => {
 				setTimeout(() => {
 					o.error(ERROR);
 				});
@@ -142,7 +142,7 @@ test('should work with observables', async () => {
 	await delay(1);
 
 	expect(emit).toBeCalledWith($fetch(request));
-	expect(emit).toBeCalledWith($buffer(request, DATA));
+	expect(emit).toBeCalledWith($put(request, DATA));
 	expect(emit).toBeCalledWith($complete(request));
 	expect(emit).toBeCalledTimes(3);
 
@@ -171,13 +171,13 @@ test('should work with lazy streams', async () => {
 	await delay(1);
 
 	expect(emit).toBeCalledWith($fetch(request));
-	expect(emit).toBeCalledWith($buffer(request, DATA[0], meta));
+	expect(emit).toBeCalledWith($put(request, DATA[0], meta));
 
 	fetch($fetch(request));
 	await delay(1);
 
 	expect(emit).toBeCalledWith($fetch(request));
-	expect(emit).toBeCalledWith($buffer(request, DATA[1], meta));
+	expect(emit).toBeCalledWith($put(request, DATA[1], meta));
 
 	fetch($fetch(request));
 	await delay(1);
@@ -195,7 +195,7 @@ test('should work with lazy streams', async () => {
 	await delay(1);
 
 	expect(emit).toBeCalledWith($fetch(request));
-	expect(emit).toBeCalledWith($buffer(request, DATA, meta));
+	expect(emit).toBeCalledWith($put(request, DATA, meta));
 
 	fetch($fetch(request));
 	await delay(1);

@@ -14,6 +14,8 @@ export const Emitter = () => {
 
 	return {
 		...emitter,
-		listenerCount,
+		hasSubscribers(event: string) {
+			return listenerCount(event) !== 0;
+		},
 	};
 };

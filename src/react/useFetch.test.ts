@@ -120,8 +120,8 @@ test('should not fetch if request is not ready', async () => {
 	const fetch = jest.spyOn(client, 'fetch');
 
 	// not ready
-	renderHook(() => useFetch(() => null), client);
-	renderHook(() => useFetch(() => undefined), client);
+	renderHook(() => useFetch((): any => null), client);
+	renderHook(() => useFetch((): any => undefined), client);
 
 	expect(fetch).not.toBeCalled();
 
@@ -154,7 +154,10 @@ describe('hasMore()', () => {
 	});
 
 	test('should throw if called too early', async () => {
-		const { result } = renderHook(() => useFetch(() => null), client);
+		const { result } = renderHook(
+			() => useFetch((): any => null),
+			client
+		);
 
 		act(() => {
 			expect(() => {
@@ -176,7 +179,10 @@ describe('fetchMore()', () => {
 	});
 
 	test('should throw if called too early', async () => {
-		const { result } = renderHook(() => useFetch(() => null), client);
+		const { result } = renderHook(
+			() => useFetch((): any => null),
+			client
+		);
 
 		act(() => {
 			expect(() => {

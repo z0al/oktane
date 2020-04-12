@@ -3,38 +3,18 @@ import is from '@sindresorhus/is';
 import invariant from 'tiny-invariant';
 
 // Ours
-import { Exchange, ExchangeAPI, EmitFunc } from './types';
+import { Exchange, ExchangeOptions, EmitFunc } from './types';
 
 /**
  * Setups exchanges and returns emit function. This is very similar
  * to Redux's `applyMiddleware`.
  *
- * @example
- * const ex1 = ()=> next => op => {
- *	console.log('exchange 1')
- *	return next(op)
- * }
-
- * const ex2 = ()=> next => op => {
- *	console.log('exchange 2')
- *	return next(op)
- * }
- *
- * const emit = op => console.log('emitted')
- *
- * let apply = compose([ex1,ex2], emit)
- * apply({type: 'fetch', ...others})
- * // should log:
- * // exchange 1
- * // exchange 2
- * // emitted
- *
  * @param exchanges
- * @param emit
+ * @param options
  */
 export const pipe = (
 	exchanges: Exchange[],
-	config: ExchangeAPI
+	options: ExchangeOptions
 ): EmitFunc => {
 	invariant(
 		exchanges?.length > 0,
@@ -54,7 +34,7 @@ export const pipe = (
 	}
 
 	// No duplicated names allowed
-	const names = exchanges.map(e => e.name);
+	const names = exchanges.map((e) => e.name);
 	for (const name of names) {
 		invariant(
 			names.indexOf(name) === names.lastIndexOf(name),
@@ -67,14 +47,14 @@ export const pipe = (
 		invariant(false, 'emitting during exchange setup is not allowed');
 	};
 
-	const api: ExchangeAPI = {
-		...config,
-		emit: o => emit(o),
+	const api: ExchangeOptions = {
+		...options,
+		emit: (o) => emit(o),
 	};
 
 	emit = exchanges
-		.map(ex => ex.init(api))
-		.reduce((a, b) => o => a(b(o)))(config.emit);
+		.map((ex) => ex.init(api))
+		.reduce((a, b) => (o) => a(b(o)))(options.emit);
 
 	return emit;
 };

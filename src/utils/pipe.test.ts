@@ -1,11 +1,11 @@
 // Ours
 import { pipe } from './pipe';
-import { $buffer } from './operations';
-import { Exchange, ExchangeAPI } from './types';
+import { $put } from './operations';
+import { Exchange, ExchangeOptions } from './types';
 
-let api: ExchangeAPI;
+let api: ExchangeOptions;
 beforeEach(() => {
-	api = { cache: new Map(), emit: jest.fn() };
+	api = { store: new Map(), emit: jest.fn() };
 });
 
 test('should throw if no exchanges were passesd', () => {
@@ -81,7 +81,7 @@ test('should NOT throw when emitting after exchange setup', () => {
 	let called = false;
 	const ex: Exchange = {
 		name: 'test',
-		init: ({ emit }) => next => op => {
+		init: ({ emit }) => (next) => (op) => {
 			if (!called) {
 				called = true;
 				emit(null);
@@ -92,7 +92,7 @@ test('should NOT throw when emitting after exchange setup', () => {
 	};
 
 	expect(() => {
-		pipe([ex], api)($buffer(null, {}));
+		pipe([ex], api)($put(null, {}));
 	}).not.toThrow();
 
 	expect(api.emit).toBeCalledWith(null);
@@ -101,20 +101,20 @@ test('should NOT throw when emitting after exchange setup', () => {
 test('should compose exchanges from right to left', () => {
 	const createExchange = (name: string): Exchange => ({
 		name,
-		init: () => next => op =>
-			next($buffer(null, (op.payload as any).data + name)),
+		init: () => (next) => (op) =>
+			next($put(null, (op.payload as any).data + name)),
 	});
 
 	const a = createExchange('a');
 	const b = createExchange('b');
 	const c = createExchange('c');
 
-	pipe([a, b, c], api)($buffer(null, '+'));
-	expect(api.emit).toBeCalledWith($buffer(null, '+abc'));
+	pipe([a, b, c], api)($put(null, '+'));
+	expect(api.emit).toBeCalledWith($put(null, '+abc'));
 
-	pipe([c, b, a], api)($buffer(null, '+'));
-	expect(api.emit).toBeCalledWith($buffer(null, '+cba'));
+	pipe([c, b, a], api)($put(null, '+'));
+	expect(api.emit).toBeCalledWith($put(null, '+cba'));
 
-	pipe([a, c, b], api)($buffer(null, '+'));
-	expect(api.emit).toBeCalledWith($buffer(null, '+acb'));
+	pipe([a, c, b], api)($put(null, '+'));
+	expect(api.emit).toBeCalledWith($put(null, '+acb'));
 });

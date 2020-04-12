@@ -20,7 +20,7 @@ const TESTS = [
 	},
 	{
 		current: 'ready',
-		operation: { type: 'buffer' },
+		operation: { type: 'put' },
 		expected: 'ready',
 	},
 	{
@@ -46,12 +46,12 @@ const TESTS = [
 	},
 	{
 		current: 'pending',
-		operation: { type: 'buffer' },
-		expected: 'streaming',
+		operation: { type: 'put' },
+		expected: 'buffering',
 	},
 	{
 		current: 'pending',
-		operation: { type: 'buffer', meta: { lazy: true } },
+		operation: { type: 'put', meta: { lazy: true } },
 		expected: 'ready',
 	},
 	{
@@ -77,7 +77,7 @@ const TESTS = [
 	},
 	{
 		current: 'failed',
-		operation: { type: 'buffer' },
+		operation: { type: 'put' },
 		expected: 'failed',
 	},
 	{
@@ -85,29 +85,29 @@ const TESTS = [
 		operation: { type: 'complete' },
 		expected: 'failed',
 	},
-	// streaming
+	// buffering
 	{
-		current: 'streaming',
+		current: 'buffering',
 		operation: { type: 'fetch' },
-		expected: 'streaming',
+		expected: 'buffering',
 	},
 	{
-		current: 'streaming',
+		current: 'buffering',
 		operation: { type: 'cancel' },
 		expected: 'cancelled',
 	},
 	{
-		current: 'streaming',
+		current: 'buffering',
 		operation: { type: 'reject' },
 		expected: 'failed',
 	},
 	{
-		current: 'streaming',
-		operation: { type: 'buffer' },
-		expected: 'streaming',
+		current: 'buffering',
+		operation: { type: 'put' },
+		expected: 'buffering',
 	},
 	{
-		current: 'streaming',
+		current: 'buffering',
 		operation: { type: 'complete' },
 		expected: 'completed',
 	},
@@ -129,7 +129,7 @@ const TESTS = [
 	},
 	{
 		current: 'cancelled',
-		operation: { type: 'buffer' },
+		operation: { type: 'put' },
 		expected: 'cancelled',
 	},
 	{
@@ -155,7 +155,7 @@ const TESTS = [
 	},
 	{
 		current: 'completed',
-		operation: { type: 'buffer' },
+		operation: { type: 'put' },
 		expected: 'completed',
 	},
 	{
@@ -181,7 +181,7 @@ const TESTS = [
 		expected: 'disposed',
 	},
 	{
-		current: 'streaming',
+		current: 'buffering',
 		operation: { type: 'dispose' },
 		expected: 'disposed',
 	},

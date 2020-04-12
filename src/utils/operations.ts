@@ -1,5 +1,5 @@
 // Ours
-import { Request } from '../request';
+import { Request } from './types';
 
 export const $fetch = (request: Request, meta: Meta = {}) => ({
 	type: 'fetch' as 'fetch',
@@ -23,12 +23,12 @@ export const $reject = (
 	meta,
 });
 
-export const $buffer = (
+export const $put = (
 	request: Request,
 	data: unknown,
 	meta: Meta = {}
 ) => ({
-	type: 'buffer' as 'buffer',
+	type: 'put' as 'put',
 	payload: { request, data },
 	meta,
 });
@@ -64,6 +64,6 @@ export type Operation =
 	| ReturnType<typeof $fetch>
 	| ReturnType<typeof $cancel>
 	| ReturnType<typeof $reject>
-	| ReturnType<typeof $buffer>
+	| ReturnType<typeof $put>
 	| ReturnType<typeof $complete>
 	| ReturnType<typeof $dispose>;
