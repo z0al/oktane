@@ -4,7 +4,7 @@ import * as rx from 'rxjs';
 
 // Ours
 import { createClient } from './client';
-import { createRequest } from './request';
+import { buildRequest } from './request';
 import { Exchange, Cache } from './utils/types';
 import {
 	$fetch,
@@ -14,7 +14,7 @@ import {
 	$buffer,
 } from './utils/operations';
 
-const request = createRequest({
+const request = buildRequest({
 	url: '/api',
 	body: {},
 });

@@ -1,27 +1,42 @@
 // Packages
 import equal from 'dequal';
+import is from '@sindresorhus/is';
 import { useState, useEffect, useRef } from 'react';
 
 // Ours
 import { State } from '../utils/state';
 import { useClient } from './useClient';
-import { createRequest } from '../request';
+import { buildRequest, Request } from '../request';
 
-type FetchResult = {
+export type FetchResult = {
 	state: State;
 	data?: any;
 	error?: any;
 };
 
-type FetchUtils = {
+export type FetchUtils = {
 	cancel: () => void;
+	hasMore: () => boolean;
+	fetchMore: () => void;
 };
 
-export type FetchOptions = Record<string, any>;
-export type FetchRequest = FetchResult & FetchUtils;
+export type FetchResponse = FetchResult & FetchUtils;
+export type FetchRequest =
+	| Partial<Request>
+	| (() => Partial<Request> | null | undefined);
 
-export function useFetch(options: FetchOptions): FetchRequest {
-	const request = createRequest(options);
+export function useFetch(options: FetchRequest): FetchResponse {
+	let request: Request;
+
+	if (is.function_(options)) {
+		options = options();
+
+		if (options !== null && options !== undefined) {
+			request = buildRequest(options);
+		}
+	} else {
+		request = buildRequest(options);
+	}
 
 	// Fetch result & utils
 	const utilsRef = useRef<FetchUtils>(null);
@@ -29,7 +44,11 @@ export function useFetch(options: FetchOptions): FetchRequest {
 
 	const client = useClient();
 
-	useEffect(() => {
+	useEffect((): any => {
+		if (!request) {
+			return;
+		}
+
 		const { unsubscribe, ...utils } = client.fetch(
 			request,
 			(state, data, error) => {
@@ -44,7 +63,7 @@ export function useFetch(options: FetchOptions): FetchRequest {
 		utilsRef.current = utils;
 
 		return unsubscribe;
-	}, [request.id]);
+	}, [request?.id]);
 
 	return {
 		...result,

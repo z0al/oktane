@@ -4,13 +4,14 @@ import invariant from 'tiny-invariant';
 import stringify from 'fast-safe-stringify';
 
 export interface Request {
-	id?: string;
+	id: string;
 	type?: never;
 	[x: string]: any;
 }
 
-export const createRequest = (req: Request): Request => {
+export const buildRequest = (req: Partial<Request>): Request => {
 	invariant(is.plainObject(req), 'request must be a plain object');
+
 	invariant(
 		!('type' in req),
 		'request.type is reserved for potential future use'

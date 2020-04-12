@@ -2,10 +2,9 @@
 import delay from 'delay';
 
 // Ours
+import { useFetch } from './useFetch';
 import { renderHook, act } from './test-utils';
-
 import { createClient, Client } from '../client';
-import { useFetch, FetchRequest } from './useFetch';
 
 const json = [
 	{ id: 1, name: 'Alice' },
@@ -13,20 +12,40 @@ const json = [
 ];
 
 const handler = async () => {
-	await delay(100);
+	await delay(10);
 	return json;
 };
 
+// A Spy on client.fetch()'s result
+const spy = {
+	cancel: jest.fn() as any,
+	hasMore: jest.fn() as any,
+	fetchMore: jest.fn() as any,
+	unsubscribe: jest.fn() as any,
+};
+
 let client: Client;
+
 beforeEach(() => {
 	client = createClient({ handler });
+
+	const originalFetch = client.fetch;
+
+	client.fetch = (...args) => {
+		const sub = originalFetch(...args);
+		spy.cancel = jest.spyOn(sub, 'cancel');
+		spy.cancel.original = sub.cancel;
+
+		spy.hasMore = jest.spyOn(sub, 'hasMore');
+		spy.fetchMore = jest.spyOn(sub, 'fetchMore');
+		spy.unsubscribe = jest.spyOn(sub, 'unsubscribe');
+
+		return sub;
+	};
 });
 
 test('should expose public interface', async () => {
-	const { result } = renderHook<FetchRequest>(
-		() => useFetch({}),
-		client
-	);
+	const { result } = renderHook(() => useFetch({}), client);
 
 	expect(result.current).toEqual({
 		state: 'pending',
@@ -39,7 +58,7 @@ test('should expose public interface', async () => {
 });
 
 test('should keep "state" on sync', async () => {
-	const { result, waitForNextUpdate } = renderHook<FetchRequest>(
+	const { result, waitForNextUpdate } = renderHook(
 		() => useFetch({}),
 		client
 	);
@@ -50,7 +69,7 @@ test('should keep "state" on sync', async () => {
 });
 
 test('should populate data on response', async () => {
-	const { result, waitForNextUpdate } = renderHook<FetchRequest>(
+	const { result, waitForNextUpdate } = renderHook(
 		() => useFetch({}),
 		client
 	);
@@ -66,7 +85,8 @@ test('should report errors', async () => {
 	const client = createClient({
 		handler: () => Promise.reject(error),
 	});
-	const { result, waitForNextUpdate } = renderHook<FetchRequest>(
+
+	const { result, waitForNextUpdate } = renderHook(
 		() => useFetch({}),
 		client
 	);
@@ -83,10 +103,7 @@ test('should report errors', async () => {
 
 test('should avoid unnecessary fetching', async () => {
 	const fetch = jest.spyOn(client, 'fetch');
-	const { rerender } = renderHook<FetchRequest>(
-		() => useFetch({}),
-		client
-	);
+	const { rerender } = renderHook(() => useFetch({}), client);
 
 	rerender();
 	rerender();
@@ -96,33 +113,57 @@ test('should avoid unnecessary fetching', async () => {
 });
 
 test('should unsubscribe on unmount', async () => {
-	let unsubscribe: any;
-	const originalFetch = client.fetch;
+	renderHook(() => useFetch({}), client).unmount();
 
-	client.fetch = (...args) => {
-		const sub = originalFetch(...args);
-		unsubscribe = jest.spyOn(sub, 'unsubscribe');
-		return sub;
-	};
+	expect(spy.unsubscribe).toBeCalledTimes(1);
+});
 
-	renderHook<FetchRequest>(() => useFetch({}), client).unmount();
+test('should not fetch if request is not ready', async () => {
+	const fetch = jest.spyOn(client, 'fetch');
 
-	expect(unsubscribe).toBeCalledTimes(1);
+	// not ready
+	renderHook(() => useFetch(() => null), client);
+	renderHook(() => useFetch(() => undefined), client);
+
+	expect(fetch).not.toBeCalled();
+
+	// ready
+	renderHook(() => useFetch(() => ({})), client);
+	expect(fetch).toBeCalledTimes(1);
 });
 
 describe('cancel', () => {
-	test('should cancel request when called', async () => {
-		const { result } = renderHook<FetchRequest>(
-			() => useFetch({}),
-			client
-		);
+	test('should reference result.cancel', async () => {
+		const { result } = renderHook(() => useFetch({}), client);
 
-		expect(result.current.state).toEqual('pending');
+		expect(result.current.cancel).toBe(spy.cancel.original);
+	});
+});
+
+describe('hasMore', () => {
+	test('should wrap result.hasMore', async () => {
+		const { result } = renderHook(() => useFetch({}), client);
 
 		act(() => {
-			result.current.cancel();
+			result.current.hasMore();
 		});
 
-		expect(result.current.state).toEqual('cancelled');
+		expect(spy.hasMore).toBeCalledTimes(1);
 	});
+
+	test.todo('should throw if called too early');
+});
+
+describe('fetchMore', () => {
+	test('should wrap result.fetchMore', async () => {
+		const { result } = renderHook(() => useFetch({}), client);
+
+		act(() => {
+			result.current.fetchMore();
+		});
+
+		expect(spy.fetchMore).toBeCalledTimes(1);
+	});
+
+	test.todo('should throw if called too early');
 });

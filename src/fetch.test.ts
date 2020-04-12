@@ -5,7 +5,7 @@ import * as rx from 'rxjs';
 // Ours
 import { pipe } from './utils/pipe';
 import { createFetch } from './fetch';
-import { createRequest } from './request';
+import { buildRequest } from './request';
 import {
 	$buffer,
 	$complete,
@@ -21,7 +21,7 @@ const DATA = [
 
 const ERROR = new Error('unknown');
 
-const request = createRequest({ url: '/api/users' });
+const request = buildRequest({ url: '/api/users' });
 
 let emit: any, cache: any, handler: any, fetch: any;
 

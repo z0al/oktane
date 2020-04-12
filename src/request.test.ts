@@ -1,45 +1,45 @@
 // Ours
-import { createRequest, Request } from './request';
+import { buildRequest } from './request';
 
 test('should throw if request.type is set', () => {
 	expect(() => {
-		createRequest({ type: 'anything' } as any);
+		buildRequest({ type: 'anything' } as any);
 	}).toThrow(/request.type/);
 });
 
 test('should NOT throw if request.id is not set', () => {
 	expect(() => {
-		createRequest({});
+		buildRequest({});
 	}).not.toThrow();
 });
 
 test('should throw if request.id is set to an invalid value', () => {
 	expect(() => {
-		createRequest({ id: 1 } as any);
+		buildRequest({ id: 1 } as any);
 	}).toThrow(/request.id/);
 
 	expect(() => {
-		createRequest({ id: '' } as any);
+		buildRequest({ id: '' } as any);
 	}).toThrow(/request.id/);
 
 	expect(() => {
-		createRequest({ id: true } as any);
+		buildRequest({ id: true } as any);
 	}).toThrow(/request.id/);
 
 	expect(() => {
-		createRequest({ id: {} } as any);
+		buildRequest({ id: {} } as any);
 	}).toThrow(/request.id/);
 
 	expect(() => {
-		createRequest({ id: [] } as any);
+		buildRequest({ id: [] } as any);
 	}).toThrow(/request.id/);
 
 	expect(() => {
-		createRequest({ id: false } as any);
+		buildRequest({ id: false } as any);
 	}).toThrow(/request.id/);
 
 	expect(() => {
-		createRequest({ id: null } as any);
+		buildRequest({ id: null } as any);
 	}).toThrow(/request.id/);
 });
 
@@ -65,26 +65,26 @@ test('should serialize identical queries identically', () => {
 	};
 
 	// keys order doesn't matter
-	expect(createRequest(obj1)).toEqual(createRequest(obj2));
+	expect(buildRequest(obj1)).toEqual(buildRequest(obj2));
 
 	// array items DOES matter
 	obj2.array = [2, 1];
-	expect(createRequest(obj1)).not.toEqual(createRequest(obj2));
+	expect(buildRequest(obj1)).not.toEqual(buildRequest(obj2));
 });
 
 test('should set serialize the request.id as empty string', () => {
-	const reqA = { query: 'test', variables: [1, 2] } as Request;
-	const reqB = { query: 'test', variables: {} } as Request;
+	const reqA = { query: 'test', variables: [1, 2] };
+	const reqB = { query: 'test', variables: {} };
 
-	const idA = createRequest(reqA).id;
-	const idB = createRequest(reqB).id;
+	const idA = buildRequest(reqA).id;
+	const idB = buildRequest(reqB).id;
 
 	expect(JSON.parse(idA)).toEqual({ ...reqA, id: '' });
 	expect(JSON.parse(idB)).toEqual({ ...reqB, id: '' });
 });
 
 test('should not serialize if req.id is already set', () => {
-	const req = createRequest({
+	const req = buildRequest({
 		id: '__id__',
 		query: 'test',
 	});
