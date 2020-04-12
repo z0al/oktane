@@ -4,13 +4,14 @@ import {
 	$fetch,
 	$cancel,
 	$dispose,
+	$buffer,
 } from './utils/operations';
 import { pipe } from './utils/pipe';
 import { Request } from './request';
+import { Emitter } from './utils/emitter';
 import { transition, State } from './utils/state';
 import { createFetch, FetchHandler } from './fetch';
-import { Emitter, TrackerFunc } from './utils/emitter';
-import { Exchange, EmitFunc, ExchangeAPI, Cache } from './utils/types';
+import { Exchange, ExchangeAPI, Cache } from './utils/types';
 
 export interface GCOptions {
 	// Max age for inactive queries. Default is 30 seconds.
@@ -34,15 +35,12 @@ export const createClient = (options: ClientOptions) => {
 	// Holds the state of all requests.
 	const stateMap = new Map<string, State>();
 
-	// Keeps track of inactive queries (i.e. no subscribers) so they
-	// can be disposed later (see .dispose()). The value here is the
-	// value returned by `setTimeout()`.
-	const inactiveMap = new Map<string, any>();
+	// Keeps track of prefetched requests so we can avoid unnecessary
+	// fetching.
+	const prefetched = new Set<string>();
 
-	// We rely on this emitter for everything. In fact, Client is just
-	// a wrapper around it.
-	let track: TrackerFunc;
-	const events = Emitter(e => track(e));
+	//The heart of this whole thing.
+	const events = Emitter();
 
 	/**
 	 * Extracts operation key
@@ -58,7 +56,7 @@ export const createClient = (options: ClientOptions) => {
 	 *
 	 * @param op
 	 */
-	const emit: EmitFunc = (op: Operation) => {
+	const emit = (op: Operation) => {
 		const key = keyOf(op);
 
 		// Update cache if necessary
@@ -70,14 +68,15 @@ export const createClient = (options: ClientOptions) => {
 
 		const next = transition(stateMap.get(key), op);
 
-		if (next !== 'disposed') {
-			stateMap.set(key, next);
-			events.emit(key, op);
-		} else {
+		if (next === 'disposed') {
 			// Clean-up
 			stateMap.delete(key);
 			cacheMap.delete(key);
+			return;
 		}
+
+		stateMap.set(key, next);
+		events.emit(key, op);
 	};
 
 	/**
@@ -86,7 +85,7 @@ export const createClient = (options: ClientOptions) => {
 	 *
 	 * @param op
 	 */
-	const apply: EmitFunc = (() => {
+	const apply = (() => {
 		const exchanges = options.exchanges || [];
 		const fetchExchange = createFetch(options.handler);
 
@@ -118,39 +117,46 @@ export const createClient = (options: ClientOptions) => {
 	})();
 
 	/**
-	 * Disposes inactive requests. A request becomes inactive when
-	 * it has no listeners.
+	 * Disposes unused requests. A request becomes unused if it had
+	 * no listeners for `options.gc.maxAge` period.
 	 *
 	 * @param eventState
 	 */
-	track = ({ type, state }) => {
-		// We use request id as event type
-		const id = type;
+	const garbage = (() => {
+		// Holds result of setTimeout() calls
+		const timers = new Map<string, any>();
 
-		if (state === 'active') {
-			clearTimeout(inactiveMap.get(id));
-			inactiveMap.delete(id);
-		}
+		return (r: Request, keep?: boolean) => {
+			if (keep) {
+				clearTimeout(timers.get(r.id));
+				timers.delete(r.id);
 
-		if (state === 'inactive') {
-			inactiveMap.set(
-				id,
-				setTimeout(() => {
-					apply($dispose({ id }));
-				}, options.gc?.maxAge ?? 30 * 1000)
+				return;
+			}
+
+			const dispose = () => {
+				apply($dispose({ id: r.id }));
+			};
+
+			// schedule disposal
+			const timeout = setTimeout(
+				dispose,
+				options.gc?.maxAge ?? 30 * 1000
 			);
-		}
-	};
+
+			timers.set(r.id, timeout);
+		};
+	})();
 
 	/**
 	 *
-	 * @param req
+	 * @param request
 	 * @param cb
 	 */
-	const fetch = (req: Request, cb?: Subscriber) => {
+	const fetch = (request: Request, cb?: Subscriber) => {
 		const notify = (op: Operation) => {
-			const state = stateMap.get(req.id);
-			const data = cacheMap.get(req.id);
+			const state = stateMap.get(request.id);
+			const data = cacheMap.get(request.id);
 
 			if (op.type === 'reject') {
 				return cb(state, data, op.payload.error);
@@ -160,44 +166,62 @@ export const createClient = (options: ClientOptions) => {
 		};
 
 		if (cb) {
-			events.on(req.id, notify);
+			// cancel disposal if scheduled
+			garbage(request, true);
+
+			events.on(request.id, notify);
 		} else {
 			// This is probably a prefetching case. Mark immediately as
 			// inactive so that it will be disposed if not used.
-			track({ type: req.id, state: 'inactive' });
+			garbage(request);
 		}
 
 		const hasMore = () => {
 			// Lazy streams don't go to "streaming" state but rather
 			// got back to "ready".
-			return stateMap.get(req.id) === 'ready';
+			return stateMap.get(request.id) === 'ready';
 		};
 
 		const fetchMore = () => {
 			if (hasMore()) {
-				apply($fetch(req));
+				apply($fetch(request));
 			}
 		};
 
 		const cancel = () => {
-			apply($cancel(req));
+			apply($cancel(request));
 		};
 
 		const unsubscribe = () => {
-			cb && events.off(req.id, notify);
+			cb && events.off(request.id, notify);
+
+			// mark as garbage if necessary
+			if (events.listenerCount(request.id) === 0) {
+				garbage(request);
+			}
 
 			// Cancel if running but no longer needed
 			if (
-				(stateMap.get(req.id) === 'pending' ||
-					stateMap.get(req.id) === 'streaming') &&
-				events.listenerCount(req.id) === 0
+				(stateMap.get(request.id) === 'pending' ||
+					stateMap.get(request.id) === 'streaming') &&
+				events.listenerCount(request.id) === 0
 			) {
 				cancel();
 			}
 		};
 
-		// Perform fetch
-		apply($fetch(req));
+		// The request might already be fetched via prefetch().
+		const isPrefetched = prefetched.has(request.id);
+
+		if (!isPrefetched) {
+			apply($fetch(request));
+		} else {
+			prefetched.delete(request.id);
+
+			// Notify subscriber. The type of operation we use has no
+			// effect unless it's "reject".
+			notify($buffer(request, cacheMap.get(request.id)));
+		}
 
 		return {
 			cancel,
@@ -209,10 +233,15 @@ export const createClient = (options: ClientOptions) => {
 
 	/**
 	 *
-	 * @param req
+	 * @param request
 	 */
-	const prefetch = (req: Request) => {
-		fetch(req);
+	const prefetch = (request: Request) => {
+		if (!prefetched.has(request.id)) {
+			fetch(request);
+
+			// mark as prefetched
+			prefetched.add(request.id);
+		}
 	};
 
 	return { fetch, prefetch };

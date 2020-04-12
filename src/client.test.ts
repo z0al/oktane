@@ -438,17 +438,50 @@ describe('client', () => {
 	});
 
 	describe('.prefetch()', () => {
-		it('should emit fetch operation', () => {
+		it('should fetch and save response for later', async () => {
 			const log = jest.fn();
+			const meta = { lazy: true };
+
+			const gen = (function*() {
+				yield 1;
+				yield 2;
+				yield 3;
+			})();
+
+			const handler = jest.fn().mockImplementation(() => {
+				return () => delay(5).then(() => gen.next().value);
+			});
 
 			const client = createClient({
-				handler: jest.fn(),
+				handler: () => handler(),
 				exchanges: [logOperations(log)],
 			});
 
+			// fetch
 			client.prefetch(request);
+			expect(log).toBeCalledWith($fetch(request));
+			expect(log).toBeCalledTimes(1);
+
+			await delay(10);
+
+			// reuse the response once
+			log.mockClear();
+			const sub = jest.fn();
+			client.prefetch(request);
+			client.fetch(request, sub);
+
+			expect(log).not.toBeCalledWith($fetch(request));
+			expect(sub).toBeCalledWith('ready', 1);
+
+			// fetch more
+			log.mockClear();
+			client.fetch(request);
+
+			await delay(10);
 
 			expect(log).toBeCalledWith($fetch(request));
+			expect(log).toBeCalledWith($buffer(request, 2, meta));
+			expect(sub).toBeCalledWith('ready', 2);
 		});
 
 		it('should immediately mark the request as inactive', async () => {
