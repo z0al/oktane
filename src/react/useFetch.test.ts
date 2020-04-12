@@ -34,8 +34,6 @@ beforeEach(() => {
 	client.fetch = (...args) => {
 		const sub = originalFetch(...args);
 		spy.cancel = jest.spyOn(sub, 'cancel');
-		spy.cancel.original = sub.cancel;
-
 		spy.hasMore = jest.spyOn(sub, 'hasMore');
 		spy.fetchMore = jest.spyOn(sub, 'fetchMore');
 		spy.unsubscribe = jest.spyOn(sub, 'unsubscribe');
@@ -132,15 +130,19 @@ test('should not fetch if request is not ready', async () => {
 	expect(fetch).toBeCalledTimes(1);
 });
 
-describe('cancel', () => {
-	test('should reference result.cancel', async () => {
+describe('cancel()', () => {
+	test('should wrap result.cancel', async () => {
 		const { result } = renderHook(() => useFetch({}), client);
 
-		expect(result.current.cancel).toBe(spy.cancel.original);
+		act(() => {
+			result.current.cancel();
+		});
+
+		expect(spy.cancel).toBeCalledTimes(1);
 	});
 });
 
-describe('hasMore', () => {
+describe('hasMore()', () => {
 	test('should wrap result.hasMore', async () => {
 		const { result } = renderHook(() => useFetch({}), client);
 
@@ -151,10 +153,18 @@ describe('hasMore', () => {
 		expect(spy.hasMore).toBeCalledTimes(1);
 	});
 
-	test.todo('should throw if called too early');
+	test('should throw if called too early', async () => {
+		const { result } = renderHook(() => useFetch(() => null), client);
+
+		act(() => {
+			expect(() => {
+				result.current.hasMore();
+			}).toThrow(/not allowed/);
+		});
+	});
 });
 
-describe('fetchMore', () => {
+describe('fetchMore()', () => {
 	test('should wrap result.fetchMore', async () => {
 		const { result } = renderHook(() => useFetch({}), client);
 
@@ -165,5 +175,13 @@ describe('fetchMore', () => {
 		expect(spy.fetchMore).toBeCalledTimes(1);
 	});
 
-	test.todo('should throw if called too early');
+	test('should throw if called too early', async () => {
+		const { result } = renderHook(() => useFetch(() => null), client);
+
+		act(() => {
+			expect(() => {
+				result.current.fetchMore();
+			}).toThrow(/not allowed/);
+		});
+	});
 });
