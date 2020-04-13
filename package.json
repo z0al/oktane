@@ -8,19 +8,13 @@
 	"module": "dist/index.modern.js",
 	"typings": "dist/index.d.ts",
 	"files": [
-		"dist",
-		"react*"
+		"dist"
 	],
 	"scripts": {
-		"prebuild": "rimraf -rf dist",
-		"build": "npm run -s build:main && npm run -s build:react",
-		"build:main": "microbundle -f cjs,modern src/index.ts",
-		"build:react": "microbundle -o dist/react.js -f cjs --external react -i src/react.ts",
-		"test": "tsdx test",
-		"posttest": "tsc --noEmit",
+		"build": "tsdx build",
+		"test": "tsdx test && tsc --noEmit",
 		"test:watch": "tsdx test --watch",
-		"prebundlesize": "npm run -s build",
-		"bundlesize": "bundlesize",
+		"bundlesize": "npm run -s build && bundlesize",
 		"prepublishOnly": "npm run -s bundlesize",
 		"prepare": "npm run -s build"
 	},
@@ -45,10 +39,8 @@
 		"@types/zen-observable": "^0.8.0",
 		"bundlesize": "^0.18.0",
 		"delay": "^4.3.0",
-		"microbundle": "^0.12.0-next.8",
 		"react": "^16.13.1",
 		"react-test-renderer": "^16.13.1",
-		"rimraf": "^3.0.2",
 		"rxjs": "^6.5.5",
 		"tsdx": "^0.13.1",
 		"tslib": "^1.11.1",
@@ -62,12 +54,8 @@
 	},
 	"bundlesize": [
 		{
-			"path": "./dist/index.js",
-			"maxSize": "2.3 KB"
-		},
-		{
-			"path": "./dist/react.js",
-			"maxSize": "4.5 KB"
+			"path": "./dist/ql.cjs.production.min.js",
+			"maxSize": "3.5 KB"
 		}
 	],
 	"publishConfig": {
