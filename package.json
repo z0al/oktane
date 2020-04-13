@@ -1,11 +1,11 @@
 {
 	"name": "@z0al/ql",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"license": "MIT",
 	"author": "Ahmed T. Ali",
 	"sideEffects": false,
 	"main": "dist/index.js",
-	"module": "dist/index.modern.js",
+	"module": "dist/ql.esm.js",
 	"typings": "dist/index.d.ts",
 	"files": [
 		"dist"
@@ -42,7 +42,7 @@
 		"react": "^16.13.1",
 		"react-test-renderer": "^16.13.1",
 		"rxjs": "^6.5.5",
-		"tsdx": "^0.13.1",
+		"tsdx": "^0.13.2",
 		"tslib": "^1.11.1",
 		"typescript": "^3.8.3",
 		"zen-observable": "^0.8.15"
