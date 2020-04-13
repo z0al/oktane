@@ -2,6 +2,7 @@
 import * as t from './utils/types';
 import * as o from './utils/operations';
 
+import is from './utils/is';
 import { pipe } from './utils/pipe';
 import { createFetch } from './fetch';
 import { Emitter } from './utils/emitter';
@@ -104,13 +105,13 @@ export const createClient = (options: t.ClientOptions) => {
 					apply(o.$dispose({ id: r.id }));
 				};
 
-				// schedule disposal
-				const timeout = setTimeout(
-					collect,
-					options.store?.maxAge ?? 30 * 1000
-				);
+				const { store } = options;
+				const after = !is.nullish(store && store.maxAge)
+					? store.maxAge
+					: 30000; // 30s;
 
-				timers.set(r.id, timeout);
+				// schedule disposal
+				timers.set(r.id, setTimeout(collect, after));
 
 				return;
 			}

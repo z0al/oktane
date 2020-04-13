@@ -40,7 +40,7 @@ test('should throw if request.id is set to an invalid value', () => {
 
 	expect(() => {
 		buildRequest({ id: null } as any);
-	}).toThrow(/request.id/);
+	}).not.toThrow();
 });
 
 test('should serialize identical queries identically', () => {

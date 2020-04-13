@@ -53,7 +53,7 @@ describe('useClient', () => {
 	test('should throw if value is not set', () => {
 		const { result } = renderHook(() => useClient());
 
-		expect(result.error?.message).toMatch(/client/i);
+		expect(result.error.message).toMatch(/client/i);
 	});
 });
 

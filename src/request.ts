@@ -1,9 +1,9 @@
 // Packages
-import is from '@sindresorhus/is';
 import invariant from 'tiny-invariant';
 import stringify from 'fast-safe-stringify';
 
 // Ours
+import is from './utils/is';
 import { Request } from './utils/types';
 
 export const buildRequest = (req: Partial<Request>): Request => {
@@ -14,10 +14,10 @@ export const buildRequest = (req: Partial<Request>): Request => {
 		'request.type is reserved for potential future use'
 	);
 
-	if (!is.undefined(req.id)) {
+	if (!is.nullish(req.id)) {
 		invariant(
-			is.nonEmptyString(req.id),
-			'request.id must be a non-empty string or unset'
+			is.string(req.id) && req.id !== '',
+			'request.id must be a non-empty string or null or undefined'
 		);
 	}
 

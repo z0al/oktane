@@ -1,5 +1,5 @@
-// Packages
-import is from '@sindresorhus/is';
+// Ours
+import is from './is';
 
 export interface SourceObserver {
 	next(value: any): void;
@@ -114,7 +114,7 @@ export const fromValue = (value: unknown): Source => {
  * @param value
  */
 export const from = (value: unknown): Source => {
-	if (is.function_(value)) {
+	if (is.func(value)) {
 		return fromCallback(value);
 	}
 
@@ -122,7 +122,7 @@ export const from = (value: unknown): Source => {
 		return fromObservable(value);
 	}
 
-	if (is.nativePromise(value)) {
+	if (is.promise(value)) {
 		return fromPromise(value);
 	}
 

@@ -1,8 +1,8 @@
 // Packages
-import is from '@sindresorhus/is';
 import invariant from 'tiny-invariant';
 
 // Ours
+import is from './is';
 import { Exchange, ExchangeOptions, EmitFunc } from './types';
 
 /**
@@ -28,7 +28,7 @@ export const pipe = (
 		);
 
 		invariant(
-			is.function_(ex?.init),
+			is.func(ex?.init),
 			`exchange.init must be a function. Found: ${ex?.init}`
 		);
 	}

@@ -1,10 +1,10 @@
 // Packages
 import React from 'react';
 import equal from 'dequal';
-import is from '@sindresorhus/is';
 import invariant from 'tiny-invariant';
 
 // Ours
+import is from './utils/is';
 import { Client } from './client';
 import { buildRequest } from './request';
 import { Request, Entry } from './utils/types';
@@ -47,7 +47,7 @@ const NotReadyError =
 export function useFetch(config: FetchRequest): Query {
 	let request: Request;
 
-	if (is.function_(config)) {
+	if (is.func(config)) {
 		const opt = config();
 
 		// It's not ready if config() returned a falsy value
