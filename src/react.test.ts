@@ -2,9 +2,45 @@
 import delay from 'delay';
 
 // Ours
-import { useClient, useFetch } from './react';
 import { createClient, Client } from './client';
 import { renderHook, act } from './test-utils/hooks';
+import { useClient, useFetch, useRequest } from './react';
+
+const DATA = [
+	{ id: 1, name: 'Alice' },
+	{ id: 2, name: 'Bob' },
+];
+
+const handler = async () => {
+	await delay(10);
+	return DATA;
+};
+
+// A Spy on client.fetch()'s result
+const spy = {
+	cancel: jest.fn() as any,
+	hasMore: jest.fn() as any,
+	fetchMore: jest.fn() as any,
+	unsubscribe: jest.fn() as any,
+};
+
+let client: Client;
+
+beforeEach(() => {
+	client = createClient({ handler });
+
+	const originalFetch = client.fetch;
+
+	client.fetch = (...args) => {
+		const sub = originalFetch(...args);
+		spy.cancel = jest.spyOn(sub, 'cancel');
+		spy.hasMore = jest.spyOn(sub, 'hasMore');
+		spy.fetchMore = jest.spyOn(sub, 'fetchMore');
+		spy.unsubscribe = jest.spyOn(sub, 'unsubscribe');
+
+		return sub;
+	};
+});
 
 describe('useClient', () => {
 	test('should return client context value', () => {
@@ -22,43 +58,7 @@ describe('useClient', () => {
 });
 
 describe('useFetch', () => {
-	const json = [
-		{ id: 1, name: 'Alice' },
-		{ id: 2, name: 'Bob' },
-	];
-
-	const handler = async () => {
-		await delay(10);
-		return json;
-	};
-
-	// A Spy on client.fetch()'s result
-	const spy = {
-		cancel: jest.fn() as any,
-		hasMore: jest.fn() as any,
-		fetchMore: jest.fn() as any,
-		unsubscribe: jest.fn() as any,
-	};
-
-	let client: Client;
-
-	beforeEach(() => {
-		client = createClient({ handler });
-
-		const originalFetch = client.fetch;
-
-		client.fetch = (...args) => {
-			const sub = originalFetch(...args);
-			spy.cancel = jest.spyOn(sub, 'cancel');
-			spy.hasMore = jest.spyOn(sub, 'hasMore');
-			spy.fetchMore = jest.spyOn(sub, 'fetchMore');
-			spy.unsubscribe = jest.spyOn(sub, 'unsubscribe');
-
-			return sub;
-		};
-	});
-
-	test('should expose public interface', async () => {
+	test('should expose Query interface', async () => {
 		const { result } = renderHook(() => useFetch({}), client);
 
 		expect(result.current).toEqual({
@@ -91,7 +91,7 @@ describe('useFetch', () => {
 		expect(result.current.data).toEqual(undefined);
 		await waitForNextUpdate();
 
-		expect(result.current.data).toEqual(json);
+		expect(result.current.data).toEqual(DATA);
 	});
 
 	test('should report errors', async () => {
@@ -136,8 +136,12 @@ describe('useFetch', () => {
 		const fetch = jest.spyOn(client, 'fetch');
 
 		// not ready
+		renderHook(() => useFetch((): any => 0), client);
+		renderHook(() => useFetch((): any => ''), client);
+		renderHook(() => useFetch((): any => false), client);
 		renderHook(() => useFetch((): any => null), client);
-		renderHook(() => useFetch((): any => undefined), client);
+		renderHook(() => useFetch((): any => NaN), client);
+		renderHook(() => useFetch((): any => {}), client);
 
 		expect(fetch).not.toBeCalled();
 
@@ -175,11 +179,11 @@ describe('useFetch', () => {
 				client
 			);
 
-			act(() => {
-				expect(() => {
+			expect(() => {
+				act(() => {
 					result.current.hasMore();
-				}).toThrow(/not allowed/);
-			});
+				});
+			}).toThrow(/not allowed/);
 		});
 	});
 
@@ -200,11 +204,76 @@ describe('useFetch', () => {
 				client
 			);
 
-			act(() => {
-				expect(() => {
+			expect(() => {
+				act(() => {
 					result.current.fetchMore();
-				}).toThrow(/not allowed/);
-			});
+				});
+			}).toThrow(/not allowed/);
 		});
+	});
+});
+
+describe('useRequest', () => {
+	test('should expose Query interface', async () => {
+		const { result } = renderHook(() => useRequest({}), client);
+
+		expect(result.current).toEqual({
+			state: undefined,
+			data: undefined,
+			error: undefined,
+			fetch: expect.any(Function),
+			cancel: expect.any(Function),
+			hasMore: expect.any(Function),
+			fetchMore: expect.any(Function),
+		});
+	});
+
+	test('should only accept plain objects', async () => {
+		let hook = renderHook(() => useRequest(() => true), client);
+		expect(hook.result.error.message).toMatch(/plain object/);
+
+		hook = renderHook(() => useRequest(null), client);
+		expect(hook.result.error.message).toMatch(/plain object/);
+
+		hook = renderHook(() => useRequest(true as any), client);
+		expect(hook.result.error.message).toMatch(/plain object/);
+	});
+
+	test('should not fetch unless .fetch is called', async () => {
+		const { result } = renderHook(() => useRequest({}), client);
+
+		expect(result.current.state).toEqual(undefined);
+
+		expect(() => {
+			act(() => {
+				result.current.hasMore();
+			});
+		}).toThrow(/not allowed/);
+
+		expect(() => {
+			act(() => {
+				result.current.fetchMore();
+			});
+		}).toThrow(/not allowed/);
+
+		act(() => {
+			result.current.fetch();
+		});
+
+		expect(result.current.state).toEqual('pending');
+	});
+
+	test('should throw if fetch is called more than once', async () => {
+		const { result } = renderHook(() => useRequest({}), client);
+
+		act(() => {
+			result.current.fetch();
+		});
+
+		expect(() => {
+			act(() => {
+				result.current.fetch();
+			});
+		}).toThrow(/called more than once/);
 	});
 });

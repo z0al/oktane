@@ -1,26 +1,23 @@
-> **Disclaimer:** This is pretty much experimental at the moment and I haven't figured out everything yet. If you want to discuss this (or share feedback) feel free to reach me on [Twitter][twitter] or just open an [issue][issue] here.
+# @z0al/ql
 
-# ql
+Lightweight helpers for data fetching in React apps.
 
-Abstract helpers for data-driven JavaScript apps.
+## Overview
 
-## Features
+TODO.
+
+## Quick start
 
 TODO.
 
 ## Documentation
 
-TODO.
+TODO
 
-## Acknowledgments
+## Credits
 
-This project wouldn't have been possible without the following great libraries:
-
-TODO.
+Inspired by [React Query](https://github.com/tannerlinsley/react-query/) & [SWR](https://github.com/zeit/swr).
 
 ## License
 
 MIT © Ahmed T. Ali
-
-[issue]: https://github.com/z0al/anyql/issues
-[twitter]: https://twitter.com/_z0al

@@ -15,14 +15,12 @@ type FetchActions = {
 	fetchMore: () => void;
 };
 
-type FetchResponse = Entry & FetchActions;
+type Query = Entry & FetchActions;
+type ManualQuery = Query & { fetch: () => void };
+
 type FetchRequest =
 	| Partial<Request>
-	| (() => Partial<Request> | null | undefined);
-
-const NotAllowed =
-	'calling hasMore() or fetchMore() is not allowed when the ' +
-	'request is not ready. Did you forget to call fetch()?';
+	| (() => Partial<Request> | false | 0 | '' | null);
 
 export const ClientContext = React.createContext<Client>(null);
 
@@ -37,21 +35,26 @@ export function useClient() {
 	return client;
 }
 
+const NotReadyError =
+	'calling hasMore() or fetchMore() is not allowed when ' +
+	'the request is not ready. Did you forget to call fetch()?';
+
 /**
  *
- * @param options
+ * @param config
  */
-export function useFetch(options: FetchRequest): FetchResponse {
+export function useFetch(config: FetchRequest): Query {
 	let request: Request;
 
-	if (is.function_(options)) {
-		options = options();
+	if (is.function_(config)) {
+		const opt = config();
 
-		if (options !== null && options !== undefined) {
-			request = buildRequest(options);
+		// It's not ready if config() returned a falsy value
+		if (opt) {
+			request = buildRequest(opt);
 		}
 	} else {
-		request = buildRequest(options);
+		request = buildRequest(config);
 	}
 
 	// Fetch result & actions
@@ -86,7 +89,7 @@ export function useFetch(options: FetchRequest): FetchResponse {
 
 	const hasMore = () => {
 		if (!actions.current) {
-			invariant(false, NotAllowed);
+			invariant(false, NotReadyError);
 		}
 
 		return actions.current.hasMore();
@@ -94,7 +97,7 @@ export function useFetch(options: FetchRequest): FetchResponse {
 
 	const fetchMore = () => {
 		if (!actions.current) {
-			invariant(false, NotAllowed);
+			invariant(false, NotReadyError);
 		}
 
 		actions.current.fetchMore();
@@ -106,4 +109,33 @@ export function useFetch(options: FetchRequest): FetchResponse {
 		hasMore,
 		fetchMore,
 	};
+}
+
+/**
+ *
+ * @param config
+ */
+export function useRequest(config: Partial<Request>): ManualQuery {
+	const [isReady, setReady] = React.useState(false);
+
+	if (!is.plainObject(config)) {
+		invariant(
+			false,
+			`(useRequest) expected 'config' to be a plain object. ` +
+				`Got: ${typeof config}`
+		);
+	}
+
+	// delay fetch until manually triggered
+	const query = useFetch(() => isReady && config);
+
+	const fetch = () => {
+		if (!isReady) {
+			return setReady(true);
+		}
+
+		invariant(false, '(useRequest) fetch is called more than once.');
+	};
+
+	return { ...query, fetch };
 }

@@ -47,15 +47,13 @@
 		"typescript": "^3.8.3",
 		"zen-observable": "^0.8.15"
 	},
-	"peerDependenciesMeta": {
-		"react": {
-			"optional": true
-		}
+	"peerDependencies": {
+		"react": ">=16.8.6"
 	},
 	"bundlesize": [
 		{
 			"path": "./dist/ql.cjs.production.min.js",
-			"maxSize": "3.5 KB"
+			"maxSize": "3 KB"
 		}
 	],
 	"publishConfig": {
