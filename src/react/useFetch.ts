@@ -60,8 +60,7 @@ export function useFetch(options: FetchRequest): FetchResponse {
 
 		const { unsubscribe, ...utils } = client.fetch(
 			request,
-			(state, data, error) => {
-				const update = { data, state, error };
+			(update) => {
 				if (!equal(result, update)) {
 					setResult(update);
 				}

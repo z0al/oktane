@@ -13,11 +13,11 @@ export const createClient = (options: t.ClientOptions) => {
 	//The heart of this whole thing.
 	const events = Emitter();
 
+	// A key-value cache that maps requests to their state & data.
+	const store: t.Store = new Map();
+
 	// tracks prefetched requests to avoid potential refetching.
 	const prefetched = new Set<string>();
-
-	// A key-value cache that maps requests to their state & data
-	const store = new Map<string, { state: t.State; data?: any }>();
 
 	/**
 	 * Extracts operation key
@@ -29,27 +29,33 @@ export const createClient = (options: t.ClientOptions) => {
 	};
 
 	/**
-	 * updates store based on operation type and notify subscribers.
+	 * updates the store and then notifies subscribers.
 	 *
 	 * @param op
 	 */
-	const update = (op: o.Operation) => {
+	const updateStore = (op: o.Operation) => {
 		const key = keyOf(op);
 
-		let { state, data } = store.get(key) || {};
+		const obj = store.get(key);
 
-		const next = transition(state, op);
+		const next = transition(obj?.state, op);
 
 		if (next === 'disposed') {
 			store.delete(key);
 			return;
 		}
 
-		if (op.type === 'put' || op.type === 'complete') {
-			data = op.payload.data !== undefined ? op.payload.data : data;
-		}
+		store.set(key, {
+			state: next,
+			error: op.type === 'reject' ? op.payload.error : undefined,
+			data:
+				op.type === 'put' ||
+				(op.type === 'complete' && op.payload.data !== undefined)
+					? op.payload.data
+					: obj?.data,
+		});
 
-		store.set(key, { state: next, data });
+		// notify subscribers
 		events.emit(key, op);
 	};
 
@@ -64,7 +70,7 @@ export const createClient = (options: t.ClientOptions) => {
 		const fetchExchange = createFetch(options.handler);
 
 		// Setup exchanges
-		const api = { emit: update, store };
+		const api = { emit: updateStore, store };
 		const pipeThrough = pipe([...exchanges, fetchExchange], api);
 
 		return (op: o.Operation) => {
@@ -121,14 +127,8 @@ export const createClient = (options: t.ClientOptions) => {
 	 * @param cb
 	 */
 	const fetch = (request: t.Request, cb?: t.Subscriber) => {
-		const notify = (op: o.Operation) => {
-			const { state, data } = store.get(request.id) || {};
-
-			if (op.type === 'reject') {
-				return cb(state, data, op.payload.error);
-			}
-
-			return cb(state, data);
+		const notify = () => {
+			return cb(store.get(request.id));
 		};
 
 		if (cb) {
@@ -176,10 +176,8 @@ export const createClient = (options: t.ClientOptions) => {
 		} else {
 			prefetched.delete(request.id);
 
-			// Notify subscriber. The type of operation we use has no
-			// effect unless it's "reject".
-			const { data } = store.get(request.id) || {};
-			notify(o.$put(request, data));
+			// call subscriber with the available result.
+			notify();
 		}
 
 		return {

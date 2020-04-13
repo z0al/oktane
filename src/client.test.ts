@@ -27,6 +27,12 @@ const DATA = [
 const ERROR = new Error('unknown');
 
 describe('client', () => {
+	const toChange = (e: any) => ({
+		data: undefined,
+		error: undefined,
+		...e,
+	});
+
 	const logOptions = (fn: any): Exchange => ({
 		name: 'log-options',
 		init: (api) => {
@@ -87,7 +93,7 @@ describe('client', () => {
 		expect(log).toBeCalledWith(api);
 	});
 
-	it('should dispose inactive requests', async () => {
+	it('should dispose unused requests', async () => {
 		const log = jest.fn();
 		const client = createClient({
 			handler: jest.fn(),
@@ -95,7 +101,7 @@ describe('client', () => {
 			exchanges: [logOperations(log)],
 		});
 
-		// No subscriber? immediatly inactive
+		// No subscriber? immediatly unused
 		client.prefetch(request);
 		await delay(10);
 
@@ -135,7 +141,7 @@ describe('client', () => {
 			exchanges: [logOptions(log)],
 		});
 
-		// Immediatly inactive (no subscriber)
+		// Immediatly unused (no subscriber)
 		client.fetch(request);
 		await delay(10);
 
@@ -170,7 +176,8 @@ describe('client', () => {
 			expect(log).toBeCalledTimes(1);
 		});
 
-		it('should provide updates to the subscriber', async () => {
+		it('should notify subscriber with changes', async () => {
+			const subscriber = jest.fn();
 			let handler: any = () => delay(5).then(() => DATA);
 
 			const client = createClient({
@@ -178,12 +185,16 @@ describe('client', () => {
 			});
 
 			// success
-			const subscriber = jest.fn();
 			client.fetch(request, subscriber);
 			await delay(10);
 
-			expect(subscriber).toBeCalledWith('pending', undefined);
-			expect(subscriber).toBeCalledWith('completed', DATA);
+			expect(subscriber).toBeCalledWith(toChange({ state: 'pending' }));
+			expect(subscriber).toBeCalledWith(
+				toChange({
+					state: 'completed',
+					data: DATA,
+				})
+			);
 			expect(subscriber).toBeCalledTimes(2);
 
 			// cancellation
@@ -191,8 +202,18 @@ describe('client', () => {
 			client.fetch(request).cancel();
 			await delay(10);
 
-			expect(subscriber).toBeCalledWith('pending', DATA);
-			expect(subscriber).toBeCalledWith('cancelled', DATA);
+			expect(subscriber).toBeCalledWith(
+				toChange({
+					state: 'pending',
+					data: DATA,
+				})
+			);
+			expect(subscriber).toBeCalledWith(
+				toChange({
+					state: 'cancelled',
+					data: DATA,
+				})
+			);
 			expect(subscriber).toBeCalledTimes(2);
 
 			// buffering
@@ -201,9 +222,24 @@ describe('client', () => {
 			client.fetch(request);
 			await delay(10);
 
-			expect(subscriber).toBeCalledWith('pending', DATA);
-			expect(subscriber).toBeCalledWith('buffering', DATA);
-			expect(subscriber).toBeCalledWith('completed', DATA);
+			expect(subscriber).toBeCalledWith(
+				toChange({
+					state: 'pending',
+					data: DATA,
+				})
+			);
+			expect(subscriber).toBeCalledWith(
+				toChange({
+					state: 'buffering',
+					data: DATA,
+				})
+			);
+			expect(subscriber).toBeCalledWith(
+				toChange({
+					state: 'completed',
+					data: DATA,
+				})
+			);
 
 			// failure
 			subscriber.mockClear();
@@ -211,8 +247,19 @@ describe('client', () => {
 			client.fetch(request);
 			await delay(10);
 
-			expect(subscriber).toBeCalledWith('pending', DATA);
-			expect(subscriber).toBeCalledWith('failed', DATA, ERROR);
+			expect(subscriber).toBeCalledWith(
+				toChange({
+					state: 'pending',
+					data: DATA,
+				})
+			);
+			expect(subscriber).toBeCalledWith(
+				toChange({
+					state: 'failed',
+					data: DATA,
+					error: ERROR,
+				})
+			);
 		});
 
 		describe('.cancel()', () => {
@@ -242,11 +289,13 @@ describe('client', () => {
 
 				await delay(10);
 
-				expect(subscriber).toBeCalledWith('pending', undefined);
+				expect(subscriber).toBeCalledWith(
+					toChange({ state: 'pending' })
+				);
 				expect(subscriber).toBeCalledTimes(1);
 			});
 
-			it('should cancel inactive requests', async () => {
+			it('should cancel unused requests', async () => {
 				const log = jest.fn();
 				let handler = async () => delay(5).then(() => DATA);
 
@@ -466,12 +515,14 @@ describe('client', () => {
 
 			// reuse the response once
 			log.mockClear();
-			const sub = jest.fn();
+			const subscriber = jest.fn();
 			client.prefetch(request);
-			client.fetch(request, sub);
+			client.fetch(request, subscriber);
 
 			expect(log).not.toBeCalledWith($fetch(request));
-			expect(sub).toBeCalledWith('ready', 1);
+			expect(subscriber).toBeCalledWith(
+				toChange({ state: 'ready', data: 1 })
+			);
 
 			// fetch more
 			log.mockClear();
@@ -481,7 +532,52 @@ describe('client', () => {
 
 			expect(log).toBeCalledWith($fetch(request));
 			expect(log).toBeCalledWith($put(request, 2, meta));
-			expect(sub).toBeCalledWith('ready', 2);
+			expect(subscriber).toBeCalledWith(
+				toChange({ state: 'ready', data: 2 })
+			);
+		});
+
+		it('should respect prefetch errors', async () => {
+			const log = jest.fn();
+			const handler = () =>
+				delay(5).then(() => {
+					throw ERROR;
+				});
+
+			const client = createClient({
+				handler,
+				exchanges: [logOperations(log)],
+			});
+
+			// fetch
+			client.prefetch(request);
+			expect(log).toBeCalledWith($fetch(request));
+			expect(log).toBeCalledTimes(1);
+
+			await delay(10);
+
+			// reuse the response once
+			log.mockClear();
+			const subscriber = jest.fn();
+			client.prefetch(request);
+			client.fetch(request, subscriber);
+
+			expect(log).not.toBeCalledWith($fetch(request));
+			expect(subscriber).toBeCalledWith(
+				toChange({
+					state: 'failed',
+					error: ERROR,
+				})
+			);
+
+			// can retry
+			log.mockClear();
+			subscriber.mockClear();
+			client.fetch(request);
+
+			await delay(10);
+
+			expect(log).toBeCalledWith($fetch(request));
 		});
 
 		it('should immediately mark the request as inactive', async () => {
