@@ -22,7 +22,8 @@ type FetchRequest =
 	| Partial<Request>
 	| (() => Partial<Request> | false | 0 | '' | null);
 
-export const ClientContext = React.createContext<Client>(null);
+const ClientContext = React.createContext<Client>(null);
+export const ClientProvider = ClientContext.Provider;
 
 /**
  *

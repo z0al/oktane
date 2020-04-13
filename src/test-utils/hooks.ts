@@ -4,7 +4,7 @@ import { renderHook as render } from '@testing-library/react-hooks';
 
 // Ours
 import { Client } from '../client';
-import { ClientContext } from '../react';
+import { ClientProvider } from '../react';
 
 export const renderHook = <R>(
 	cb: (props: unknown) => R,
@@ -12,11 +12,7 @@ export const renderHook = <R>(
 ) =>
 	render<any, R>(cb, {
 		wrapper: ({ children }) =>
-			React.createElement(
-				ClientContext.Provider,
-				{ value: client },
-				children
-			),
+			React.createElement(ClientProvider, { value: client }, children),
 	});
 
 export { act } from '@testing-library/react-hooks';

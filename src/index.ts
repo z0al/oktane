@@ -3,4 +3,9 @@ declare global {
 }
 
 export { createClient } from './client';
-export { useClient, useFetch, useRequest } from './react';
+export {
+	useClient,
+	useFetch,
+	useRequest,
+	ClientProvider,
+} from './react';
