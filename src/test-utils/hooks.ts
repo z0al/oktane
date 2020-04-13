@@ -4,7 +4,7 @@ import { renderHook as render } from '@testing-library/react-hooks';
 
 // Ours
 import { Client } from '../client';
-import { ClientContext } from './types';
+import { ClientContext } from '../react';
 
 export const renderHook = <R>(
 	cb: (props: unknown) => R,

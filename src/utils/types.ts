@@ -39,7 +39,7 @@ export type FetchHandler = (
 ) => any;
 
 // Store entries
-type Entry = { state: State; data?: any; error?: any };
+export type Entry = { state: State; data?: any; error?: any };
 
 export type Subscriber = (change: Entry) => void;
 

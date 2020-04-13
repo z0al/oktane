@@ -1,34 +1,41 @@
 // Packages
+import React from 'react';
 import equal from 'dequal';
 import is from '@sindresorhus/is';
 import invariant from 'tiny-invariant';
-import { useState, useEffect, useRef } from 'react';
 
 // Ours
-import { useClient } from './useClient';
-import { buildRequest } from '../request';
-import { Request, State } from '../utils/types';
+import { Client } from './client';
+import { buildRequest } from './request';
+import { Request, Entry } from './utils/types';
 
-export type FetchResult = {
-	state: State;
-	data?: any;
-	error?: any;
-};
-
-export type FetchActions = {
+type FetchActions = {
 	cancel: () => void;
 	hasMore: () => boolean;
 	fetchMore: () => void;
 };
 
-export type FetchResponse = FetchResult & FetchActions;
-export type FetchRequest =
+type FetchResponse = Entry & FetchActions;
+type FetchRequest =
 	| Partial<Request>
 	| (() => Partial<Request> | null | undefined);
 
 const NotAllowed =
 	'calling hasMore() or fetchMore() is not allowed when the ' +
 	'request is not ready. Did you forget to call fetch()?';
+
+export const ClientContext = React.createContext<Client>(null);
+
+/**
+ *
+ */
+export function useClient() {
+	const client = React.useContext(ClientContext);
+
+	invariant(client, 'could not find "client" in context');
+
+	return client;
+}
 
 /**
  *
@@ -48,12 +55,12 @@ export function useFetch(options: FetchRequest): FetchResponse {
 	}
 
 	// Fetch result & actions
-	const actions = useRef<FetchActions>(null);
-	const [result, setResult] = useState<FetchResult>(null);
+	const actions = React.useRef<FetchActions>(null);
+	const [result, setResult] = React.useState<Entry>(null);
 
 	const client = useClient();
 
-	useEffect((): any => {
+	React.useEffect((): any => {
 		if (!request) {
 			return;
 		}
