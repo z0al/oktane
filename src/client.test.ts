@@ -331,7 +331,7 @@ describe('client', () => {
 		});
 
 		describe('.hasMore()', () => {
-			it('should success if a lazy source is ready', async () => {
+			it('should success if a pull source is ready', async () => {
 				let gen = (async function*() {
 					await delay(5);
 					yield DATA;
@@ -387,7 +387,7 @@ describe('client', () => {
 
 		describe('.fetchMore()', () => {
 			it('should emit fetch operation(s)', async () => {
-				const meta = { lazy: true };
+				const meta = { pull: true };
 				const log = jest.fn();
 				const gen = (function*() {
 					yield 1;
@@ -440,7 +440,7 @@ describe('client', () => {
 			});
 
 			it('should dedeuplicate calls', async () => {
-				const meta = { lazy: true };
+				const meta = { pull: true };
 				const log = jest.fn();
 				const gen = (function*() {
 					yield DATA[0];
@@ -489,7 +489,7 @@ describe('client', () => {
 	describe('.prefetch()', () => {
 		it('should fetch and save response for later', async () => {
 			const log = jest.fn();
-			const meta = { lazy: true };
+			const meta = { pull: true };
 
 			const gen = (function*() {
 				yield 1;

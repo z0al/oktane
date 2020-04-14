@@ -144,7 +144,7 @@ export const createClient = (options: t.ClientOptions) => {
 		}
 
 		const hasMore = () => {
-			// Lazy streams don't go to "buffering" state but rather
+			// Pull Streams don't go to "buffering" state but rather
 			// got back to "ready".
 			return store.get(request.id)?.state === 'ready';
 		};

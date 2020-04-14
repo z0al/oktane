@@ -43,7 +43,7 @@ export const transition = (
 		case 'buffering': {
 			switch (event) {
 				case 'put':
-					if (operation.meta?.lazy) {
+					if (operation.meta?.pull) {
 						return 'ready';
 					}
 

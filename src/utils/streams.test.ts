@@ -57,11 +57,11 @@ describe('fromObservables', () => {
 });
 
 describe('fromCallback', () => {
-	it('should convert into a lazy stream', () => {
+	it('should convert into a pull stream', () => {
 		const fn = jest.fn();
 		const stream = fromCallback(fn);
 
-		expect(stream.lazy).toEqual(true);
+		expect(stream.pull).toEqual(true);
 		expect(stream.next).toEqual(expect.any(Function));
 	});
 

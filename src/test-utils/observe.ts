@@ -35,7 +35,7 @@ export const observe = async (
 					}
 				});
 
-			if (source.lazy) {
+			if (source.pull) {
 				pull();
 			}
 		});

@@ -17,7 +17,7 @@ export interface SourceSubscriber extends SourceObserver {
 export interface Stream {
 	isClosed: () => boolean;
 	close: () => void;
-	lazy?: boolean;
+	pull?: boolean;
 	next?: () => Promise<void>;
 }
 
@@ -27,8 +27,8 @@ export interface Stream {
  */
 export interface Source {
 	(s: SourceSubscriber): () => void;
-	lazy?: boolean;
-	// Emits next value on a lazy stream
+	pull?: boolean;
+	// Emits next value on a pull stream
 	next?: () => Promise<void>;
 }
 
@@ -46,7 +46,7 @@ export const fromObservable = (o: any): Source => {
 };
 
 /**
- * Transforms a function into a lazy Source.
+ * Transforms a function into a Pull Source.
  *
  * @param fn
  */
@@ -76,7 +76,7 @@ export const fromCallback = (fn: Function): Source => {
 		return () => {};
 	};
 
-	source.lazy = true;
+	source.pull = true;
 	source.next = next;
 
 	return source;
@@ -165,7 +165,7 @@ export const subscribe = (
 	return {
 		close,
 		isClosed: () => closed,
-		lazy: source.lazy,
+		pull: source.pull,
 		next: source.next,
 	};
 };

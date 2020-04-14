@@ -27,8 +27,8 @@ const fetch = (
 
 		// Is running?
 		if (stream && !stream.isClosed()) {
-			// Lazy? pull next value
-			if (stream.lazy) {
+			// Pull Stream? pull next value
+			if (stream.pull) {
 				stream.next();
 			}
 
@@ -37,7 +37,7 @@ const fetch = (
 
 		const context = { store };
 		const source = from(fn(request, context));
-		const meta = { lazy: source.lazy };
+		const meta = { pull: source.pull };
 
 		stream = subscribe(source, {
 			next(data) {

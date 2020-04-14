@@ -155,8 +155,8 @@ test('should work with observables', async () => {
 	expect(emit).toBeCalledTimes(5);
 });
 
-test('should work with lazy streams', async () => {
-	const meta = { lazy: true };
+test('should work with pull streams', async () => {
+	const meta = { pull: true };
 	let gen: any = (function*() {
 		yield DATA[0];
 		yield DATA[1];
