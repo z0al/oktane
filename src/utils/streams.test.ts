@@ -8,6 +8,7 @@ import {
 	fromPromise,
 	fromObservable,
 	fromCallback,
+	fromGenerator,
 } from './streams';
 import { observe } from '../test-utils/observe';
 
@@ -66,55 +67,108 @@ describe('fromCallback', () => {
 	});
 
 	it('should emit values on stream.next()', async () => {
-		const gen = (function*() {
-			yield 1;
-			yield 2;
-			yield 3;
-		})();
-
-		const fn = () => gen.next().value;
+		const fn = jest
+			.fn()
+			.mockReturnValueOnce(1)
+			.mockReturnValueOnce(2)
+			.mockReturnValueOnce(3);
 
 		await observe(fromCallback(fn), [1, 2, 3]);
 	});
 
 	it('should complete if received undefined or null', async () => {
-		let gen = (function*() {
+		const fn = jest
+			.fn()
+			// 1,2
+			.mockReturnValueOnce(1)
+			.mockReturnValueOnce(2)
+			.mockReturnValueOnce(null)
+			// empty
+			.mockReturnValueOnce(undefined)
+			// 3
+			.mockReturnValueOnce(3);
+
+		await observe(fromCallback(fn), [1, 2]);
+		await observe(fromCallback(fn), []);
+		await observe(fromCallback(fn), [3]);
+	});
+
+	it('should catch errors', async () => {
+		const fn = jest
+			.fn()
+			.mockResolvedValueOnce(1)
+			.mockRejectedValueOnce(ERROR);
+
+		await observe(fromCallback(fn), [1], ERROR);
+	});
+});
+
+describe('fromGenerator', () => {
+	it('should convert into a pull stream', () => {
+		let gen: any = (function*() {})();
+		let stream: any = fromGenerator(gen);
+
+		expect(stream.pull).toEqual(true);
+		expect(stream.next).toEqual(expect.any(Function));
+
+		gen = (async function*() {})();
+		stream = fromGenerator(gen);
+
+		expect(stream.pull).toEqual(true);
+		expect(stream.next).toEqual(expect.any(Function));
+	});
+
+	it('should emit values on stream.next()', async () => {
+		let gen: any = (function*() {
 			yield 1;
 			yield 2;
-			yield null;
 			yield 3;
 		})();
 
-		const fn = () => gen.next().value;
+		await observe(fromGenerator(gen), [1, 2, 3]);
 
-		await observe(fromCallback(fn), [1, 2]);
+		gen = (async function*() {
+			yield 1;
+			yield 2;
+			yield 3;
+		})();
 
-		// ignores => 3
-		gen.next();
+		await observe(fromGenerator(gen), [1, 2, 3]);
+	});
 
-		await observe(fromCallback(fn), []);
+	it('should catch errors', async () => {
+		let gen: any = (function*() {
+			yield 1;
+			yield 2;
+
+			throw ERROR;
+		})();
+
+		await observe(fromGenerator(gen), [1, 2], ERROR);
+
+		gen = (async function*() {
+			yield 1;
+			yield 2;
+
+			throw ERROR;
+		})();
+
+		await observe(fromGenerator(gen), [1, 2], ERROR);
 	});
 });
 
 describe('from', () => {
 	it('should work with callbacks', async () => {
-		// success
-		let called = false;
-		let fn: any = () => {
-			if (!called) {
-				called = true;
-				return { ok: true };
-			}
-			return null;
-		};
+		const fn: any = jest
+			.fn()
+			// success
+			.mockResolvedValueOnce({ ok: true })
+			.mockResolvedValueOnce(null)
+			// failure
+			.mockRejectedValueOnce(ERROR);
 
 		await observe(from(fn), [{ ok: true }]);
-
-		// failure
-		const error = new Error('unknown');
-		fn = () => Promise.reject(error);
-
-		await observe(from(fn), [], error);
+		await observe(from(fn), [], ERROR);
 	});
 
 	it('should work with promises', async () => {
@@ -123,9 +177,8 @@ describe('from', () => {
 		await observe(from(p), [1]);
 
 		// failure
-		const error = new Error('unknown');
-		p = Promise.reject(error);
-		await observe(from(p), [], error);
+		p = Promise.reject(ERROR);
+		await observe(from(p), [], ERROR);
 	});
 
 	it('should work with observables', async () => {
@@ -134,14 +187,13 @@ describe('from', () => {
 		await observe(from(o), [1, 2]);
 
 		// failure
-		const error = new Error('unknown');
 		o = new RxObservable.Observable((s) => {
 			setTimeout(() => {
-				s.error(error);
+				s.error(ERROR);
 			});
 		});
 
-		await observe(from(o), [], error);
+		await observe(from(o), [], ERROR);
 	});
 
 	it('should fallback to basic one-time value', async () => {
