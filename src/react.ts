@@ -7,16 +7,17 @@ import invariant from 'tiny-invariant';
 import is from './utils/is';
 import { Client } from './client';
 import { buildRequest } from './request';
-import { Request, Entry } from './utils/types';
+import { Request, Result } from './utils/types';
 
-type FetchActions = {
+interface FetchActions {
 	cancel: () => void;
 	hasMore: () => boolean;
 	fetchMore: () => void;
-};
+}
 
-type Query = Entry & FetchActions;
-type ManualQuery = Query & { fetch: () => void };
+// interface ManualFetchActions {
+// 	fetch: ()=> void
+// }
 
 type FetchRequest =
 	| Partial<Request>
@@ -44,7 +45,7 @@ const NotReadyError =
  *
  * @param config
  */
-export function useFetch(config: FetchRequest): Query {
+export function useFetch(config: FetchRequest): Result & FetchActions {
 	let request: Request;
 
 	if (is.func(config)) {
@@ -60,11 +61,12 @@ export function useFetch(config: FetchRequest): Query {
 
 	// Fetch result & actions
 	const actions = React.useRef<FetchActions>(null);
-	const [result, setResult] = React.useState<Entry>(null);
+	const [result, setResult] = React.useState<Result>(null);
 
 	const client = useClient();
 
 	React.useEffect((): any => {
+		// TODO: is manual don't fetch
 		if (!request) {
 			return;
 		}
@@ -84,6 +86,11 @@ export function useFetch(config: FetchRequest): Query {
 		return unsubscribe;
 	}, [request?.id]);
 
+	// export fetch
+	// const fetch = () => {
+	// if not manual ? throw. or event better. don't export
+	// otherwise, call
+	// }
 	const cancel = () => {
 		actions.current?.cancel();
 	};
@@ -112,31 +119,13 @@ export function useFetch(config: FetchRequest): Query {
 	};
 }
 
+// Notes
+// add something like buildFetch that takes config (current only manual)
+// build useFetch with manual false
+// and useRequest with manual true
+// in buildFetch
+// -
 /**
  *
  * @param config
  */
-export function useRequest(config: Partial<Request>): ManualQuery {
-	const [isReady, setReady] = React.useState(false);
-
-	if (!is.plainObject(config)) {
-		invariant(
-			false,
-			`(useRequest) expected 'config' to be a plain object. ` +
-				`Got: ${typeof config}`
-		);
-	}
-
-	// delay fetch until manually triggered
-	const query = useFetch(() => isReady && config);
-
-	const fetch = () => {
-		if (!isReady) {
-			return setReady(true);
-		}
-
-		invariant(false, '(useRequest) fetch is called more than once.');
-	};
-
-	return { ...query, fetch };
-}

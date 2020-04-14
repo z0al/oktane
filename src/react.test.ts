@@ -4,7 +4,7 @@ import delay from 'delay';
 // Ours
 import { createClient, Client } from './client';
 import { renderHook, act } from './test-utils/hooks';
-import { useClient, useFetch, useRequest } from './react';
+import { useClient, useFetch } from './react';
 
 const DATA = [
 	{ id: 1, name: 'Alice' },
@@ -210,70 +210,5 @@ describe('useFetch', () => {
 				});
 			}).toThrow(/not allowed/);
 		});
-	});
-});
-
-describe('useRequest', () => {
-	test('should expose Query interface', async () => {
-		const { result } = renderHook(() => useRequest({}), client);
-
-		expect(result.current).toEqual({
-			state: undefined,
-			data: undefined,
-			error: undefined,
-			fetch: expect.any(Function),
-			cancel: expect.any(Function),
-			hasMore: expect.any(Function),
-			fetchMore: expect.any(Function),
-		});
-	});
-
-	test('should only accept plain objects', async () => {
-		let hook = renderHook(() => useRequest(() => true), client);
-		expect(hook.result.error.message).toMatch(/plain object/);
-
-		hook = renderHook(() => useRequest(null), client);
-		expect(hook.result.error.message).toMatch(/plain object/);
-
-		hook = renderHook(() => useRequest(true as any), client);
-		expect(hook.result.error.message).toMatch(/plain object/);
-	});
-
-	test('should not fetch unless .fetch is called', async () => {
-		const { result } = renderHook(() => useRequest({}), client);
-
-		expect(result.current.state).toEqual(undefined);
-
-		expect(() => {
-			act(() => {
-				result.current.hasMore();
-			});
-		}).toThrow(/not allowed/);
-
-		expect(() => {
-			act(() => {
-				result.current.fetchMore();
-			});
-		}).toThrow(/not allowed/);
-
-		act(() => {
-			result.current.fetch();
-		});
-
-		expect(result.current.state).toEqual('pending');
-	});
-
-	test('should throw if fetch is called more than once', async () => {
-		const { result } = renderHook(() => useRequest({}), client);
-
-		act(() => {
-			result.current.fetch();
-		});
-
-		expect(() => {
-			act(() => {
-				result.current.fetch();
-			});
-		}).toThrow(/called more than once/);
 	});
 });

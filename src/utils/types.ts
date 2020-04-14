@@ -39,9 +39,9 @@ export type FetchHandler = (
 ) => any;
 
 // Store entries
-export type Entry = { state: State; data?: any; error?: any };
+export type Result = { state: State; data?: any; error?: any };
 
-export type Subscriber = (change: Entry) => void;
+export type Subscriber = (change: Result) => void;
 
 // Client
 export interface ClientOptions {
@@ -53,5 +53,5 @@ export interface ClientOptions {
 	exchanges?: Array<Exchange>;
 }
 
-export type ReadonlyStore = ReadonlyMap<string, Entry>;
-export type Store = Map<string, Entry>;
+export type ReadonlyStore = ReadonlyMap<string, Result>;
+export type Store = Map<string, Result>;

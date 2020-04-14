@@ -12,10 +12,11 @@
 	],
 	"scripts": {
 		"build": "tsdx build",
-		"test": "tsdx test && tsc --noEmit",
+		"test": "tsdx test",
 		"test:watch": "tsdx test --watch",
+		"typecheck": "tsc --noEmit",
 		"bundlesize": "npm run -s build && bundlesize",
-		"prepublishOnly": "npm run -s bundlesize",
+		"prepublishOnly": "npm run -s bundlesize && npm run -s typecheck",
 		"prepare": "npm run -s build"
 	},
 	"prettier": {

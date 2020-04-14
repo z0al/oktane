@@ -1,7 +1,7 @@
 # @z0al/ql
 
-![npm package](https://img.shields.io/npm/v/@z0al/ql)
-![npm bundle size](https://img.shields.io/bundlephobia/minzip/@z0al/ql)
+![npm package](https://badgen.net/npm/v/@z0al/ql)
+![npm bundle size](https://badgen.net/bundlephobia/minzip/@z0al/ql)
 
 Lightweight helpers for data fetching in React apps.
 
