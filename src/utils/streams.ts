@@ -45,15 +45,19 @@ export const fromObservable = (o: any): Source => {
 	};
 };
 
-export const fromGenerator = (
-	gen: Generator<unknown> | AsyncGenerator<unknown>
-): Source => {
+/**
+ * Transforms a function into a Source.
+ *
+ * @param fn
+ */
+export const fromCallback = (fn: Function): Source => {
 	let subscriber: SourceSubscriber;
 
 	const next = async () => {
 		try {
-			const { value, done } = await gen.next();
-			if (done) {
+			const value = await fn();
+
+			if (is.nullish(value)) {
 				return subscriber.complete();
 			}
 
@@ -67,39 +71,13 @@ export const fromGenerator = (
 		// Keep subscriber reference to be used in .next()
 		subscriber = sub;
 
-		// Emit first value immediately
-		next();
-
-		return () => {
-			gen.return(null);
-		};
+		return () => {};
 	};
 
 	source.pull = true;
 	source.next = next;
 
 	return source;
-};
-
-/**
- * Transforms a function into a Source.
- *
- * @param fn
- */
-export const fromCallback = (fn: Function): Source => {
-	const gen = (async function*() {
-		while (true) {
-			const value = await fn();
-
-			if (is.nullish(value)) {
-				return;
-			}
-
-			yield value;
-		}
-	})();
-
-	return fromGenerator(gen);
 };
 
 /**
@@ -136,10 +114,6 @@ export const fromValue = (value: unknown): Source => {
 export const from = (value: unknown): Source => {
 	if (is.func(value)) {
 		return fromCallback(value);
-	}
-
-	if (is.generator(value)) {
-		return fromGenerator(value);
 	}
 
 	if (is.observable(value)) {
@@ -185,6 +159,11 @@ export const subscribe = (
 
 	const cleanup = source(subscriber);
 	const close = end(cleanup);
+
+	// pull first value immediately
+	if (source.pull) {
+		source.next();
+	}
 
 	return {
 		close,

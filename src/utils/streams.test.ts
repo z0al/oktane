@@ -8,7 +8,6 @@ import {
 	fromPromise,
 	fromObservable,
 	fromCallback,
-	fromGenerator,
 } from './streams';
 import { observe } from '../test-utils/observe';
 
@@ -77,19 +76,17 @@ describe('fromCallback', () => {
 	});
 
 	it('should complete if received undefined or null', async () => {
-		const fn = jest
+		let fn = jest.fn();
+		await observe(fromCallback(fn), []);
+
+		fn = jest
 			.fn()
-			// 1,2
 			.mockReturnValueOnce(1)
 			.mockReturnValueOnce(2)
-			.mockReturnValueOnce(null)
-			// empty
-			.mockReturnValueOnce(undefined)
-			// 3
-			.mockReturnValueOnce(3);
-
+			.mockReturnValueOnce(null);
 		await observe(fromCallback(fn), [1, 2]);
-		await observe(fromCallback(fn), []);
+
+		fn = jest.fn().mockReturnValueOnce(3);
 		await observe(fromCallback(fn), [3]);
 	});
 
@@ -103,71 +100,16 @@ describe('fromCallback', () => {
 	});
 });
 
-describe('fromGenerator', () => {
-	it('should convert into a pull stream', () => {
-		let gen: any = (function*() {})();
-		let stream: any = fromGenerator(gen);
-
-		expect(stream.pull).toEqual(true);
-		expect(stream.next).toEqual(expect.any(Function));
-
-		gen = (async function*() {})();
-		stream = fromGenerator(gen);
-
-		expect(stream.pull).toEqual(true);
-		expect(stream.next).toEqual(expect.any(Function));
-	});
-
-	it('should emit values on stream.next()', async () => {
-		let gen: any = (function*() {
-			yield 1;
-			yield 2;
-			yield 3;
-		})();
-
-		await observe(fromGenerator(gen), [1, 2, 3]);
-
-		gen = (async function*() {
-			yield 1;
-			yield 2;
-			yield 3;
-		})();
-
-		await observe(fromGenerator(gen), [1, 2, 3]);
-	});
-
-	it('should catch errors', async () => {
-		let gen: any = (function*() {
-			yield 1;
-			yield 2;
-
-			throw ERROR;
-		})();
-
-		await observe(fromGenerator(gen), [1, 2], ERROR);
-
-		gen = (async function*() {
-			yield 1;
-			yield 2;
-
-			throw ERROR;
-		})();
-
-		await observe(fromGenerator(gen), [1, 2], ERROR);
-	});
-});
-
 describe('from', () => {
 	it('should work with callbacks', async () => {
-		const fn: any = jest
+		let fn = jest
 			.fn()
-			// success
 			.mockResolvedValueOnce({ ok: true })
-			.mockResolvedValueOnce(null)
-			// failure
-			.mockRejectedValueOnce(ERROR);
+			.mockResolvedValueOnce(null);
 
 		await observe(from(fn), [{ ok: true }]);
+
+		fn = jest.fn().mockRejectedValueOnce(ERROR);
 		await observe(from(fn), [], ERROR);
 	});
 

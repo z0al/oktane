@@ -14,11 +14,6 @@ const promise = <T>(p: unknown): p is Promise<T> =>
 const nullish = (v: unknown): v is null =>
 	v === undefined || v === null;
 
-const generator = <T>(g: any): g is Generator<T> | AsyncGenerator<T> =>
-	(func(g?.[Symbol.iterator]) || func(g?.[Symbol.asyncIterator])) &&
-	func(g?.next) &&
-	func(g?.throw);
-
 export default {
 	plainObject,
 	observable,
@@ -26,5 +21,4 @@ export default {
 	string,
 	promise,
 	nullish,
-	generator,
 };
