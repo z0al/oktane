@@ -12,11 +12,6 @@ const DATA = [
 	{ id: 2, name: 'Bob' },
 ];
 
-const handler = async () => {
-	await delay(10);
-	return DATA;
-};
-
 // A Spy on client.fetch()'s result
 const spy = {
 	cancel: jest.fn() as any,
@@ -28,7 +23,12 @@ const spy = {
 let client: Client;
 
 beforeEach(() => {
-	client = createClient({ handler });
+	client = createClient({
+		fetch: async () => {
+			await delay(10);
+			return DATA;
+		},
+	});
 
 	const originalFetch = client.fetch;
 
@@ -51,7 +51,7 @@ const render = <R>(cb: (props: unknown) => R) =>
 
 describe('useClient', () => {
 	test('should return client context value', () => {
-		client = createClient({ handler: jest.fn() });
+		client = createClient({ fetch: jest.fn() });
 		const { result } = render(() => useClient());
 
 		expect(result.current).toEqual(client);
@@ -99,7 +99,7 @@ describe('useFetch', () => {
 	test('should report errors', async () => {
 		const error = new Error('FAILED');
 		client = createClient({
-			handler: () => Promise.reject(error),
+			fetch: () => Promise.reject(error),
 		});
 
 		const { result, waitForNextUpdate } = render(() => useFetch({}));

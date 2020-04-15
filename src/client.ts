@@ -26,7 +26,7 @@ export interface Client {
 }
 
 export interface ClientOptions {
-	handler: FetchFunc;
+	fetch: FetchFunc;
 	store?: {
 		// Max age for unused requests. Default is 30 seconds.
 		maxAge?: number;
@@ -92,7 +92,7 @@ export const createClient = (options: ClientOptions): Client => {
 	 */
 	const apply = (() => {
 		const exchanges = options.exchanges || [];
-		const fetchExchange = createFetch(options.handler);
+		const fetchExchange = createFetch(options.fetch);
 
 		// Setup exchanges
 		const api = { emit: updateStore, store };

@@ -51,7 +51,7 @@ describe('client', () => {
 	});
 
 	it('should expose public interface', () => {
-		const client = createClient({ handler: jest.fn() });
+		const client = createClient({ fetch: jest.fn() });
 
 		expect(client).toEqual({
 			fetch: expect.any(Function),
@@ -60,17 +60,17 @@ describe('client', () => {
 	});
 
 	it('should not throw when no exchanges were passed', () => {
-		const handler = jest.fn();
+		const fetch = jest.fn();
 
 		expect(() => {
-			createClient({ handler });
+			createClient({ fetch });
 		}).not.toThrow();
 
 		expect(() => {
-			createClient({ handler, exchanges: [] });
+			createClient({ fetch, exchanges: [] });
 		}).not.toThrow();
 
-		expect(handler).not.toBeCalled();
+		expect(fetch).not.toBeCalled();
 	});
 
 	it('should pass necessary options to exchanges', () => {
@@ -87,7 +87,7 @@ describe('client', () => {
 
 		const log = jest.fn();
 		createClient({
-			handler: jest.fn(),
+			fetch: jest.fn(),
 			exchanges: [logOptions(log)],
 		});
 
@@ -97,7 +97,7 @@ describe('client', () => {
 	it('should dispose unused requests', async () => {
 		const log = jest.fn();
 		const client = createClient({
-			handler: jest.fn(),
+			fetch: jest.fn(),
 			store: { maxAge: 5 },
 			exchanges: [logOperations(log)],
 		});
@@ -138,7 +138,7 @@ describe('client', () => {
 
 		const client = createClient({
 			store: { maxAge: 5 },
-			handler: async () => DATA,
+			fetch: async () => DATA,
 			exchanges: [logOptions(log)],
 		});
 
@@ -153,7 +153,7 @@ describe('client', () => {
 		it('should emit fetch operation', () => {
 			const log = jest.fn();
 			const client = createClient({
-				handler: jest.fn(),
+				fetch: jest.fn(),
 				exchanges: [logOperations(log)],
 			});
 
@@ -165,7 +165,7 @@ describe('client', () => {
 		it('should not duplicate requests', () => {
 			const log = jest.fn();
 			const client = createClient({
-				handler: () => delay(10),
+				fetch: () => delay(10),
 				exchanges: [logOperations(log)],
 			});
 
@@ -182,7 +182,7 @@ describe('client', () => {
 			let handler: any = () => delay(5).then(() => DATA);
 
 			const client = createClient({
-				handler: () => handler(),
+				fetch: () => handler(),
 			});
 
 			// success
@@ -268,7 +268,7 @@ describe('client', () => {
 				const log = jest.fn();
 
 				const client = createClient({
-					handler: () => delay(10),
+					fetch: () => delay(10),
 					exchanges: [logOperations(log)],
 				});
 
@@ -282,7 +282,7 @@ describe('client', () => {
 		describe('.unsubscribe()', () => {
 			it('should remove listener', async () => {
 				const client = createClient({
-					handler: jest.fn(),
+					fetch: jest.fn(),
 				});
 
 				const subscriber = jest.fn();
@@ -301,7 +301,7 @@ describe('client', () => {
 				let handler = async () => delay(5).then(() => DATA);
 
 				const client = createClient({
-					handler: () => handler(),
+					fetch: () => handler(),
 					exchanges: [logOperations(log)],
 				});
 
@@ -343,7 +343,7 @@ describe('client', () => {
 				};
 
 				const client = createClient({
-					handler: () => handler(),
+					fetch: () => handler(),
 				});
 
 				const stream = client.fetch(request);
@@ -397,7 +397,7 @@ describe('client', () => {
 				})();
 
 				const client = createClient({
-					handler: () => () => gen.next().value,
+					fetch: () => () => gen.next().value,
 					exchanges: [logOperations(log)],
 				});
 
@@ -449,7 +449,7 @@ describe('client', () => {
 				})();
 
 				const client = createClient({
-					handler: () => () => gen.next().value,
+					fetch: () => () => gen.next().value,
 					exchanges: [logOperations(log)],
 				});
 
@@ -503,7 +503,7 @@ describe('client', () => {
 			});
 
 			const client = createClient({
-				handler: () => handler(),
+				fetch: () => handler(),
 				exchanges: [logOperations(log)],
 			});
 
@@ -540,13 +540,13 @@ describe('client', () => {
 
 		it('should respect prefetch errors', async () => {
 			const log = jest.fn();
-			const handler = () =>
-				delay(5).then(() => {
-					throw ERROR;
-				});
 
 			const client = createClient({
-				handler,
+				fetch: () =>
+					delay(5).then(() => {
+						throw ERROR;
+					}),
+
 				exchanges: [logOperations(log)],
 			});
 
@@ -585,7 +585,7 @@ describe('client', () => {
 			const log = jest.fn();
 
 			const client = createClient({
-				handler: jest.fn(),
+				fetch: jest.fn(),
 				store: { maxAge: 5 },
 				exchanges: [logOperations(log)],
 			});
@@ -598,7 +598,7 @@ describe('client', () => {
 
 		it('should be void', () => {
 			const client = createClient({
-				handler: jest.fn(),
+				fetch: jest.fn(),
 			});
 
 			expect(client.prefetch(request)).toBeUndefined();
