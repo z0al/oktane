@@ -26,10 +26,13 @@ export interface Stream {
  * subscribed to.
  */
 export interface Source {
-	(s: SourceSubscriber): () => void;
 	pull?: boolean;
-	// Emits next value on a pull stream
-	next?: () => Promise<void>;
+	subscribe(
+		s: SourceSubscriber
+	): {
+		next?: () => Promise<void>;
+		unsubscribe: () => void;
+	};
 }
 
 /**
@@ -38,10 +41,14 @@ export interface Source {
  * @param o
  */
 export const fromObservable = (o: any): Source => {
-	return (subscriber) => {
-		const observable = o.subscribe(subscriber);
+	return {
+		subscribe: (subscriber) => {
+			const observable = o.subscribe(subscriber);
 
-		return () => observable?.unsubscribe?.();
+			return {
+				unsubscribe: () => observable?.unsubscribe?.(),
+			};
+		},
 	};
 };
 
@@ -51,31 +58,27 @@ export const fromObservable = (o: any): Source => {
  * @param fn
  */
 export const fromCallback = (fn: Function): Source => {
-	let subscriber: SourceSubscriber;
-
-	const next = async () => {
+	const next = async (sub: SourceSubscriber) => {
 		try {
 			const value = await fn();
 
 			if (is.nullish(value)) {
-				return subscriber.complete();
+				return sub.complete();
 			}
 
-			subscriber.next(value);
+			sub.next(value);
 		} catch (error) {
-			subscriber.error(error);
+			sub.error(error);
 		}
 	};
 
-	const source: Source = (sub) => {
-		// Keep subscriber reference to be used in .next()
-		subscriber = sub;
-
-		return () => {};
+	const source: Source = {
+		pull: true,
+		subscribe: (subscriber) => ({
+			next: () => next(subscriber),
+			unsubscribe: () => {},
+		}),
 	};
-
-	source.pull = true;
-	source.next = next;
 
 	return source;
 };
@@ -87,12 +90,16 @@ export const fromCallback = (fn: Function): Source => {
  * @param p
  */
 export const fromPromise = (p: Promise<unknown>): Source => {
-	return (subscriber) => {
-		p.then((v) => {
-			subscriber.complete(v);
-		}).catch((e) => subscriber.error(e));
+	return {
+		subscribe: (subscriber) => {
+			p.then((v) => {
+				subscriber.complete(v);
+			}).catch((e) => subscriber.error(e));
 
-		return () => {};
+			return {
+				unsubscribe: () => {},
+			};
+		},
 	};
 };
 
@@ -146,7 +153,7 @@ export const subscribe = (
 		}
 	};
 
-	const subscriber: SourceSubscriber = {
+	const subscription = source.subscribe({
 		closed,
 		next: (value) => {
 			if (!closed) {
@@ -155,20 +162,19 @@ export const subscribe = (
 		},
 		error: end(observer.error),
 		complete: end(observer.complete),
-	};
+	});
 
-	const cleanup = source(subscriber);
-	const close = end(cleanup);
+	const close = end(subscription.unsubscribe);
 
 	// pull first value immediately
 	if (source.pull) {
-		source.next();
+		subscription.next();
 	}
 
 	return {
 		close,
 		isClosed: () => closed,
 		pull: source.pull,
-		next: source.next,
+		next: subscription.next,
 	};
 };

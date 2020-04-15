@@ -29,7 +29,7 @@ export const observe = async (
 			isClosed = stream.isClosed;
 
 			const pull = () =>
-				source.next().then(() => {
+				stream.next().then(() => {
 					if (!isClosed()) {
 						pull();
 					}

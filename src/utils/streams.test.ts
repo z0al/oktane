@@ -62,7 +62,6 @@ describe('fromCallback', () => {
 		const stream = fromCallback(fn);
 
 		expect(stream.pull).toEqual(true);
-		expect(stream.next).toEqual(expect.any(Function));
 	});
 
 	it('should emit values on stream.next()', async () => {
