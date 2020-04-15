@@ -1,6 +1,14 @@
 // Ours
-import { State } from './types';
 import { Operation } from './operations';
+
+export type State =
+	| 'ready'
+	| 'pending'
+	| 'failed'
+	| 'buffering'
+	| 'cancelled'
+	| 'completed'
+	| 'disposed';
 
 /**
  * Determines the next state given the current `state` and `operation`.

@@ -1,21 +1,45 @@
 // Ours
-import * as t from './utils/types';
 import * as o from './utils/operations';
 
 import is from './utils/is';
-import { pipe } from './utils/pipe';
-import { createFetch } from './fetch';
+import { pipe, Exchange } from './utils/pipe';
+import { createFetch, FetchFunc } from './fetch';
 import { Emitter } from './utils/emitter';
 import { transition } from './utils/state';
+import { Request } from './request';
+import { Store, Result } from './utils/cache';
 
-export type Client = ReturnType<typeof createClient>;
+export type Subscriber = (change: Result) => void;
 
-export const createClient = (options: t.ClientOptions) => {
+export interface Client {
+	fetch(
+		request: Request,
+		cb?: Subscriber
+	): {
+		cancel(): void;
+		hasMore(): boolean;
+		fetchMore(): void;
+		unsubscribe(): void;
+	};
+
+	prefetch(request: Request): void;
+}
+
+export interface ClientOptions {
+	handler: FetchFunc;
+	store?: {
+		// Max age for unused requests. Default is 30 seconds.
+		maxAge?: number;
+	};
+	exchanges?: Exchange[];
+}
+
+export const createClient = (options: ClientOptions): Client => {
 	//The heart of this whole thing.
 	const events = Emitter();
 
 	// A key-value cache that maps requests to their state & data.
-	const store: t.Store = new Map();
+	const store: Store = new Map();
 
 	// tracks prefetched requests to avoid potential refetching.
 	const prefetched = new Set<string>();
@@ -99,7 +123,7 @@ export const createClient = (options: t.ClientOptions) => {
 		// Holds result of setTimeout() calls
 		const timers = new Map<string, any>();
 
-		return (r: t.Request, dispose = true) => {
+		return (r: Request, dispose = true) => {
 			if (dispose) {
 				const collect = () => {
 					apply(o.$dispose({ id: r.id }));
@@ -127,7 +151,7 @@ export const createClient = (options: t.ClientOptions) => {
 	 * @param request
 	 * @param cb
 	 */
-	const fetch = (request: t.Request, cb?: t.Subscriber) => {
+	const fetch = (request: Request, cb?: Subscriber) => {
 		const notify = () => {
 			return cb(store.get(request.id));
 		};
@@ -193,7 +217,7 @@ export const createClient = (options: t.ClientOptions) => {
 	 *
 	 * @param request
 	 */
-	const prefetch = (request: t.Request) => {
+	const prefetch = (request: Request) => {
 		if (!prefetched.has(request.id)) {
 			fetch(request);
 

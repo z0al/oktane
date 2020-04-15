@@ -6,8 +6,8 @@ import invariant from 'tiny-invariant';
 // Ours
 import is from './utils/is';
 import { Client } from './client';
-import { buildRequest } from './request';
-import { Request, Result } from './utils/types';
+import { Result } from './utils/cache';
+import { Request, buildRequest } from './request';
 
 interface FetchActions {
 	cancel: () => void;

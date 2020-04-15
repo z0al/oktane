@@ -1,10 +1,11 @@
 // Packages
+import React from 'react';
 import delay from 'delay';
+import { act, renderHook } from '@testing-library/react-hooks';
 
 // Ours
 import { createClient, Client } from './client';
-import { renderHook, act } from './test-utils/hooks';
-import { useClient, useFetch } from './react';
+import { useClient, useFetch, ClientProvider } from './react';
 
 const DATA = [
 	{ id: 1, name: 'Alice' },
@@ -42,16 +43,23 @@ beforeEach(() => {
 	};
 });
 
+const render = <R>(cb: (props: unknown) => R) =>
+	renderHook<any, R>(cb, {
+		wrapper: ({ children }) =>
+			React.createElement(ClientProvider, { value: client }, children),
+	});
+
 describe('useClient', () => {
 	test('should return client context value', () => {
-		const client = createClient({ handler: jest.fn() });
-		const { result } = renderHook(() => useClient(), client);
+		client = createClient({ handler: jest.fn() });
+		const { result } = render(() => useClient());
 
 		expect(result.current).toEqual(client);
 	});
 
 	test('should throw if value is not set', () => {
-		const { result } = renderHook(() => useClient());
+		client = undefined;
+		const { result } = render(() => useClient());
 
 		expect(result.error.message).toMatch(/client/i);
 	});
@@ -59,7 +67,7 @@ describe('useClient', () => {
 
 describe('useFetch', () => {
 	test('should expose Query interface', async () => {
-		const { result } = renderHook(() => useFetch({}), client);
+		const { result } = render(() => useFetch({}));
 
 		expect(result.current).toEqual({
 			state: 'pending',
@@ -72,10 +80,7 @@ describe('useFetch', () => {
 	});
 
 	test('should keep "state" on sync', async () => {
-		const { result, waitForNextUpdate } = renderHook(
-			() => useFetch({}),
-			client
-		);
+		const { result, waitForNextUpdate } = render(() => useFetch({}));
 
 		expect(result.current.state).toEqual('pending');
 		await waitForNextUpdate();
@@ -83,10 +88,7 @@ describe('useFetch', () => {
 	});
 
 	test('should populate data on response', async () => {
-		const { result, waitForNextUpdate } = renderHook(
-			() => useFetch({}),
-			client
-		);
+		const { result, waitForNextUpdate } = render(() => useFetch({}));
 
 		expect(result.current.data).toEqual(undefined);
 		await waitForNextUpdate();
@@ -96,14 +98,11 @@ describe('useFetch', () => {
 
 	test('should report errors', async () => {
 		const error = new Error('FAILED');
-		const client = createClient({
+		client = createClient({
 			handler: () => Promise.reject(error),
 		});
 
-		const { result, waitForNextUpdate } = renderHook(
-			() => useFetch({}),
-			client
-		);
+		const { result, waitForNextUpdate } = render(() => useFetch({}));
 
 		expect(result.current.data).toEqual(undefined);
 		expect(result.current.state).toEqual('pending');
@@ -117,7 +116,7 @@ describe('useFetch', () => {
 
 	test('should avoid unnecessary fetching', async () => {
 		const fetch = jest.spyOn(client, 'fetch');
-		const { rerender } = renderHook(() => useFetch({}), client);
+		const { rerender } = render(() => useFetch({}));
 
 		rerender();
 		rerender();
@@ -127,7 +126,7 @@ describe('useFetch', () => {
 	});
 
 	test('should unsubscribe on unmount', async () => {
-		renderHook(() => useFetch({}), client).unmount();
+		render(() => useFetch({})).unmount();
 
 		expect(spy.unsubscribe).toBeCalledTimes(1);
 	});
@@ -136,23 +135,23 @@ describe('useFetch', () => {
 		const fetch = jest.spyOn(client, 'fetch');
 
 		// not ready
-		renderHook(() => useFetch((): any => 0), client);
-		renderHook(() => useFetch((): any => ''), client);
-		renderHook(() => useFetch((): any => false), client);
-		renderHook(() => useFetch((): any => null), client);
-		renderHook(() => useFetch((): any => NaN), client);
-		renderHook(() => useFetch((): any => {}), client);
+		render(() => useFetch((): any => 0));
+		render(() => useFetch((): any => ''));
+		render(() => useFetch((): any => false));
+		render(() => useFetch((): any => null));
+		render(() => useFetch((): any => NaN));
+		render(() => useFetch((): any => {}));
 
 		expect(fetch).not.toBeCalled();
 
 		// ready
-		renderHook(() => useFetch(() => ({})), client);
+		render(() => useFetch(() => ({})));
 		expect(fetch).toBeCalledTimes(1);
 	});
 
 	describe('cancel()', () => {
 		test('should wrap result.cancel', async () => {
-			const { result } = renderHook(() => useFetch({}), client);
+			const { result } = render(() => useFetch({}));
 
 			act(() => {
 				result.current.cancel();
@@ -164,7 +163,7 @@ describe('useFetch', () => {
 
 	describe('hasMore()', () => {
 		test('should wrap result.hasMore', async () => {
-			const { result } = renderHook(() => useFetch({}), client);
+			const { result } = render(() => useFetch({}));
 
 			act(() => {
 				result.current.hasMore();
@@ -174,10 +173,7 @@ describe('useFetch', () => {
 		});
 
 		test('should throw if called too early', async () => {
-			const { result } = renderHook(
-				() => useFetch((): any => null),
-				client
-			);
+			const { result } = render(() => useFetch((): any => null));
 
 			expect(() => {
 				act(() => {
@@ -189,7 +185,7 @@ describe('useFetch', () => {
 
 	describe('fetchMore()', () => {
 		test('should wrap result.fetchMore', async () => {
-			const { result } = renderHook(() => useFetch({}), client);
+			const { result } = render(() => useFetch({}));
 
 			act(() => {
 				result.current.fetchMore();
@@ -199,10 +195,7 @@ describe('useFetch', () => {
 		});
 
 		test('should throw if called too early', async () => {
-			const { result } = renderHook(
-				() => useFetch((): any => null),
-				client
-			);
+			const { result } = render(() => useFetch((): any => null));
 
 			expect(() => {
 				act(() => {

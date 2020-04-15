@@ -1,18 +1,23 @@
 // Ours
-import * as t from './utils/types';
+import { Request } from './request';
 import * as o from './utils/operations';
-
+import { ReadonlyStore } from './utils/cache';
 import { from, subscribe, Stream } from './utils/streams';
+import { Exchange, ExchangeOptions, EmitFunc } from './utils/pipe';
+
+export type FetchFunc = (
+	request: Request,
+	ctx?: {
+		store: ReadonlyStore;
+	}
+) => any;
 
 /**
  *
  * @param options
  * @param fn
  */
-const fetch = (
-	{ emit, store }: t.ExchangeOptions,
-	fn: t.FetchHandler
-) => {
+const fetch = ({ emit, store }: ExchangeOptions, fn: FetchFunc) => {
 	// holds ongoing requests
 	const queue = new Map<string, Stream>();
 
@@ -54,7 +59,7 @@ const fetch = (
 		queue.set(request.id, stream);
 	};
 
-	return (next: t.EmitFunc) => (op: o.Operation) => {
+	return (next: EmitFunc) => (op: o.Operation) => {
 		// ignore irrelevant operations
 		if (op.type === 'cancel' || op.type === 'fetch') {
 			handle(op);
@@ -65,7 +70,7 @@ const fetch = (
 	};
 };
 
-export const createFetch = (fn: t.FetchHandler): t.Exchange => ({
+export const createFetch = (fn: FetchFunc): Exchange => ({
 	name: 'fetch',
 	init: (options) => fetch(options, fn),
 });

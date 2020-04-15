@@ -4,7 +4,12 @@ import stringify from 'fast-safe-stringify';
 
 // Ours
 import is from './utils/is';
-import { Request } from './utils/types';
+
+export interface Request {
+	id: string;
+	type?: never;
+	[x: string]: any;
+}
 
 export const buildRequest = (req: Partial<Request>): Request => {
 	invariant(is.plainObject(req), 'request must be a plain object');

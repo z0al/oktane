@@ -3,7 +3,20 @@ import invariant from 'tiny-invariant';
 
 // Ours
 import is from './is';
-import { Exchange, ExchangeOptions, EmitFunc } from './types';
+import { ReadonlyStore } from './cache';
+import { Operation } from './operations';
+
+export type EmitFunc = (op: Operation) => void;
+
+export interface ExchangeOptions {
+	emit: EmitFunc;
+	store: ReadonlyStore;
+}
+
+export interface Exchange {
+	name: string;
+	init: (o?: ExchangeOptions) => (next?: EmitFunc) => EmitFunc;
+}
 
 /**
  * Setups exchanges and returns emit function. This is very similar

@@ -1,7 +1,6 @@
 // Ours
-import { pipe } from './pipe';
 import { $put } from './operations';
-import { Exchange, ExchangeOptions } from './types';
+import { pipe, Exchange, ExchangeOptions } from './pipe';
 
 let api: ExchangeOptions;
 beforeEach(() => {

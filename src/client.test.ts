@@ -5,7 +5,8 @@ import * as rx from 'rxjs';
 // Ours
 import { createClient } from './client';
 import { buildRequest } from './request';
-import { Exchange, Store } from './utils/types';
+import { Exchange } from './utils/pipe';
+import { Store } from './utils/cache';
 import {
 	$fetch,
 	$cancel,
