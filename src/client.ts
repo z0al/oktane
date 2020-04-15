@@ -2,12 +2,12 @@
 import * as o from './utils/operations';
 
 import is from './utils/is';
-import { pipe, Exchange } from './utils/pipe';
-import { createFetch, FetchFunc } from './fetch';
+import { Request } from './request';
 import { Emitter } from './utils/emitter';
 import { transition } from './utils/state';
-import { Request } from './request';
-import { Store, Result } from './utils/cache';
+import { Result, mapToCache } from './utils/cache';
+import { pipe, Exchange } from './utils/exchanges';
+import { createFetch, FetchFunc } from './exchanges/fetch';
 
 export type Subscriber = (change: Result) => void;
 
@@ -27,7 +27,7 @@ export interface Client {
 
 export interface ClientOptions {
 	fetch: FetchFunc;
-	store?: {
+	cache?: {
 		// Max age for unused requests. Default is 30 seconds.
 		maxAge?: number;
 	};
@@ -38,8 +38,8 @@ export const createClient = (options: ClientOptions): Client => {
 	//The heart of this whole thing.
 	const events = Emitter();
 
-	// A key-value cache that maps requests to their state & data.
-	const store: Store = new Map();
+	// A key-value store that maps requests to their state & data.
+	const store = new Map<string, Result>();
 
 	// tracks prefetched requests to avoid potential refetching.
 	const prefetched = new Set<string>();
@@ -54,11 +54,11 @@ export const createClient = (options: ClientOptions): Client => {
 	};
 
 	/**
-	 * updates the store and then notifies subscribers.
+	 * updates the cache and then notifies subscribers.
 	 *
 	 * @param op
 	 */
-	const updateStore = (op: o.Operation) => {
+	const updatecache = (op: o.Operation) => {
 		const key = keyOf(op);
 
 		const obj = store.get(key);
@@ -95,7 +95,7 @@ export const createClient = (options: ClientOptions): Client => {
 		const fetchExchange = createFetch(options.fetch);
 
 		// Setup exchanges
-		const api = { emit: updateStore, store };
+		const api = { emit: updatecache, cache: mapToCache(store) };
 		const pipeThrough = pipe([...exchanges, fetchExchange], api);
 
 		return (op: o.Operation) => {
@@ -115,7 +115,7 @@ export const createClient = (options: ClientOptions): Client => {
 
 	/**
 	 * Disposes unused requests. A request becomes unused if it had
-	 * no listeners for `options.store.maxAge` period.
+	 * no listeners for `options.cache.maxAge` period.
 	 *
 	 * @param eventState
 	 */
@@ -129,9 +129,9 @@ export const createClient = (options: ClientOptions): Client => {
 					apply(o.$dispose({ id: r.id }));
 				};
 
-				const { store } = options;
-				const after = !is.nullish(store && store.maxAge)
-					? store.maxAge
+				const { cache } = options;
+				const after = !is.nullish(cache && cache.maxAge)
+					? cache.maxAge
 					: 30000; // 30s;
 
 				// schedule disposal

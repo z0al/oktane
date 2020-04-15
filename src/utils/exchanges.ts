@@ -3,14 +3,14 @@ import invariant from 'tiny-invariant';
 
 // Ours
 import is from './is';
-import { ReadonlyStore } from './cache';
+import { Cache } from './cache';
 import { Operation } from './operations';
 
 export type EmitFunc = (op: Operation) => void;
 
 export interface ExchangeOptions {
 	emit: EmitFunc;
-	store: ReadonlyStore;
+	cache: Cache;
 }
 
 export interface Exchange {

@@ -3,10 +3,10 @@ import delay from 'delay';
 import * as rx from 'rxjs';
 
 // Ours
+import { Cache } from './utils/cache';
 import { createClient } from './client';
 import { buildRequest } from './request';
-import { Exchange } from './utils/pipe';
-import { Store } from './utils/cache';
+import { Exchange } from './utils/exchanges';
 import {
 	$fetch,
 	$cancel,
@@ -76,12 +76,9 @@ describe('client', () => {
 	it('should pass necessary options to exchanges', () => {
 		const api = {
 			emit: expect.any(Function),
-			store: expect.objectContaining({
+			cache: expect.objectContaining({
 				get: expect.any(Function),
 				has: expect.any(Function),
-				entries: expect.any(Function),
-				keys: expect.any(Function),
-				values: expect.any(Function),
 			}),
 		};
 
@@ -98,7 +95,7 @@ describe('client', () => {
 		const log = jest.fn();
 		const client = createClient({
 			fetch: jest.fn(),
-			store: { maxAge: 5 },
+			cache: { maxAge: 5 },
 			exchanges: [logOperations(log)],
 		});
 
@@ -129,15 +126,15 @@ describe('client', () => {
 		expect(log).not.toBeCalledWith($dispose({ id: request.id }));
 	});
 
-	it('should clear store on "dispose"', async () => {
-		let store: Store;
+	it('should clear cache on "dispose"', async () => {
+		let cache: Cache;
 
 		const log = (op: any) => {
-			store = op.store;
+			cache = op.cache;
 		};
 
 		const client = createClient({
-			store: { maxAge: 5 },
+			cache: { maxAge: 5 },
 			fetch: async () => DATA,
 			exchanges: [logOptions(log)],
 		});
@@ -146,7 +143,7 @@ describe('client', () => {
 		client.fetch(request);
 		await delay(10);
 
-		expect(store.get(request.id)).toBeUndefined();
+		expect(cache.get(request.id)).toBeUndefined();
 	});
 
 	describe('.fetch()', () => {
@@ -586,7 +583,7 @@ describe('client', () => {
 
 			const client = createClient({
 				fetch: jest.fn(),
-				store: { maxAge: 5 },
+				cache: { maxAge: 5 },
 				exchanges: [logOperations(log)],
 			});
 

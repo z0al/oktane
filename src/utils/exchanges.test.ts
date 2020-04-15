@@ -1,10 +1,10 @@
 // Ours
 import { $put } from './operations';
-import { pipe, Exchange, ExchangeOptions } from './pipe';
+import { pipe, Exchange, ExchangeOptions } from './exchanges';
 
 let api: ExchangeOptions;
 beforeEach(() => {
-	api = { store: new Map(), emit: jest.fn() };
+	api = { cache: new Map(), emit: jest.fn() };
 });
 
 test('should throw if no exchanges were passesd', () => {

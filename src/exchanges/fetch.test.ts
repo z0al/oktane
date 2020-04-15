@@ -3,16 +3,16 @@ import delay from 'delay';
 import * as rx from 'rxjs';
 
 // Ours
-import { pipe } from './utils/pipe';
 import { createFetch } from './fetch';
-import { buildRequest } from './request';
+import { buildRequest } from '../request';
+import { pipe } from '../utils/exchanges';
 import {
 	$put,
 	$complete,
 	$cancel,
 	$reject,
 	$fetch,
-} from './utils/operations';
+} from '../utils/operations';
 
 const DATA = [
 	{ id: 1, name: 'Dan' },
@@ -23,12 +23,12 @@ const ERROR = new Error('unknown');
 
 const request = buildRequest({ url: '/api/users' });
 
-let emit: any, store: any, handler: any, fetch: any;
+let emit: any, cache: any, handler: any, fetch: any;
 
 beforeEach(() => {
 	emit = jest.fn();
-	store = new Map();
-	const api = { emit, store };
+	cache = new Map();
+	const api = { emit, cache };
 
 	// actual handler is implemented inside each test
 	const fetchHandler = (...args: any[]) => handler(...args);
@@ -43,14 +43,14 @@ test('should return a valid exchange', () => {
 	expect(
 		exchange.init({
 			emit: jest.fn(),
-			store: new Map(),
+			cache: new Map(),
 		})
 	).toEqual(expect.any(Function));
 });
 
 test('should call handler on "fetch" operation', () => {
 	handler = jest.fn();
-	const context = { store };
+	const context = { cache };
 
 	fetch($put(request, null));
 	expect(handler).not.toBeCalled();
@@ -70,7 +70,7 @@ test('should call handler on "fetch" operation', () => {
 });
 
 test('should not duplicate requests', async () => {
-	const context = { store };
+	const context = { cache };
 	handler = jest.fn().mockReturnValue(delay(100));
 
 	// ignores when pending
