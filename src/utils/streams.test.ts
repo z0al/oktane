@@ -8,10 +8,60 @@ import {
 	fromPromise,
 	fromObservable,
 	fromCallback,
+	subscribe,
+	Source,
 } from './streams';
-import { observe } from '../test-utils/observe';
 
 const ERROR = new Error('unknown');
+
+const observe = async (
+	source: Source,
+	expectedValues: any[],
+	expectedError: any = 'SHOULD_NOT_THROW'
+) => {
+	let isClosed: Function;
+
+	// Emitted values
+	const values: any[] = [];
+
+	try {
+		// convert a stream to Promise that resolves when the stream
+		// completes.
+		await new Promise((resolve, reject) => {
+			const subscriber = {
+				next: (v: any) => values.push(v),
+				error: reject,
+				complete: (v: any) => {
+					if (v) {
+						values.push(v);
+					}
+					resolve(values);
+				},
+			};
+
+			const stream = subscribe(source, subscriber);
+
+			isClosed = stream.isClosed;
+
+			const pull = () =>
+				stream.next().then(() => {
+					if (!isClosed()) {
+						pull();
+					}
+				});
+
+			if (source.pull) {
+				pull();
+			}
+		});
+	} catch (e) {
+		expect(e).toEqual(expectedError);
+	} finally {
+		expect(isClosed()).toEqual(true);
+	}
+
+	expect(values).toEqual(expectedValues);
+};
 
 describe('fromPromise', () => {
 	it('should pass resolved value to .next', async () => {
