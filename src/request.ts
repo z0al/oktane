@@ -11,23 +11,24 @@ export interface Request {
 	[x: string]: any;
 }
 
-export const buildRequest = (req: Partial<Request>): Request => {
-	invariant(is.plainObject(req), 'request must be a plain object');
+export const buildRequest = (request: Partial<Request>): Request => {
+	invariant(is.plainObject(request), 'request must be a plain object');
 
 	invariant(
-		!('type' in req),
+		!('type' in request),
 		'request.type is reserved for potential future use'
 	);
 
-	if (!is.nullish(req.id)) {
+	if (!is.nullish(request.id)) {
 		invariant(
-			is.string(req.id) && req.id !== '',
+			is.string(request.id) && request.id !== '',
 			'request.id must be a non-empty string or null or undefined'
 		);
 	}
 
 	// Stringify everything but the `id`.
-	const id = req.id || stringify.stable({ ...req, id: '' });
+	let { id, ...info } = request;
+	id = id || stringify.stable(info);
 
-	return { ...req, id };
+	return { ...request, id };
 };

@@ -43,7 +43,7 @@ test('should throw if request.id is set to an invalid value', () => {
 	}).not.toThrow();
 });
 
-test('should serialize identical queries identically', () => {
+test('should use stable stringify', () => {
 	const obj1 = {
 		query: 'test',
 		url: '/api/url',
@@ -72,18 +72,18 @@ test('should serialize identical queries identically', () => {
 	expect(buildRequest(obj1)).not.toEqual(buildRequest(obj2));
 });
 
-test('should set serialize the request.id as empty string', () => {
+test('should not stringify the request.id', () => {
 	const reqA = { query: 'test', variables: [1, 2] };
 	const reqB = { query: 'test', variables: {} };
 
 	const idA = buildRequest(reqA).id;
 	const idB = buildRequest(reqB).id;
 
-	expect(JSON.parse(idA)).toEqual({ ...reqA, id: '' });
-	expect(JSON.parse(idB)).toEqual({ ...reqB, id: '' });
+	expect(JSON.parse(idA)).toEqual({ ...reqA });
+	expect(JSON.parse(idB)).toEqual({ ...reqB });
 });
 
-test('should not serialize if req.id is already set', () => {
+test('should not stringify if req.id is already set', () => {
 	const req = buildRequest({
 		id: '__id__',
 		query: 'test',
