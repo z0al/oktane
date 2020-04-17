@@ -37,10 +37,6 @@ export function useClient() {
 	return client;
 }
 
-const NotReadyError =
-	'calling hasMore() or fetchMore() is not allowed when ' +
-	'the request is not ready. Did you forget to call fetch()?';
-
 /**
  *
  * @param config
@@ -61,7 +57,9 @@ export function useFetch(config: FetchRequest): Result & FetchActions {
 
 	// Fetch result & actions
 	const actions = React.useRef<FetchActions>(null);
-	const [result, setResult] = React.useState<Result>(null);
+	const [result, setResult] = React.useState<Result>({
+		state: 'pending',
+	});
 
 	const client = useClient();
 
@@ -96,16 +94,17 @@ export function useFetch(config: FetchRequest): Result & FetchActions {
 	};
 
 	const hasMore = () => {
-		if (!actions.current) {
-			invariant(false, NotReadyError);
-		}
-
-		return actions.current.hasMore();
+		return Boolean(actions.current?.hasMore());
 	};
 
 	const fetchMore = () => {
-		if (!actions.current) {
-			invariant(false, NotReadyError);
+		if (!hasMore()) {
+			// This prevents potential infinite loops in user's code.
+			invariant(
+				false,
+				'can not fetch more data at the moment. ' +
+					'Make sure to guard calls to fetchMore() with hasMore().'
+			);
 		}
 
 		actions.current.fetchMore();
