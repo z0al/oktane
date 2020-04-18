@@ -15,17 +15,18 @@ Lightweight helpers for data fetching in React apps.
 ## Features
 
 - Protocol & Backend agnostic data fetching
+- Works with Promises, Observables, iterators, .. etc
 - Automatic Caching & Garbage Collection
 - Request cancellation & refetching
-- Works with Promises, Observables, iterators, .. etc
 - Pagination & Streaming
+- Prefetching support
 - TypeScript ready!
 
 ## Quick start
 
 ### Installation
 
-> @z0al/ql requires React v16.8.6 or higher
+> Requires React v16.8.6 or higher
 
 ```sh
 npm add @z0al/ql
@@ -62,7 +63,7 @@ const Hello = () => {
 		return <p>loading ...</p>;
 	}
 
-	return <p>{data}</p>; // displays "Hello world"
+	return <p>{data}</p>; // displays "Hello world!"
 };
 ```
 
