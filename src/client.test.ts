@@ -15,6 +15,9 @@ import {
 	$put,
 } from './utils/operations';
 
+// @ts-ignore
+global.__DEV__ = false;
+
 const request = buildRequest({
 	url: '/api',
 	body: {},
@@ -276,6 +279,57 @@ describe('client', () => {
 			});
 		});
 
+		describe('.refetch()', () => {
+			it('should emit "fetch" if necessary', async () => {
+				const log = jest.fn();
+
+				let handler: any = async () => {
+					await delay(10);
+					throw new Error();
+				};
+
+				const client = createClient({
+					fetch: () => handler(),
+					exchanges: [logOperations(log)],
+				});
+
+				const actions = client.fetch(request);
+
+				// pending
+				log.mockClear();
+				actions.refetch();
+				expect(log).not.toHaveBeenCalled();
+
+				await delay(15);
+
+				handler = async () => {
+					await delay(10);
+					return 'OK';
+				};
+
+				// failed
+				log.mockClear();
+				actions.refetch();
+
+				expect(log).toBeCalledWith($fetch(request));
+
+				// cancelled
+				log.mockClear();
+				actions.cancel();
+				actions.refetch();
+
+				expect(log).toBeCalledWith($fetch(request));
+
+				await delay(15);
+
+				// completed
+				log.mockClear();
+				actions.refetch();
+
+				expect(log).toBeCalledWith($fetch(request));
+			});
+		});
+
 		describe('.unsubscribe()', () => {
 			it('should remove listener', async () => {
 				const client = createClient({
@@ -336,7 +390,7 @@ describe('client', () => {
 				})();
 
 				let handler: any = () => async () => {
-					return await gen.next();
+					return (await gen.next()).value;
 				};
 
 				const client = createClient({

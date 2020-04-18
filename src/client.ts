@@ -1,3 +1,6 @@
+// Packages
+import invariant from 'tiny-invariant';
+
 // Ours
 import * as o from './utils/operations';
 
@@ -17,6 +20,7 @@ export interface Client {
 		cb?: Subscriber
 	): {
 		cancel(): void;
+		refetch(): void;
 		hasMore(): boolean;
 		fetchMore(): void;
 		unsubscribe(): void;
@@ -174,6 +178,17 @@ export const createClient = (options: ClientOptions): Client => {
 		};
 
 		const fetchMore = () => {
+			if (!hasMore()) {
+				// warns the user about potential infinite loops in their code
+				if (__DEV__) {
+					invariant(
+						false,
+						'Can not fetch more data. ' +
+							'Make sure to guard calls to fetchMore() with hasMore().'
+					);
+				}
+			}
+
 			if (hasMore()) {
 				apply(o.$fetch(request));
 			}
@@ -181,6 +196,26 @@ export const createClient = (options: ClientOptions): Client => {
 
 		const cancel = () => {
 			apply(o.$cancel(request));
+		};
+
+		const refetch = () => {
+			const { state } = store.get(request.id) || {};
+
+			if (
+				state === 'completed' ||
+				state === 'cancelled' ||
+				state === 'failed'
+			) {
+				apply(o.$fetch(request));
+			} else {
+				if (__DEV__) {
+					invariant(
+						false,
+						'A request can only be refetched if it ' +
+							'completed, failed or got cancelled.'
+					);
+				}
+			}
 		};
 
 		const unsubscribe = () => {
@@ -207,6 +242,7 @@ export const createClient = (options: ClientOptions): Client => {
 
 		return {
 			cancel,
+			refetch,
 			hasMore,
 			fetchMore,
 			unsubscribe,

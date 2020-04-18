@@ -1,7 +1,6 @@
 // Packages
 import React from 'react';
 import deepEqual from 'dequal';
-import invariant from 'tiny-invariant';
 
 // Ours
 import { Result } from '../utils/cache';
@@ -51,11 +50,7 @@ export function useFetch(
 		return unsubscribe;
 	}, [client, request]);
 
-	// export fetch
-	// const fetch = () => {
-	// if not manual ? throw. or event better. don't export
-	// otherwise, call
-	// }
+	// Actions
 	const cancel = React.useCallback(() => {
 		if (actions.current) {
 			actions.current.cancel();
@@ -71,16 +66,9 @@ export function useFetch(
 	}, [actions]);
 
 	const fetchMore = React.useCallback(() => {
-		if (!hasMore()) {
-			// This prevents potential infinite loops in user's code.
-			invariant(
-				false,
-				'can not fetch more data at the moment. ' +
-					'Make sure to guard calls to fetchMore() with hasMore().'
-			);
+		if (actions.current) {
+			actions.current.fetchMore();
 		}
-
-		actions.current.fetchMore();
 	}, [actions]);
 
 	return {

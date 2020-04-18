@@ -1,14 +1,12 @@
 // Packages
 import React from 'react';
 import delay from 'delay';
-import { renderHook } from '@testing-library/react-hooks';
 import { render, waitFor, act } from '@testing-library/react';
 
 // Ours
 import { useFetch } from './useFetch';
 import { createClient } from '../client';
 import { buildRequest } from '../request';
-import { ClientProvider } from './useClient';
 import { wrap, spyOnFetch } from './test/utils';
 
 let fetch: any;
@@ -226,24 +224,31 @@ describe('hasMore()', () => {
 });
 
 describe('fetchMore()', () => {
-	test('should throw if it is not possible to fetch more', async () => {
+	test('should NOT throw if called too early', async () => {
 		const client = createClient({ fetch });
 
-		const { result, waitForNextUpdate } = renderHook(
-			() => useFetch({}),
-			{
-				wrapper: ({ children }: any) => (
-					<ClientProvider value={client}>{children}</ClientProvider>
-				),
-			}
-		);
+		const Example = wrap(() => {
+			const { state, fetchMore } = useFetch(() => false);
 
-		await waitForNextUpdate();
+			return (
+				<div>
+					{state}
+					<button
+						data-testid="fetchMore"
+						onClick={() => fetchMore()}
+					></button>
+				</div>
+			);
+		}, client);
+
+		const { container, getByTestId } = render(<Example />);
+
+		expect(container).toHaveTextContent('pending');
 
 		expect(() => {
 			act(() => {
-				result.current.fetchMore();
+				getByTestId('fetchMore').click();
 			});
-		}).toThrow(/can not fetch/i);
+		}).not.toThrow();
 	});
 });
