@@ -65,11 +65,11 @@ test('should use stable stringify', () => {
 	};
 
 	// keys order doesn't matter
-	expect(buildRequest(obj1)).toEqual(buildRequest(obj2));
+	expect(buildRequest(obj1).id).toEqual(buildRequest(obj2).id);
 
 	// array items DOES matter
 	obj2.array = [2, 1];
-	expect(buildRequest(obj1)).not.toEqual(buildRequest(obj2));
+	expect(buildRequest(obj1).id).not.toEqual(buildRequest(obj2).id);
 });
 
 test('should not stringify the request.id', () => {

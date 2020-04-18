@@ -1,6 +1,5 @@
 // Packages
 import invariant from 'tiny-invariant';
-import stringify from 'fast-safe-stringify';
 
 // Ours
 import is from './utils/is';
@@ -10,6 +9,18 @@ export interface Request {
 	type?: never;
 	[x: string]: any;
 }
+
+const stabilize = (_: string, value: any) => {
+	if (typeof value === 'object' && !Array.isArray(value)) {
+		return Object.keys(value)
+			.sort()
+			.reduce((prev, next) => {
+				return { ...prev, [next]: value[next] };
+			}, {});
+	}
+
+	return value;
+};
 
 export const buildRequest = (request: Partial<Request>): Request => {
 	invariant(is.plainObject(request), 'request must be a plain object');
@@ -28,7 +39,7 @@ export const buildRequest = (request: Partial<Request>): Request => {
 
 	// Stringify everything but the `id`.
 	let { id, ...info } = request;
-	id = id || stringify.stable(info);
+	id = id || JSON.stringify(info, stabilize);
 
 	return { ...request, id };
 };
