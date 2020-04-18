@@ -1,6 +1,6 @@
 // Packages
 import React from 'react';
-import equal from 'dequal';
+import deepEqual from 'dequal';
 import invariant from 'tiny-invariant';
 
 // Ours
@@ -41,20 +41,35 @@ export function useClient() {
  *
  * @param config
  */
-export function useFetch(config: FetchRequest): Result & FetchActions {
-	let request: Request;
+function useBuildRequest(config: FetchRequest): Request | undefined {
+	const prev = React.useRef<Request>(undefined);
 
-	if (is.func(config)) {
-		const opt = config();
+	return React.useMemo(() => {
+		let request: Request;
 
-		// It's not ready if config() returned a falsy value
-		if (opt) {
-			request = buildRequest(opt);
+		// config is a function when working with dependent requests
+		const options = is.func(config) ? config() : config;
+
+		if (options) {
+			request = buildRequest(options);
 		}
-	} else {
-		request = buildRequest(config);
-	}
 
+		// If the request id changed then we have a new request
+		if (prev.current?.id !== request?.id) {
+			prev.current = request;
+		}
+
+		return prev.current;
+	}, [config]);
+}
+
+/**
+ *
+ * @param _request
+ */
+export function useFetch(
+	_request: FetchRequest
+): Result & FetchActions {
 	// Fetch result & actions
 	const actions = React.useRef<FetchActions>(null);
 	const [result, setResult] = React.useState<Result>({
@@ -62,6 +77,7 @@ export function useFetch(config: FetchRequest): Result & FetchActions {
 	});
 
 	const client = useClient();
+	const request = useBuildRequest(_request);
 
 	React.useEffect((): any => {
 		// TODO: is manual don't fetch
@@ -72,9 +88,9 @@ export function useFetch(config: FetchRequest): Result & FetchActions {
 		const { unsubscribe, ...utils } = client.fetch(
 			request,
 			(update) => {
-				if (!equal(result, update)) {
-					setResult(update);
-				}
+				setResult((current) =>
+					deepEqual(current, update) ? current : update
+				);
 			}
 		);
 
@@ -82,7 +98,7 @@ export function useFetch(config: FetchRequest): Result & FetchActions {
 		actions.current = utils;
 
 		return unsubscribe;
-	}, [request?.id]);
+	}, [client, request]);
 
 	// export fetch
 	// const fetch = () => {

@@ -357,10 +357,10 @@ describe('client', () => {
 				expect(stream.hasMore()).toEqual(false);
 
 				// failure
-				gen = (async function*() {
+				handler = async () => {
 					await delay(5);
 					throw ERROR;
-				})();
+				};
 
 				client.fetch(request);
 				await delay(10);

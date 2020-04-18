@@ -46,7 +46,6 @@ export const transition = (
 		// - reject
 		// - cancel
 		// - complete
-		case 'ready':
 		case 'pending':
 		case 'buffering': {
 			switch (event) {

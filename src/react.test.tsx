@@ -1,30 +1,20 @@
 // Packages
 import React from 'react';
 import delay from 'delay';
+import { renderHook } from '@testing-library/react-hooks';
 import { render, waitFor, act } from '@testing-library/react';
 
 // Ours
 import { createClient } from './client';
 import { buildRequest } from './request';
-import { useClient, useFetch } from './react';
 import { wrap, spyOnFetch } from './test/utils';
+import { useClient, useFetch, ClientProvider } from './react';
 
 describe('useClient', () => {
 	test('should throw if client is not set', () => {
-		const Example = wrap(() => {
-			useClient();
-			return null;
-		}, undefined);
+		const { result } = renderHook(() => useClient());
 
-		expect(() => {
-			// suppress logging
-			const log = console.error;
-			console.error = () => {};
-
-			render(<Example />, {});
-
-			console.error = log;
-		}).toThrow(/could not find "client"/);
+		expect(result.error.message).toMatch(/could not find "client"/);
 	});
 });
 
@@ -244,29 +234,23 @@ describe('useFetch', () => {
 	});
 
 	describe('fetchMore()', () => {
-		test.skip('should throw if it is not possible to fetch more', async () => {
+		test('should throw if it is not possible to fetch more', async () => {
 			const client = createClient({ fetch });
 
-			const Example = wrap(() => {
-				const { state, fetchMore } = useFetch({});
-				return (
-					<div>
-						{state}
-						<button
-							data-testid="fetchMore"
-							onClick={() => fetchMore()}
-						></button>
-					</div>
-				);
-			}, client);
+			const { result, waitForNextUpdate } = renderHook(
+				() => useFetch({}),
+				{
+					wrapper: ({ children }: any) => (
+						<ClientProvider value={client}>{children}</ClientProvider>
+					),
+				}
+			);
 
-			const { container, getByTestId } = render(<Example />);
-
-			expect(container).toHaveTextContent('pending');
+			await waitForNextUpdate();
 
 			expect(() => {
 				act(() => {
-					getByTestId('fetchMore').click();
+					result.current.fetchMore();
 				});
 			}).toThrow(/can not fetch/i);
 		});
