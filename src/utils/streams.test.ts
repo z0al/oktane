@@ -126,6 +126,12 @@ describe('fromCallback', () => {
 		await observe(fromCallback(fn), [1, 2, 3]);
 	});
 
+	it('should not ignore completion values', async () => {
+		const fn = async () => ({ value: 1, done: true });
+
+		await observe(fromCallback(fn), [1]);
+	});
+
 	it('should catch errors', async () => {
 		const fn = async () => {
 			throw ERROR;

@@ -68,7 +68,7 @@ export const fromCallback = (
 					const { value, done } = await cb();
 
 					if (done) {
-						return subscriber.complete();
+						return subscriber.complete(value);
 					}
 
 					subscriber.next(value);
