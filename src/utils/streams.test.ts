@@ -115,50 +115,42 @@ describe('fromCallback', () => {
 	});
 
 	it('should emit values on stream.next()', async () => {
-		const fn = jest
-			.fn()
-			.mockReturnValueOnce(1)
-			.mockReturnValueOnce(2)
-			.mockReturnValueOnce(3);
+		const gen = (function*() {
+			yield 1;
+			yield 2;
+			yield 3;
+		})();
+
+		const fn = async () => gen.next();
 
 		await observe(fromCallback(fn), [1, 2, 3]);
 	});
 
-	it('should complete if received undefined or null', async () => {
-		let fn = jest.fn();
-		await observe(fromCallback(fn), []);
-
-		fn = jest
-			.fn()
-			.mockReturnValueOnce(1)
-			.mockReturnValueOnce(2)
-			.mockReturnValueOnce(null);
-		await observe(fromCallback(fn), [1, 2]);
-
-		fn = jest.fn().mockReturnValueOnce(3);
-		await observe(fromCallback(fn), [3]);
-	});
-
 	it('should catch errors', async () => {
-		const fn = jest
-			.fn()
-			.mockResolvedValueOnce(1)
-			.mockRejectedValueOnce(ERROR);
+		const fn = async () => {
+			throw ERROR;
+		};
 
-		await observe(fromCallback(fn), [1], ERROR);
+		await observe(fromCallback(fn), [], ERROR);
 	});
 });
 
 describe('from', () => {
 	it('should work with callbacks', async () => {
-		let fn = jest
-			.fn()
-			.mockResolvedValueOnce({ ok: true })
-			.mockResolvedValueOnce(null);
+		const gen = (function*() {
+			yield 1;
+			yield 2;
+			yield 3;
+		})();
 
-		await observe(from(fn), [{ ok: true }]);
+		let fn = async () => gen.next();
 
-		fn = jest.fn().mockRejectedValueOnce(ERROR);
+		await observe(from(fn), [1, 2, 3]);
+
+		fn = async () => {
+			throw ERROR;
+		};
+
 		await observe(from(fn), [], ERROR);
 	});
 

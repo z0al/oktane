@@ -163,7 +163,7 @@ test('should work with pull streams', async () => {
 	})();
 
 	handler = jest.fn().mockImplementation(() => () => {
-		return gen.next().value;
+		return gen.next();
 	});
 
 	// success

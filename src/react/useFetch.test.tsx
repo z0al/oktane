@@ -9,7 +9,7 @@ import { useFetch } from './useFetch';
 import { createClient } from '../client';
 import { buildRequest } from '../request';
 import { ClientProvider } from './useClient';
-import { wrap, spyOnFetch } from '../test/utils';
+import { wrap, spyOnFetch } from './test/utils';
 
 let fetch: any;
 

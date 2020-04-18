@@ -55,27 +55,27 @@ export const fromObservable = (o: any): Source => {
 /**
  * Transforms a function into a Source.
  *
- * @param fn
+ * @param cb
  */
-export const fromCallback = (fn: Function): Source => {
-	const next = async (sub: SourceSubscriber) => {
-		try {
-			const value = await fn();
-
-			if (is.nullish(value)) {
-				return sub.complete();
-			}
-
-			sub.next(value);
-		} catch (error) {
-			sub.error(error);
-		}
-	};
-
+export const fromCallback = (
+	cb: () => IteratorResult<any> | Promise<IteratorResult<any>>
+): Source => {
 	const source: Source = {
 		pull: true,
 		subscribe: (subscriber) => ({
-			next: () => next(subscriber),
+			next: async () => {
+				try {
+					const { value, done } = await cb();
+
+					if (done) {
+						return subscriber.complete();
+					}
+
+					subscriber.next(value);
+				} catch (error) {
+					subscriber.error(error);
+				}
+			},
 			unsubscribe: () => {},
 		}),
 	};
@@ -120,7 +120,7 @@ export const fromValue = (value: unknown): Source => {
  */
 export const from = (value: unknown): Source => {
 	if (is.func(value)) {
-		return fromCallback(value);
+		return fromCallback(value as any);
 	}
 
 	if (is.observable(value)) {
@@ -175,6 +175,10 @@ export const subscribe = (
 		close,
 		isClosed: () => closed,
 		pull: source.pull,
-		next: subscription.next,
+		next: async () => {
+			if (!closed) {
+				subscription.next();
+			}
+		},
 	};
 };

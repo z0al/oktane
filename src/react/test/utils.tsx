@@ -1,7 +1,7 @@
 import React from 'react';
 
 // Ours
-import { ClientProvider, Client } from '..';
+import { ClientProvider, Client } from '../..';
 
 export const wrap = (
 	Component: React.FunctionComponent,

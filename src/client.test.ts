@@ -336,7 +336,7 @@ describe('client', () => {
 				})();
 
 				let handler: any = () => async () => {
-					return (await gen.next()).value;
+					return await gen.next();
 				};
 
 				const client = createClient({
@@ -394,7 +394,7 @@ describe('client', () => {
 				})();
 
 				const client = createClient({
-					fetch: () => () => gen.next().value,
+					fetch: () => () => gen.next(),
 					exchanges: [logOperations(log)],
 				});
 
@@ -446,7 +446,7 @@ describe('client', () => {
 				})();
 
 				const client = createClient({
-					fetch: () => () => gen.next().value,
+					fetch: () => () => gen.next(),
 					exchanges: [logOperations(log)],
 				});
 
@@ -496,7 +496,7 @@ describe('client', () => {
 			})();
 
 			const handler = jest.fn().mockImplementation(() => {
-				return () => delay(5).then(() => gen.next().value);
+				return () => delay(5).then(() => gen.next());
 			});
 
 			const client = createClient({
