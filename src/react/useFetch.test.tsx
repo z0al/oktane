@@ -161,13 +161,67 @@ test('should respect prefetched requests', async () => {
 	expect(fetch).toHaveBeenCalledTimes(1);
 });
 
-describe('cancel()', () => {
-	test('should cancel request', async () => {
+test('should work with paginated requests', async () => {
+	const fetch = () => {
+		const gen = (function*() {
+			yield 1;
+			yield 2;
+			return yield 3;
+		})();
+
+		return () => gen.next();
+	};
+
+	const client = createClient({ fetch });
+
+	const Example = wrap(() => {
+		const { data, hasMore, fetchMore } = useFetch({});
+
+		return (
+			<div>
+				<p>{data}</p>
+				<button
+					data-testid="next"
+					disabled={!hasMore()}
+					onClick={() => fetchMore()}
+				></button>
+			</div>
+		);
+	}, client);
+
+	const { container, getByTestId } = render(<Example />);
+
+	await waitFor(() => expect(container).toHaveTextContent('1'));
+
+	act(() => {
+		getByTestId('next').click();
+	});
+
+	await waitFor(() => expect(container).toHaveTextContent('2'));
+
+	act(() => {
+		getByTestId('next').click();
+	});
+
+	await waitFor(() => expect(container).toHaveTextContent('3'));
+
+	act(() => {
+		getByTestId('next').click();
+	});
+
+	await waitFor(() => expect(getByTestId('next')).toBeDisabled());
+
+	expect(container).toHaveTextContent('3');
+});
+
+describe('actions', () => {
+	test('should NOT throw if called too early', async () => {
 		const client = createClient({ fetch });
-		const spy = spyOnFetch(client);
 
 		const Example = wrap(() => {
-			const { state, cancel } = useFetch({});
+			const { state, cancel, refetch, hasMore, fetchMore } = useFetch(
+				() => false
+			);
 
 			return (
 				<div>
@@ -176,63 +230,14 @@ describe('cancel()', () => {
 						data-testid="cancel"
 						onClick={() => cancel()}
 					></button>
-				</div>
-			);
-		}, client);
-
-		const { container, getByTestId } = render(<Example />);
-
-		expect(container).toHaveTextContent('pending');
-
-		act(() => {
-			getByTestId('cancel').click();
-		});
-
-		expect(container).toHaveTextContent('cancelled');
-		expect(spy.cancel).toHaveBeenCalled();
-	});
-});
-
-describe('hasMore()', () => {
-	test('should NOT throw if called too early', async () => {
-		const client = createClient({ fetch });
-
-		const Example = wrap(() => {
-			const { state, hasMore } = useFetch(() => false);
-
-			return (
-				<div>
-					{state}
+					<button
+						data-testid="refetch"
+						onClick={() => refetch()}
+					></button>
 					<button
 						data-testid="hasMore"
 						onClick={() => hasMore()}
 					></button>
-				</div>
-			);
-		}, client);
-
-		const { container, getByTestId } = render(<Example />);
-
-		expect(container).toHaveTextContent('pending');
-
-		expect(() => {
-			act(() => {
-				getByTestId('hasMore').click();
-			});
-		}).not.toThrow();
-	});
-});
-
-describe('fetchMore()', () => {
-	test('should NOT throw if called too early', async () => {
-		const client = createClient({ fetch });
-
-		const Example = wrap(() => {
-			const { state, fetchMore } = useFetch(() => false);
-
-			return (
-				<div>
-					{state}
 					<button
 						data-testid="fetchMore"
 						onClick={() => fetchMore()}
@@ -247,6 +252,9 @@ describe('fetchMore()', () => {
 
 		expect(() => {
 			act(() => {
+				getByTestId('cancel').click();
+				getByTestId('refetch').click();
+				getByTestId('hasMore').click();
 				getByTestId('fetchMore').click();
 			});
 		}).not.toThrow();

@@ -9,6 +9,7 @@ import { useBuildRequest, FetchRequest } from './useBuildRequest';
 
 interface FetchActions {
 	cancel: () => void;
+	refetch: () => void;
 	hasMore: () => boolean;
 	fetchMore: () => void;
 }
@@ -57,6 +58,12 @@ export function useFetch(
 		}
 	}, [actions]);
 
+	const refetch = React.useCallback(() => {
+		if (actions.current) {
+			actions.current.refetch();
+		}
+	}, [actions]);
+
 	const hasMore = React.useCallback(() => {
 		if (actions.current) {
 			return actions.current.hasMore();
@@ -74,6 +81,7 @@ export function useFetch(
 	return {
 		...result,
 		cancel,
+		refetch,
 		hasMore,
 		fetchMore,
 	};
