@@ -12,27 +12,80 @@ Lightweight helpers for data fetching in React apps.
 - **🌍 Backend agnostic:** assume nothing about how the request will get resolved.
 - **🔌 Extensible:** it should be easy to extend the default behavior to adopt different patterns.
 
+## Features
+
+- Protocol & Backend agnostic data fetching
+- Automatic Caching & Garbage Collection
+- Request cancellation & refetching
+- Works with Promises, Observables, iterators, .. etc
+- Pagination & Streaming
+- TypeScript ready!
+
 ## Quick start
 
-TODO.
+### Installation
+
+> @z0al/ql requires React v16.8.6 or higher
+
+```sh
+npm add @z0al/ql
+```
+
+### Usage
+
+```javascript
+import { createClient, ClientProvider, useFetch } from '@z0al/ql';
+
+const client = createClient({
+	fetch: async (request) => {
+		// handle request(s) here and return value
+		if (request.query === 'hello') {
+			return 'Hello world!';
+		}
+	},
+});
+
+const App = () => {
+	return (
+		<ClientProvider value={client}>
+			<Hello />
+		</ClientProvider>
+	);
+};
+
+const Hello = () => {
+	// useFetch accepts an object with any key and it will be
+	// passed to the fetch function you provided for createClient
+	const { data, state } = useFetch({ query: 'hello' });
+
+	if (state === 'pending') {
+		return <p>loading ...</p>;
+	}
+
+	return <p>{data}</p>; // displays "Hello world"
+};
+```
 
 ## API
 
 #### Table of Contents
 
 - [createClient](#createclient)
-- [useFetch](#usefetch)
-- [useRequest](#userequest)
+- [hooks](#hooks)
+  - [useFetch](#usefetch)
+  - [useRequest](#userequest)
 
 ### createClient
 
 TODO
 
-### useFetch
+### Hooks
+
+#### useFetch
 
 TODO
 
-### useRequest
+#### useRequest
 
 TODO
 

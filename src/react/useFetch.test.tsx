@@ -101,6 +101,31 @@ test('should unsubscribe on unmount', async () => {
 	expect(spy.unsubscribe).toHaveBeenCalledTimes(1);
 });
 
+test('should cancel request when asked to', async () => {
+	const client = createClient({ fetch });
+
+	const Example = wrap(() => {
+		const { state, cancel } = useFetch({});
+
+		return (
+			<div>
+				<p>{state}</p>
+				<button data-testid="cancel" onClick={() => cancel()}></button>
+			</div>
+		);
+	}, client);
+
+	const { container, getByTestId } = render(<Example />);
+
+	expect(container).toHaveTextContent('pending');
+
+	act(() => {
+		getByTestId('cancel').click();
+	});
+
+	await waitFor(() => expect(container).toHaveTextContent('cancelled'));
+});
+
 test('should wait for request dependencies', async () => {
 	fetch = jest.fn().mockImplementation(async ({ query }) => {
 		await delay(10);
@@ -142,7 +167,7 @@ test('should wait for request dependencies', async () => {
 	);
 });
 
-test('should respect prefetched requests', async () => {
+test('should respect prefetching', async () => {
 	const client = createClient({ fetch });
 
 	// prefetch and wait for response
@@ -161,7 +186,7 @@ test('should respect prefetched requests', async () => {
 	expect(fetch).toHaveBeenCalledTimes(1);
 });
 
-test('should work with paginated requests', async () => {
+test('should paginate if possible', async () => {
 	const fetch = () => {
 		const gen = (function*() {
 			yield 1;
