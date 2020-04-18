@@ -39,16 +39,16 @@ export function useClient() {
 
 /**
  *
- * @param config
+ * @param _request
  */
-function useBuildRequest(config: FetchRequest): Request | undefined {
+function useBuildRequest(_request: FetchRequest): Request {
 	const prev = React.useRef<Request>(undefined);
 
 	return React.useMemo(() => {
 		let request: Request;
 
-		// config is a function when working with dependent requests
-		const options = is.func(config) ? config() : config;
+		// _request is a function when working with dependent requests
+		const options = is.func(_request) ? _request() : _request;
 
 		if (options) {
 			request = buildRequest(options);
@@ -60,7 +60,7 @@ function useBuildRequest(config: FetchRequest): Request | undefined {
 		}
 
 		return prev.current;
-	}, [config]);
+	}, [_request]);
 }
 
 /**
@@ -80,7 +80,7 @@ export function useFetch(
 	const request = useBuildRequest(_request);
 
 	React.useEffect((): any => {
-		// TODO: is manual don't fetch
+		// request can be undefined if not ready
 		if (!request) {
 			return;
 		}
@@ -105,15 +105,15 @@ export function useFetch(
 	// if not manual ? throw. or event better. don't export
 	// otherwise, call
 	// }
-	const cancel = () => {
+	const cancel = React.useCallback(() => {
 		actions.current?.cancel();
-	};
+	}, [actions]);
 
-	const hasMore = () => {
+	const hasMore = React.useCallback(() => {
 		return Boolean(actions.current?.hasMore());
-	};
+	}, [actions]);
 
-	const fetchMore = () => {
+	const fetchMore = React.useCallback(() => {
 		if (!hasMore()) {
 			// This prevents potential infinite loops in user's code.
 			invariant(
@@ -124,7 +124,7 @@ export function useFetch(
 		}
 
 		actions.current.fetchMore();
-	};
+	}, [actions]);
 
 	return {
 		...result,
