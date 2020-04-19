@@ -2,6 +2,7 @@
 import { Operation } from './operations';
 
 export type Status =
+	| 'idle'
 	| 'ready'
 	| 'pending'
 	| 'failed'
@@ -17,7 +18,7 @@ export type Status =
  * @param operation
  */
 export const transition = (
-	status: Status = 'ready',
+	status: Status = 'idle',
 	operation: Operation
 ): Status => {
 	const event = operation.type;
@@ -29,6 +30,7 @@ export const transition = (
 	switch (status) {
 		// Expecting:
 		// - fetch
+		case 'idle':
 		case 'ready':
 		case 'failed':
 		case 'cancelled':

@@ -2,6 +2,32 @@
 import { transition } from './status';
 
 const TESTS = [
+	// idle
+	{
+		current: 'idle',
+		operation: { type: 'fetch' },
+		expected: 'pending',
+	},
+	{
+		current: 'idle',
+		operation: { type: 'cancel' },
+		expected: 'idle',
+	},
+	{
+		current: 'idle',
+		operation: { type: 'reject' },
+		expected: 'idle',
+	},
+	{
+		current: 'idle',
+		operation: { type: 'put' },
+		expected: 'idle',
+	},
+	{
+		current: 'idle',
+		operation: { type: 'complete' },
+		expected: 'idle',
+	},
 	// ready
 	{
 		current: 'ready',
@@ -170,6 +196,11 @@ const TESTS = [
 		expected: 'pending',
 	},
 	// dispose
+	{
+		current: 'idle',
+		operation: { type: 'dispose' },
+		expected: 'disposed',
+	},
 	{
 		current: 'ready',
 		operation: { type: 'dispose' },
