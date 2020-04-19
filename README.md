@@ -57,9 +57,9 @@ const App = () => {
 const Hello = () => {
 	// useFetch accepts an object with any key and it will be
 	// passed to the fetch function you provided for createClient
-	const { data, state } = useFetch('hello');
+	const { data, status } = useFetch('hello');
 
-	if (state === 'pending') {
+	if (status === 'pending') {
 		return <p>loading ...</p>;
 	}
 

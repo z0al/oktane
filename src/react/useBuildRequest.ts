@@ -11,8 +11,14 @@ export function useBuildRequest(body: any): Request {
 	return useMemo(() => {
 		let request: Request;
 
-		// body is a function when working with dependent requests
-		body = is.func(body) ? body() : body;
+		// is ready?
+		if (is.func(body)) {
+			try {
+				body = body();
+			} catch {
+				body = false;
+			}
+		}
 
 		if (body) {
 			request = buildRequest(body);
