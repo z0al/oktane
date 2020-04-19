@@ -7,7 +7,7 @@ import * as o from './utils/operations';
 import is from './utils/is';
 import { Request } from './request';
 import { Emitter } from './utils/emitter';
-import { transition } from './utils/state';
+import { transition } from './utils/status';
 import { Result, mapToCache } from './utils/cache';
 import { pipe, Exchange } from './utils/exchanges';
 import { createFetch, FetchFunc } from './exchanges/fetch';
@@ -42,7 +42,7 @@ export const createClient = (options: ClientOptions): Client => {
 	//The heart of this whole thing.
 	const events = Emitter();
 
-	// A key-value store that maps requests to their state & data.
+	// A key-value store that maps requests to their status & data.
 	const store = new Map<string, Result>();
 
 	// tracks prefetched requests to avoid potential refetching.
@@ -67,7 +67,7 @@ export const createClient = (options: ClientOptions): Client => {
 
 		const obj = store.get(key);
 
-		const next = transition(obj?.state, op);
+		const next = transition(obj?.status, op);
 
 		if (next === 'disposed') {
 			store.delete(key);
@@ -75,7 +75,7 @@ export const createClient = (options: ClientOptions): Client => {
 		}
 
 		store.set(key, {
-			state: next,
+			status: next,
 			error: op.type === 'reject' ? op.payload.error : undefined,
 			data:
 				op.type === 'put' ||
@@ -89,7 +89,7 @@ export const createClient = (options: ClientOptions): Client => {
 	};
 
 	/**
-	 * Compares the next state against the current state and pass
+	 * Compares the next status against the current status and pass
 	 * the `op` through the pipeline if necessary.
 	 *
 	 * @param op
@@ -103,11 +103,11 @@ export const createClient = (options: ClientOptions): Client => {
 		const pipeThrough = pipe([...exchanges, fetchExchange], api);
 
 		return (op: o.Operation) => {
-			const current = store.get(keyOf(op))?.state;
+			const current = store.get(keyOf(op))?.status;
 			const next = transition(current, op);
 
 			// Rule:
-			// If it won't change the current state DO NOT do it.
+			// If it won't change the current status DO NOT do it.
 			// The ONLY exception is buffering.
 			if (current !== 'buffering' && next === current) {
 				return;
@@ -120,8 +120,6 @@ export const createClient = (options: ClientOptions): Client => {
 	/**
 	 * Disposes unused requests. A request becomes unused if it had
 	 * no listeners for `options.cache.maxAge` period.
-	 *
-	 * @param eventState
 	 */
 	const garbage = (() => {
 		// Holds result of setTimeout() calls
@@ -172,9 +170,9 @@ export const createClient = (options: ClientOptions): Client => {
 		}
 
 		const hasMore = () => {
-			// Pull Streams don't go to "buffering" state but rather
+			// Pull Streams don't go to "buffering" status but rather
 			// got back to "ready".
-			return store.get(request.id)?.state === 'ready';
+			return store.get(request.id)?.status === 'ready';
 		};
 
 		const fetchMore = () => {
@@ -199,12 +197,12 @@ export const createClient = (options: ClientOptions): Client => {
 		};
 
 		const refetch = () => {
-			const { state } = store.get(request.id) || {};
+			const { status } = store.get(request.id) || {};
 
 			if (
-				state === 'completed' ||
-				state === 'cancelled' ||
-				state === 'failed'
+				status === 'completed' ||
+				status === 'cancelled' ||
+				status === 'failed'
 			) {
 				apply(o.$fetch(request));
 			} else {

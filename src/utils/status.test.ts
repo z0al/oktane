@@ -1,5 +1,5 @@
 // Ours
-import { transition } from './state';
+import { transition } from './status';
 
 const TESTS = [
 	// ready

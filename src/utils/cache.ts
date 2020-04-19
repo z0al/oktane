@@ -1,7 +1,7 @@
 // Ours
-import { State } from './state';
+import { Status } from './status';
 
-export type Result = { state: State; data?: any; error?: any };
+export type Result = { status: Status; data?: any; error?: any };
 export type Cache = Pick<Map<string, any>, 'get' | 'has'>;
 
 export const mapToCache = (map: Map<string, Result>): Cache => {

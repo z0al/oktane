@@ -189,10 +189,12 @@ describe('client', () => {
 			client.fetch(request, subscriber);
 			await delay(10);
 
-			expect(subscriber).toBeCalledWith(toChange({ state: 'pending' }));
+			expect(subscriber).toBeCalledWith(
+				toChange({ status: 'pending' })
+			);
 			expect(subscriber).toBeCalledWith(
 				toChange({
-					state: 'completed',
+					status: 'completed',
 					data: DATA,
 				})
 			);
@@ -205,13 +207,13 @@ describe('client', () => {
 
 			expect(subscriber).toBeCalledWith(
 				toChange({
-					state: 'pending',
+					status: 'pending',
 					data: DATA,
 				})
 			);
 			expect(subscriber).toBeCalledWith(
 				toChange({
-					state: 'cancelled',
+					status: 'cancelled',
 					data: DATA,
 				})
 			);
@@ -225,19 +227,19 @@ describe('client', () => {
 
 			expect(subscriber).toBeCalledWith(
 				toChange({
-					state: 'pending',
+					status: 'pending',
 					data: DATA,
 				})
 			);
 			expect(subscriber).toBeCalledWith(
 				toChange({
-					state: 'buffering',
+					status: 'buffering',
 					data: DATA,
 				})
 			);
 			expect(subscriber).toBeCalledWith(
 				toChange({
-					state: 'completed',
+					status: 'completed',
 					data: DATA,
 				})
 			);
@@ -250,13 +252,13 @@ describe('client', () => {
 
 			expect(subscriber).toBeCalledWith(
 				toChange({
-					state: 'pending',
+					status: 'pending',
 					data: DATA,
 				})
 			);
 			expect(subscriber).toBeCalledWith(
 				toChange({
-					state: 'failed',
+					status: 'failed',
 					data: DATA,
 					error: ERROR,
 				})
@@ -342,7 +344,7 @@ describe('client', () => {
 				await delay(10);
 
 				expect(subscriber).toBeCalledWith(
-					toChange({ state: 'pending' })
+					toChange({ status: 'pending' })
 				);
 				expect(subscriber).toBeCalledTimes(1);
 			});
@@ -573,7 +575,7 @@ describe('client', () => {
 
 			expect(log).not.toBeCalledWith($fetch(request));
 			expect(subscriber).toBeCalledWith(
-				toChange({ state: 'ready', data: 1 })
+				toChange({ status: 'ready', data: 1 })
 			);
 
 			// fetch more
@@ -585,7 +587,7 @@ describe('client', () => {
 			expect(log).toBeCalledWith($fetch(request));
 			expect(log).toBeCalledWith($put(request, 2, meta));
 			expect(subscriber).toBeCalledWith(
-				toChange({ state: 'ready', data: 2 })
+				toChange({ status: 'ready', data: 2 })
 			);
 		});
 
@@ -617,7 +619,7 @@ describe('client', () => {
 			expect(log).not.toBeCalledWith($fetch(request));
 			expect(subscriber).toBeCalledWith(
 				toChange({
-					state: 'failed',
+					status: 'failed',
 					error: ERROR,
 				})
 			);

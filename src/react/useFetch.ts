@@ -22,7 +22,7 @@ export function useFetch(body: any): Result & FetchActions {
 	// Fetch result & actions
 	const actions = React.useRef<FetchActions>(null);
 	const [result, setResult] = React.useState<Result>({
-		state: 'pending',
+		status: 'pending',
 	});
 
 	const client = useClient();

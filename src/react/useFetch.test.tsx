@@ -18,13 +18,13 @@ beforeEach(() => {
 	});
 });
 
-test('should sync request state & response', async () => {
+test('should sync request status & response', async () => {
 	const client = createClient({ fetch });
 
 	const Example = wrap(() => {
-		const { state, data } = useFetch({});
+		const { status, data } = useFetch({});
 
-		return <p>{state !== 'completed' ? state : data}</p>;
+		return <p>{status !== 'completed' ? status : data}</p>;
 	}, client);
 
 	const { container } = render(<Example />);
@@ -40,14 +40,14 @@ test('should report errors', async () => {
 	});
 
 	const Example = wrap(() => {
-		const { state, error } = useFetch({});
+		const { status, error } = useFetch({});
 
-		if (state === 'failed') {
+		if (status === 'failed') {
 			return <p>{error.message}</p>;
 		}
 
-		if (state === 'pending') {
-			return <p>{state}</p>;
+		if (status === 'pending') {
+			return <p>{status}</p>;
 		}
 
 		return null;
@@ -70,9 +70,9 @@ test('should deduplicate requests', async () => {
 		useFetch({});
 		useFetch({});
 		useFetch({});
-		const { state, data } = useFetch({});
+		const { status, data } = useFetch({});
 
-		return <p>{state !== 'completed' ? state : data}</p>;
+		return <p>{status !== 'completed' ? status : data}</p>;
 	}, client);
 
 	const { container } = render(<Example />);
@@ -88,9 +88,9 @@ test('should unsubscribe on unmount', async () => {
 	const spy = spyOnFetch(client);
 
 	const Example = wrap(() => {
-		const { state, data } = useFetch({});
+		const { status, data } = useFetch({});
 
-		return <p>{state !== 'completed' ? state : data}</p>;
+		return <p>{status !== 'completed' ? status : data}</p>;
 	}, client);
 
 	const { container, unmount } = render(<Example />);
@@ -105,11 +105,11 @@ test('should cancel request when asked to', async () => {
 	const client = createClient({ fetch });
 
 	const Example = wrap(() => {
-		const { state, cancel } = useFetch({});
+		const { status, cancel } = useFetch({});
 
 		return (
 			<div>
-				<p>{state}</p>
+				<p>{status}</p>
 				<button data-testid="cancel" onClick={() => cancel()}></button>
 			</div>
 		);
@@ -173,9 +173,9 @@ test('should respect prefetching', async () => {
 	await delay(15);
 
 	const Example = wrap(() => {
-		const { state, data } = useFetch({ url: '/api' });
+		const { status, data } = useFetch({ url: '/api' });
 
-		return <p>{state !== 'completed' ? state : data}</p>;
+		return <p>{status !== 'completed' ? status : data}</p>;
 	}, client);
 
 	const { container } = render(<Example />);
@@ -242,13 +242,13 @@ describe('actions', () => {
 		const client = createClient({ fetch });
 
 		const Example = wrap(() => {
-			const { state, cancel, refetch, hasMore, fetchMore } = useFetch(
+			const { status, cancel, refetch, hasMore, fetchMore } = useFetch(
 				() => false
 			);
 
 			return (
 				<div>
-					{state}
+					{status}
 					<button
 						data-testid="cancel"
 						onClick={() => cancel()}

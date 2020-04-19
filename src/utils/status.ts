@@ -1,7 +1,7 @@
 // Ours
 import { Operation } from './operations';
 
-export type State =
+export type Status =
 	| 'ready'
 	| 'pending'
 	| 'failed'
@@ -11,22 +11,22 @@ export type State =
 	| 'disposed';
 
 /**
- * Determines the next state given the current `state` and `operation`.
+ * Determines the next status given the current `status` and `operation`.
  *
- * @param state
+ * @param status
  * @param operation
  */
 export const transition = (
-	state: State = 'ready',
+	status: Status = 'ready',
 	operation: Operation
-): State => {
+): Status => {
 	const event = operation.type;
 
 	if (event === 'dispose') {
 		return 'disposed';
 	}
 
-	switch (state) {
+	switch (status) {
 		// Expecting:
 		// - fetch
 		case 'ready':
@@ -67,6 +67,6 @@ export const transition = (
 		}
 	}
 
-	// fallback to current state
-	return state;
+	// fallback to current status
+	return status;
 };
