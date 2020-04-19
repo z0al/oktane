@@ -1,3 +1,3 @@
 // Ours
-export { useFetch } from './useFetch';
+export { useFetch, useRequest } from './fetchers';
 export { ClientProvider, useClient } from './useClient';

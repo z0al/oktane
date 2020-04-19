@@ -295,11 +295,11 @@ describe('client', () => {
 					exchanges: [logOperations(log)],
 				});
 
-				const actions = client.fetch(request);
+				const operations = client.fetch(request);
 
 				// pending
 				log.mockClear();
-				actions.refetch();
+				operations.refetch();
 				expect(log).not.toHaveBeenCalled();
 
 				await delay(15);
@@ -311,14 +311,14 @@ describe('client', () => {
 
 				// failed
 				log.mockClear();
-				actions.refetch();
+				operations.refetch();
 
 				expect(log).toBeCalledWith($fetch(request));
 
 				// cancelled
 				log.mockClear();
-				actions.cancel();
-				actions.refetch();
+				operations.cancel();
+				operations.refetch();
 
 				expect(log).toBeCalledWith($fetch(request));
 
@@ -326,7 +326,7 @@ describe('client', () => {
 
 				// completed
 				log.mockClear();
-				actions.refetch();
+				operations.refetch();
 
 				expect(log).toBeCalledWith($fetch(request));
 			});

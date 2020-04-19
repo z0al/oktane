@@ -14,6 +14,7 @@ export function useBuildRequest(body: any): Request {
 		// is ready?
 		if (is.func(body)) {
 			try {
+				// eslint-disable-next-line
 				body = body();
 			} catch {
 				body = false;

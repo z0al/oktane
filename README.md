@@ -18,7 +18,8 @@ Lightweight helpers for data fetching in React apps.
 - Works with Promises, Observables, iterators, .. etc
 - Automatic Caching & Garbage Collection
 - Request cancellation & refetching
-- Pagination & Streaming
+- Pagination & Infinite loading
+- Manual Requests
 - Prefetching support
 - TypeScript ready!
 
@@ -75,6 +76,7 @@ const Hello = () => {
 - [hooks](#hooks)
   - [useFetch](#usefetch)
   - [useRequest](#userequest)
+  - [useClient](#useclient)
 
 ### createClient
 
@@ -87,6 +89,10 @@ TODO
 TODO
 
 #### useRequest
+
+TODO
+
+#### useClient
 
 TODO
 
