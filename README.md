@@ -39,32 +39,32 @@ npm add @z0al/ql
 import { createClient, ClientProvider, useFetch } from '@z0al/ql';
 
 const client = createClient({
-	fetch: async (request) => {
-		// handle request(s) here and return value
-		if (request.body === 'hello') {
-			return 'Hello world!';
-		}
-	},
+  fetch: async (request) => {
+    // handle request(s) here and return value
+    if (request.body === 'hello') {
+      return 'Hello world!';
+    }
+  },
 });
 
 const App = () => {
-	return (
-		<ClientProvider value={client}>
-			<Hello />
-		</ClientProvider>
-	);
+  return (
+    <ClientProvider value={client}>
+      <Hello />
+    </ClientProvider>
+  );
 };
 
 const Hello = () => {
-	// useFetch accepts an object with any key and it will be
-	// passed to the fetch function you provided for createClient
-	const { data, status } = useFetch('hello');
+  // useFetch accepts an object with any key and it will be
+  // passed to the fetch function you provided for createClient
+  const { data, status } = useFetch('hello');
 
-	if (status === 'pending') {
-		return <p>loading ...</p>;
-	}
+  if (status === 'pending') {
+    return <p>loading ...</p>;
+  }
 
-	return <p>{data}</p>; // displays "Hello world!"
+  return <p>{data}</p>; // displays "Hello world!"
 };
 ```
 

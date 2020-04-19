@@ -62,7 +62,7 @@ export const createClient = (options: ClientOptions): Client => {
 	 *
 	 * @param op
 	 */
-	const updatecache = (op: o.Operation) => {
+	const updateCache = (op: o.Operation) => {
 		const key = keyOf(op);
 
 		const obj = store.get(key);
@@ -71,7 +71,7 @@ export const createClient = (options: ClientOptions): Client => {
 
 		if (next === 'disposed') {
 			store.delete(key);
-			return;
+			return op;
 		}
 
 		store.set(key, {
@@ -86,6 +86,8 @@ export const createClient = (options: ClientOptions): Client => {
 
 		// notify subscribers
 		events.emit(key, op);
+
+		return op;
 	};
 
 	/**
@@ -99,7 +101,7 @@ export const createClient = (options: ClientOptions): Client => {
 		const fetchExchange = createFetch(options.fetch);
 
 		// Setup exchanges
-		const api = { emit: updatecache, cache: mapToCache(store) };
+		const api = { emit: updateCache, cache: mapToCache(store) };
 		const pipeThrough = pipe([...exchanges, fetchExchange], api);
 
 		return (op: o.Operation) => {

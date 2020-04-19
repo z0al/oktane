@@ -6,7 +6,7 @@ import is from './is';
 import { Cache } from './cache';
 import { Operation } from './operations';
 
-export type EmitFunc = (op: Operation) => void;
+export type EmitFunc = (op: Operation) => Operation;
 
 export interface ExchangeOptions {
 	emit: EmitFunc;
