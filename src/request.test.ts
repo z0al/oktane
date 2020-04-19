@@ -1,48 +1,6 @@
 // Ours
 import { buildRequest } from './request';
 
-test('should throw if request.type is set', () => {
-	expect(() => {
-		buildRequest({ type: 'anything' } as any);
-	}).toThrow(/request.type/);
-});
-
-test('should NOT throw if request.id is not set', () => {
-	expect(() => {
-		buildRequest({});
-	}).not.toThrow();
-});
-
-test('should throw if request.id is set to an invalid value', () => {
-	expect(() => {
-		buildRequest({ id: 1 } as any);
-	}).toThrow(/request.id/);
-
-	expect(() => {
-		buildRequest({ id: '' } as any);
-	}).toThrow(/request.id/);
-
-	expect(() => {
-		buildRequest({ id: true } as any);
-	}).toThrow(/request.id/);
-
-	expect(() => {
-		buildRequest({ id: {} } as any);
-	}).toThrow(/request.id/);
-
-	expect(() => {
-		buildRequest({ id: [] } as any);
-	}).toThrow(/request.id/);
-
-	expect(() => {
-		buildRequest({ id: false } as any);
-	}).toThrow(/request.id/);
-
-	expect(() => {
-		buildRequest({ id: null } as any);
-	}).not.toThrow();
-});
-
 test('should use stable stringify', () => {
 	const obj1 = {
 		query: 'test',
@@ -72,22 +30,13 @@ test('should use stable stringify', () => {
 	expect(buildRequest(obj1).id).not.toEqual(buildRequest(obj2).id);
 });
 
-test('should not stringify the request.id', () => {
-	const reqA = { query: 'test', variables: [1, 2] };
-	const reqB = { query: 'test', variables: {} };
+test('should stringify the body and use it as id', () => {
+	const bodyA = { query: 'test', variables: [1, 2] };
+	const bodyB = { query: 'test', variables: {} };
 
-	const idA = buildRequest(reqA).id;
-	const idB = buildRequest(reqB).id;
+	const idA = buildRequest(bodyA).id;
+	const idB = buildRequest(bodyB).id;
 
-	expect(JSON.parse(idA)).toEqual({ ...reqA });
-	expect(JSON.parse(idB)).toEqual({ ...reqB });
-});
-
-test('should not stringify if req.id is already set', () => {
-	const req = buildRequest({
-		id: '__id__',
-		query: 'test',
-	});
-
-	expect(req.id).toEqual('__id__');
+	expect(JSON.parse(idA)).toEqual(bodyA);
+	expect(JSON.parse(idB)).toEqual(bodyB);
 });

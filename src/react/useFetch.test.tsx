@@ -127,14 +127,14 @@ test('should cancel request when asked to', async () => {
 });
 
 test('should wait for request dependencies', async () => {
-	fetch = jest.fn().mockImplementation(async ({ query }) => {
+	fetch = jest.fn().mockImplementation(async ({ body }) => {
 		await delay(10);
 
-		if (query === 'user') {
+		if (body === 'user') {
 			return { id: 1, name: 'Jason Miller' };
 		}
 
-		if (query === 1) {
+		if (body === 1) {
 			return 'Web DevRel @google';
 		}
 
@@ -144,10 +144,8 @@ test('should wait for request dependencies', async () => {
 	const client = createClient({ fetch });
 
 	const Example = wrap(() => {
-		const { data: user } = useFetch({ query: 'user' });
-		const { data: bio } = useFetch(
-			() => user?.id && { query: user.id }
-		);
+		const { data: user } = useFetch('user');
+		const { data: bio } = useFetch(() => user?.id);
 
 		return <p>{`${user?.name}: ${bio}`}</p>;
 	}, client);

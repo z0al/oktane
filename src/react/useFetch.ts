@@ -5,7 +5,7 @@ import deepEqual from 'dequal';
 // Ours
 import { Result } from '../utils/cache';
 import { useClient } from './useClient';
-import { useBuildRequest, FetchRequest } from './useBuildRequest';
+import { useBuildRequest } from './useBuildRequest';
 
 interface FetchActions {
 	cancel: () => void;
@@ -16,11 +16,9 @@ interface FetchActions {
 
 /**
  *
- * @param _request
+ * @param body
  */
-export function useFetch(
-	_request: FetchRequest
-): Result & FetchActions {
+export function useFetch(body: any): Result & FetchActions {
 	// Fetch result & actions
 	const actions = React.useRef<FetchActions>(null);
 	const [result, setResult] = React.useState<Result>({
@@ -28,7 +26,7 @@ export function useFetch(
 	});
 
 	const client = useClient();
-	const request = useBuildRequest(_request);
+	const request = useBuildRequest(body);
 
 	React.useEffect((): any => {
 		// request can be undefined if not ready

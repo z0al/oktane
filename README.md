@@ -40,7 +40,7 @@ import { createClient, ClientProvider, useFetch } from '@z0al/ql';
 const client = createClient({
 	fetch: async (request) => {
 		// handle request(s) here and return value
-		if (request.query === 'hello') {
+		if (request.body === 'hello') {
 			return 'Hello world!';
 		}
 	},
@@ -57,7 +57,7 @@ const App = () => {
 const Hello = () => {
 	// useFetch accepts an object with any key and it will be
 	// passed to the fetch function you provided for createClient
-	const { data, state } = useFetch({ query: 'hello' });
+	const { data, state } = useFetch('hello');
 
 	if (state === 'pending') {
 		return <p>loading ...</p>;

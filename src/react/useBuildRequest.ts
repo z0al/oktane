@@ -5,21 +5,17 @@ import { useRef, useMemo } from 'react';
 import is from '../utils/is';
 import { buildRequest, Request } from '../request';
 
-export type FetchRequest =
-	| Partial<Request>
-	| (() => Partial<Request> | false | 0 | '' | null);
-
-export function useBuildRequest(_request: FetchRequest): Request {
+export function useBuildRequest(body: any): Request {
 	const prev = useRef<Request>(undefined);
 
 	return useMemo(() => {
 		let request: Request;
 
-		// _request is a function when working with dependent requests
-		const options = is.func(_request) ? _request() : _request;
+		// body is a function when working with dependent requests
+		body = is.func(body) ? body() : body;
 
-		if (options) {
-			request = buildRequest(options);
+		if (body) {
+			request = buildRequest(body);
 		}
 
 		// If the request id changed then we have a new request
@@ -28,5 +24,5 @@ export function useBuildRequest(_request: FetchRequest): Request {
 		}
 
 		return prev.current;
-	}, [_request]);
+	}, [body]);
 }
