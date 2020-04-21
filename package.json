@@ -1,11 +1,12 @@
 {
-	"name": "@z0al/ql",
-	"version": "0.0.8",
+	"name": "oktane",
+	"version": "0.0.0",
+	"description": "Lightweight helpers for data fetching in React apps",
 	"license": "MIT",
 	"author": "Ahmed T. Ali",
 	"sideEffects": false,
 	"main": "dist/index.js",
-	"module": "dist/ql.esm.js",
+	"module": "dist/oktane.esm.js",
 	"typings": "dist/index.d.ts",
 	"files": [
 		"dist"
@@ -64,7 +65,7 @@
 	},
 	"bundlesize": [
 		{
-			"path": "./dist/ql.cjs.production.min.js",
+			"path": "./dist/oktane.cjs.production.min.js",
 			"maxSize": "3 KB"
 		}
 	],
