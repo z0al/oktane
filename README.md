@@ -5,6 +5,10 @@
 
 Lightweight helpers for data fetching in React apps.
 
+## Project status
+
+Experimental. Expect breaking changes!
+
 ## Philosophy
 
 - **📦 Minimal:** both API surface & package size.
