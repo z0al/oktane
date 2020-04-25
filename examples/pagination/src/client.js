@@ -1,6 +1,6 @@
 import { createClient } from 'oktane';
 
-const BASE_URL = 'http://hn.algolia.com/api/v1/search_by_date';
+const BASE_URL = '//hn.algolia.com/api/v1/search_by_date';
 
 const client = createClient({
 	fetch: async ({ query }) => {
