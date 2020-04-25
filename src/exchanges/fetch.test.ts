@@ -1,6 +1,5 @@
 // Packages
 import delay from 'delay';
-import * as rx from 'rxjs';
 
 // Ours
 import { createFetch } from './fetch';
@@ -125,28 +124,29 @@ test('should work with Promises', async () => {
 	expect(emit).toBeCalledWith($reject(request, ERROR));
 });
 
-test('should work with observables', async () => {
-	handler = jest
-		.fn()
-		.mockReturnValueOnce(rx.from(Promise.resolve(DATA)))
-		.mockReturnValueOnce(
-			new rx.Observable((o) => {
-				setTimeout(() => {
-					o.error(ERROR);
-				});
-			})
-		);
+test('should work with subscriptions', async () => {
+	handler = () => (o: any) => {
+		const timeout = setTimeout(() => {
+			o.next(DATA);
+			o.complete();
+		});
+		return () => clearTimeout(timeout);
+	};
 
 	// success
 	fetch($fetch(request));
 	await delay(1);
 
 	expect(emit).toBeCalledWith($fetch(request));
-	expect(emit).toBeCalledWith($put(request, DATA));
+	expect(emit).toBeCalledWith($put(request, DATA, { lazy: false }));
 	expect(emit).toBeCalledWith($complete(request));
 	expect(emit).toBeCalledTimes(3);
 
 	// failure
+	handler = () => (o: any) => {
+		const timeout = setTimeout(() => o.error(ERROR));
+		return () => clearTimeout(timeout);
+	};
 	fetch($fetch(request));
 	await delay(1);
 
@@ -155,16 +155,14 @@ test('should work with observables', async () => {
 	expect(emit).toBeCalledTimes(5);
 });
 
-test('should work with pull streams', async () => {
-	const meta = { pull: true };
+test('should work with iterators/generators', async () => {
+	const meta = { lazy: true };
 	let gen: any = (function*() {
 		yield DATA[0];
 		yield DATA[1];
 	})();
 
-	handler = jest.fn().mockImplementation(() => () => {
-		return gen.next();
-	});
+	handler = () => gen;
 
 	// success
 	fetch($fetch(request));

@@ -27,7 +27,7 @@ function createFetcher(
 function createFetcher(manual: boolean) {
 	return (body: any) => {
 		if (__DEV__) {
-			if (is.func(body)) {
+			if (manual && is.func(body)) {
 				invariant(false, 'useRequest() does not accept a function');
 			}
 		}

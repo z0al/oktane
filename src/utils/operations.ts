@@ -53,8 +53,8 @@ export const $dispose = (request: Request, meta: Meta = {}) => ({
  * Request Metadata
  */
 export interface Meta {
-	// Pull Stream?
-	pull?: boolean;
+	// Lazy source?
+	lazy?: boolean;
 }
 
 /**

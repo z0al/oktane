@@ -196,14 +196,10 @@ describe('useFetch', () => {
 	});
 
 	test('should paginate if possible', async () => {
-		const fetch = () => {
-			const gen = (function*() {
-				yield 1;
-				yield 2;
-				return yield 3;
-			})();
-
-			return () => gen.next();
+		const fetch = function*() {
+			yield 1;
+			yield 2;
+			yield 3;
 		};
 
 		const client = createClient({ fetch });
@@ -300,7 +296,7 @@ describe('useFetch', () => {
 	});
 });
 
-describe.only('useRequest', () => {
+describe('useRequest', () => {
 	test('should only fetch on .fetch() call', async () => {
 		const client = createClient({ fetch });
 

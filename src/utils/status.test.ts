@@ -77,7 +77,7 @@ const TESTS = [
 	},
 	{
 		current: 'pending',
-		operation: { type: 'put', meta: { pull: true } },
+		operation: { type: 'put', meta: { lazy: true } },
 		expected: 'ready',
 	},
 	{

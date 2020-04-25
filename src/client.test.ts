@@ -1,6 +1,5 @@
 // Packages
 import delay from 'delay';
-import * as rx from 'rxjs';
 
 // Ours
 import { Cache } from './utils/cache';
@@ -221,7 +220,12 @@ describe('client', () => {
 
 			// buffering
 			subscriber.mockClear();
-			handler = () => rx.from(delay(5).then(() => DATA));
+			handler = () => (o: any) => {
+				delay(5).then(() => {
+					o.next(DATA);
+					o.complete();
+				});
+			};
 			client.fetch(request);
 			await delay(10);
 
@@ -385,15 +389,13 @@ describe('client', () => {
 		});
 
 		describe('.hasMore()', () => {
-			it('should success if a pull source is ready', async () => {
+			it('should success if the source is lazy and ready', async () => {
 				let gen = (async function*() {
 					await delay(5);
 					yield DATA;
 				})();
 
-				let handler: any = () => async () => {
-					return (await gen.next()).value;
-				};
+				let handler: any = () => gen;
 
 				const client = createClient({
 					fetch: () => handler(),
@@ -423,14 +425,12 @@ describe('client', () => {
 				expect(stream.hasMore()).toEqual(false);
 
 				// buffering
-				handler = () =>
-					new rx.Observable((o) => {
-						Promise.resolve()
-							.then(() => o.next(DATA))
-							.then(() => delay(10))
-							.then(() => o.next(DATA))
-							.finally(() => o.complete());
-					});
+				handler = () => (o: any) => {
+					Promise.resolve()
+						.then(() => o.next(DATA))
+						.then(() => delay(10))
+						.finally(() => o.complete());
+				};
 
 				client.fetch(request);
 				await delay(5);
@@ -441,7 +441,7 @@ describe('client', () => {
 
 		describe('.fetchMore()', () => {
 			it('should emit fetch operation(s)', async () => {
-				const meta = { pull: true };
+				const meta = { lazy: true };
 				const log = jest.fn();
 				const gen = (function*() {
 					yield 1;
@@ -450,7 +450,7 @@ describe('client', () => {
 				})();
 
 				const client = createClient({
-					fetch: () => () => gen.next(),
+					fetch: () => gen,
 					exchanges: [logOperations(log)],
 				});
 
@@ -494,7 +494,7 @@ describe('client', () => {
 			});
 
 			it('should dedeuplicate calls', async () => {
-				const meta = { pull: true };
+				const meta = { lazy: true };
 				const log = jest.fn();
 				const gen = (function*() {
 					yield DATA[0];
@@ -502,7 +502,7 @@ describe('client', () => {
 				})();
 
 				const client = createClient({
-					fetch: () => () => gen.next(),
+					fetch: () => gen,
 					exchanges: [logOperations(log)],
 				});
 
@@ -543,17 +543,20 @@ describe('client', () => {
 	describe('.prefetch()', () => {
 		it('should fetch and save response for later', async () => {
 			const log = jest.fn();
-			const meta = { pull: true };
+			const meta = { lazy: true };
 
-			const gen = (function*() {
+			const gen = (async function*() {
+				await delay(5);
 				yield 1;
+
+				await delay(5);
 				yield 2;
+
+				await delay(5);
 				yield 3;
 			})();
 
-			const handler = jest.fn().mockImplementation(() => {
-				return () => delay(5).then(() => gen.next());
-			});
+			const handler = () => gen;
 
 			const client = createClient({
 				fetch: () => handler(),

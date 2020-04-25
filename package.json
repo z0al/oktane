@@ -1,7 +1,7 @@
 {
 	"name": "oktane",
 	"version": "0.0.0",
-	"description": "Lightweight helpers for data fetching in React apps",
+	"description": "Light-weight helpers for data fetching",
 	"license": "MIT",
 	"author": "Ahmed T. Ali",
 	"sideEffects": false,
@@ -31,8 +31,6 @@
 	},
 	"dependencies": {
 		"dequal": "^1.0.0",
-		"is-observable": "^2.0.0",
-		"is-plain-obj": "^2.1.0",
 		"mitt": "^1.2.0",
 		"tiny-invariant": "^1.1.0"
 	},

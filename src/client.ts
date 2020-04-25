@@ -172,7 +172,7 @@ export const createClient = (options: ClientOptions): Client => {
 		}
 
 		const hasMore = () => {
-			// Pull Streams don't go to "buffering" status but rather
+			// Lazy sources don't go to "buffering" status but rather
 			// got back to "ready".
 			return store.get(request.id)?.status === 'ready';
 		};

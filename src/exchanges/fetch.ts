@@ -1,7 +1,7 @@
 // Ours
 import { Request } from '../request';
 import { Cache } from '../utils/cache';
-import { from, subscribe, Stream } from '../utils/streams';
+import { subscribe, Subscription } from '../utils/sources';
 import {
 	Exchange,
 	ExchangeOptions,
@@ -23,35 +23,37 @@ export type FetchFunc = (request: Request, ctx?: FetchContext) => any;
  */
 const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchFunc) => {
 	// holds ongoing requests
-	const queue = new Map<string, Stream>();
+	const queue = new Map<string, Subscription>();
 
 	return (next: EmitFunc) => (op: o.Operation) => {
 		const { request } = op.payload;
-		let stream = queue.get(request.id);
+		let subscription = queue.get(request.id);
 
 		if (op.type === 'cancel') {
 			queue.delete(request.id);
-			stream?.close();
+			subscription?.close();
 		}
 
 		if (op.type === 'fetch') {
 			// Is running?
-			if (stream && !stream.isClosed()) {
-				// Pull Stream? pull next value
-				if (stream.pull) {
-					stream.next();
+			if (subscription && !subscription.isClosed()) {
+				// Lazy? emit next value
+				if (subscription.lazy) {
+					subscription.next();
 				}
 
 				return next(op);
 			}
 
 			const context = { cache };
-			const source = from(fn(request, context));
-			const meta = { pull: source.pull };
 
-			stream = subscribe(source, {
+			subscription = subscribe(fn(request, context), {
 				next(data) {
-					emit(o.$put(request, data, meta));
+					emit(
+						o.$put(request, data, {
+							lazy: subscription.lazy,
+						})
+					);
 				},
 				error(err) {
 					emit(o.$reject(request, err));
@@ -61,7 +63,7 @@ const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchFunc) => {
 				},
 			});
 
-			queue.set(request.id, stream);
+			queue.set(request.id, subscription);
 		}
 
 		// Proceed to next exchange
