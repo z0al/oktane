@@ -16,7 +16,7 @@ A light-weight and customizable library for data fetching in React.
 - 🔃 Streaming + Infinite queries
 - 🔌 Plugins support
 - 💙 TypeScript ready
-- and more ...
+- [and more ...](./examples)
 
 ## Installation
 
