@@ -9,7 +9,7 @@ import { createClient } from '../client';
 import { buildRequest } from '../request';
 import { ClientProvider } from './useClient';
 import { wrap, spyOnFetch } from './test/utils';
-import { useFetch, useRequest } from './fetchers';
+import { useQuery, useRequest } from './fetchers';
 
 // @ts-ignore
 global.__DEV__ = true;
@@ -23,12 +23,12 @@ beforeEach(() => {
 	});
 });
 
-describe('useFetch', () => {
+describe('useQuery', () => {
 	test('should sync request status & response', async () => {
 		const client = createClient({ fetch });
 
 		const Example = wrap(() => {
-			const { status, data } = useFetch({});
+			const { status, data } = useQuery({});
 
 			return <p>{status !== 'completed' ? status : data}</p>;
 		}, client);
@@ -46,7 +46,7 @@ describe('useFetch', () => {
 		});
 
 		const Example = wrap(() => {
-			const { status, error } = useFetch({});
+			const { status, error } = useQuery({});
 
 			if (status === 'failed') {
 				return <p>{error.message}</p>;
@@ -71,12 +71,12 @@ describe('useFetch', () => {
 		const client = createClient({ fetch });
 
 		const Example = wrap(() => {
-			useFetch({});
-			useFetch({});
-			useFetch({});
-			useFetch({});
-			useFetch({});
-			const { status, data } = useFetch({});
+			useQuery({});
+			useQuery({});
+			useQuery({});
+			useQuery({});
+			useQuery({});
+			const { status, data } = useQuery({});
 
 			return <p>{status !== 'completed' ? status : data}</p>;
 		}, client);
@@ -94,7 +94,7 @@ describe('useFetch', () => {
 		const spy = spyOnFetch(client);
 
 		const Example = wrap(() => {
-			const { status, data } = useFetch({});
+			const { status, data } = useQuery({});
 
 			return <p>{status !== 'completed' ? status : data}</p>;
 		}, client);
@@ -111,7 +111,7 @@ describe('useFetch', () => {
 		const client = createClient({ fetch });
 
 		const Example = wrap(() => {
-			const { status, cancel } = useFetch({});
+			const { status, cancel } = useQuery({});
 
 			return (
 				<div>
@@ -138,14 +138,14 @@ describe('useFetch', () => {
 	});
 
 	test('should wait for request dependencies', async () => {
-		fetch = jest.fn().mockImplementation(async ({ body }) => {
+		fetch = jest.fn().mockImplementation(async ({ query }) => {
 			await delay(10);
 
-			if (body === 'user') {
+			if (query === 'user') {
 				return { id: 1, name: 'Jason Miller' };
 			}
 
-			if (body === 1) {
+			if (query === 1) {
 				return 'Web DevRel @google';
 			}
 
@@ -155,8 +155,8 @@ describe('useFetch', () => {
 		const client = createClient({ fetch });
 
 		const Example = wrap(() => {
-			const { data: user } = useFetch('user');
-			const { data: bio } = useFetch(() => user?.id);
+			const { data: user } = useQuery('user');
+			const { data: bio } = useQuery(() => user?.id);
 
 			return <p>{`${user?.name}: ${bio}`}</p>;
 		}, client);
@@ -184,7 +184,7 @@ describe('useFetch', () => {
 		await delay(15);
 
 		const Example = wrap(() => {
-			const { status, data } = useFetch({ url: '/api' });
+			const { status, data } = useQuery({ url: '/api' });
 
 			return <p>{status !== 'completed' ? status : data}</p>;
 		}, client);
@@ -205,7 +205,7 @@ describe('useFetch', () => {
 		const client = createClient({ fetch });
 
 		const Example = wrap(() => {
-			const { data, hasMore, fetchMore } = useFetch({});
+			const { data, hasMore, fetchMore } = useQuery({});
 
 			return (
 				<div>
@@ -255,7 +255,7 @@ describe('useFetch', () => {
 					refetch,
 					hasMore,
 					fetchMore,
-				} = useFetch(() => false);
+				} = useQuery(() => false);
 
 				return (
 					<div>
@@ -327,7 +327,7 @@ describe('useRequest', () => {
 		await waitFor(() => expect(container).toHaveTextContent('OK'));
 	});
 
-	test('should throw if body is a function', () => {
+	test('should throw if query is a function', () => {
 		const client = createClient({ fetch });
 
 		const { result } = renderHook(() => useRequest(() => '/api'), {

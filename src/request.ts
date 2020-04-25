@@ -1,6 +1,6 @@
 export interface Request {
 	id: string;
-	body?: any;
+	query?: any;
 }
 
 const stabilize = (_: string, value: any) => {
@@ -15,7 +15,7 @@ const stabilize = (_: string, value: any) => {
 	return value;
 };
 
-export const buildRequest = (body: any): Request => ({
-	id: JSON.stringify(body, stabilize),
-	body,
+export const buildRequest = (query: any): Request => ({
+	id: JSON.stringify(query, stabilize),
+	query,
 });

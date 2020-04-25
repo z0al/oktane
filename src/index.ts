@@ -5,7 +5,7 @@ declare global {
 export { Client, createClient } from './client';
 export { Request, buildRequest } from './request';
 export {
-	useFetch,
+	useQuery,
 	useRequest,
 	useClient,
 	ClientProvider,

@@ -19,13 +19,13 @@ interface FetchOperations {
 
 function createFetcher(
 	manual: false
-): (body: any) => Result & Omit<FetchOperations, 'fetch'>;
+): (query: any) => Result & Omit<FetchOperations, 'fetch'>;
 function createFetcher(
 	manual: true
-): (body: any) => Result & Required<FetchOperations>;
+): (query: any) => Result & Required<FetchOperations>;
 function createFetcher(manual: boolean) {
-	return (body: any) => {
-		if (manual && is.func(body)) {
+	return (query: any) => {
+		if (manual && is.func(query)) {
 			throw new Error('useRequest() does not accept a function');
 		}
 
@@ -38,7 +38,7 @@ function createFetcher(manual: boolean) {
 		const fns = React.useRef<ReturnType<Client['fetch']>>(null);
 
 		const client = useClient();
-		const request = useBuildRequest(body);
+		const request = useBuildRequest(query);
 
 		const fetch = React.useCallback(() => {
 			// bail out if request is not ready
@@ -111,5 +111,5 @@ function createFetcher(manual: boolean) {
 	};
 }
 
-export const useFetch = createFetcher(false);
+export const useQuery = createFetcher(false);
 export const useRequest = createFetcher(true);

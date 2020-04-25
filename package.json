@@ -1,6 +1,6 @@
 {
 	"name": "oktane",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"description": "A light-weight and customizable library for data fetching in React",
 	"license": "MIT",
 	"author": "Ahmed T. Ali",
@@ -9,6 +9,13 @@
 	"source": "src/index.ts",
 	"module": "dist/oktane.esm.js",
 	"typings": "dist/index.d.ts",
+	"keywords": [
+		"react",
+		"query",
+		"oktane",
+		"mutation",
+		"subscription"
+	],
 	"files": [
 		"dist"
 	],

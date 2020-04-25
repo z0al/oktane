@@ -30,13 +30,13 @@ test('should use stable stringify', () => {
 	expect(buildRequest(obj1).id).not.toEqual(buildRequest(obj2).id);
 });
 
-test('should stringify the body and use it as id', () => {
-	const bodyA = { query: 'test', variables: [1, 2] };
-	const bodyB = { query: 'test', variables: {} };
+test('should stringify the query and use it as an id', () => {
+	const queryA = { query: 'test', variables: [1, 2] };
+	const queryB = { query: 'test', variables: {} };
 
-	const idA = buildRequest(bodyA).id;
-	const idB = buildRequest(bodyB).id;
+	const idA = buildRequest(queryA).id;
+	const idB = buildRequest(queryB).id;
 
-	expect(JSON.parse(idA)).toEqual(bodyA);
-	expect(JSON.parse(idB)).toEqual(bodyB);
+	expect(JSON.parse(idA)).toEqual(queryA);
+	expect(JSON.parse(idB)).toEqual(queryB);
 });

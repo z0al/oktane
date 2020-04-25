@@ -5,24 +5,24 @@ import { useRef, useMemo } from 'react';
 import is from '../utils/is';
 import { buildRequest, Request } from '../request';
 
-export function useBuildRequest(body: any): Request {
+export function useBuildRequest(query: any): Request {
 	const prev = useRef<Request>(undefined);
 
 	return useMemo(() => {
 		let request: Request;
 
 		// is ready?
-		if (is.func(body)) {
+		if (is.func(query)) {
 			try {
 				// eslint-disable-next-line
-				body = body();
+				query = query();
 			} catch {
-				body = false;
+				query = false;
 			}
 		}
 
-		if (body) {
-			request = buildRequest(body);
+		if (query) {
+			request = buildRequest(query);
 		}
 
 		// If the request id changed then we have a new request
@@ -31,5 +31,5 @@ export function useBuildRequest(body: any): Request {
 		}
 
 		return prev.current;
-	}, [body]);
+	}, [query]);
 }
