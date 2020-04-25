@@ -5,7 +5,7 @@ const REPO = 'facebook/react';
 
 const Issues = () => {
 	const { data = [], status, hasMore, fetchMore } = useQuery(REPO);
-	console.log(data);
+
 	return (
 		<div className="issues">
 			<h2>
