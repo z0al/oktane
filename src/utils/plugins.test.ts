@@ -1,45 +1,45 @@
 // Ours
 import { $put } from './operations';
-import { pipe, Exchange, ExchangeOptions } from './exchanges';
+import { pipe, Plugin, PluginOptions } from './plugins';
 
-let api: ExchangeOptions;
+let api: PluginOptions;
 beforeEach(() => {
 	api = { cache: new Map(), emit: jest.fn() };
 });
 
-test('should throw if no exchanges were passesd', () => {
+test('should throw if no plugins were passesd', () => {
 	expect(() => {
 		pipe([], api);
-	}).toThrow(/at least one exchange/i);
+	}).toThrow(/at least one plugin/i);
 
 	expect(api.emit).not.toBeCalled();
 });
 
-test('should throw if some exchanges are not valid', () => {
+test('should throw if some plugins are not valid', () => {
 	expect(() => {
 		pipe([null], api);
-	}).toThrow(/exchange.name/i);
+	}).toThrow(/plugin.name/i);
 
 	expect(() => {
 		pipe([{} as any], api);
-	}).toThrow(/exchange.name/i);
+	}).toThrow(/plugin.name/i);
 
 	expect(() => {
 		pipe([true as any], api);
-	}).toThrow(/exchange.name/i);
+	}).toThrow(/plugin.name/i);
 
 	expect(() => {
 		pipe([{ name: 'test' } as any], api);
-	}).toThrow(/exchange.init/i);
+	}).toThrow(/plugin.init/i);
 
 	expect(() => {
 		pipe([{ name: 'test', init: 'invalid' } as any], api);
-	}).toThrow(/exchange.init/i);
+	}).toThrow(/plugin.init/i);
 
 	expect(api.emit).not.toBeCalled();
 });
 
-test('should throw if exchange names are not unique', () => {
+test('should throw if plugin names are not unique', () => {
 	const ex = {
 		name: 'ex',
 		init: jest.fn(),
@@ -59,8 +59,8 @@ test('should throw if exchange names are not unique', () => {
 	expect(dup.init).not.toBeCalled();
 });
 
-test('should throw when emitting during exchange setup', () => {
-	const ex: Exchange = {
+test('should throw when emitting during plugin setup', () => {
+	const ex: Plugin = {
 		name: 'test',
 		init: jest.fn().mockImplementation(({ emit }) => {
 			emit(null);
@@ -76,9 +76,9 @@ test('should throw when emitting during exchange setup', () => {
 	expect(api.emit).not.toBeCalled();
 });
 
-test('should NOT throw when emitting after exchange setup', () => {
+test('should NOT throw when emitting after plugin setup', () => {
 	let called = false;
-	const ex: Exchange = {
+	const ex: Plugin = {
 		name: 'test',
 		init: ({ emit }) => (next) => (op) => {
 			if (!called) {
@@ -97,16 +97,16 @@ test('should NOT throw when emitting after exchange setup', () => {
 	expect(api.emit).toBeCalledWith(null);
 });
 
-test('should compose exchanges from right to left', () => {
-	const createExchange = (name: string): Exchange => ({
+test('should compose plugins from right to left', () => {
+	const createplugin = (name: string): Plugin => ({
 		name,
 		init: () => (next) => (op) =>
 			next($put(null, (op.payload as any).data + name)),
 	});
 
-	const a = createExchange('a');
-	const b = createExchange('b');
-	const c = createExchange('c');
+	const a = createplugin('a');
+	const b = createplugin('b');
+	const c = createplugin('c');
 
 	pipe([a, b, c], api)($put(null, '+'));
 	expect(api.emit).toBeCalledWith($put(null, '+abc'));

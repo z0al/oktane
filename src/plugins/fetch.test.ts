@@ -4,7 +4,7 @@ import delay from 'delay';
 // Ours
 import { createFetch } from './fetch';
 import { buildRequest } from '../request';
-import { pipe } from '../utils/exchanges';
+import { pipe } from '../utils/plugins';
 import {
 	$put,
 	$complete,
@@ -34,13 +34,13 @@ beforeEach(() => {
 	fetch = pipe([createFetch(fetchHandler)], api);
 });
 
-test('should return a valid exchange', () => {
-	const exchange = createFetch(jest.fn());
+test('should return a valid plugin', () => {
+	const plugin = createFetch(jest.fn());
 
-	expect(exchange.name).toEqual('fetch');
-	expect(exchange.init).toEqual(expect.any(Function));
+	expect(plugin.name).toEqual('fetch');
+	expect(plugin.init).toEqual(expect.any(Function));
 	expect(
-		exchange.init({
+		plugin.init({
 			emit: jest.fn(),
 			cache: new Map(),
 		})

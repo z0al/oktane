@@ -8,64 +8,64 @@ import { Operation } from './operations';
 
 export type EmitFunc = (op: Operation) => Operation;
 
-export interface ExchangeOptions {
+export interface PluginOptions {
 	emit: EmitFunc;
 	cache: Cache;
 }
 
-export interface Exchange {
+export interface Plugin {
 	name: string;
-	init: (o?: ExchangeOptions) => (next?: EmitFunc) => EmitFunc;
+	init: (o?: PluginOptions) => (next?: EmitFunc) => EmitFunc;
 }
 
 /**
- * Setups exchanges and returns emit function. This is very similar
+ * Setups plugins and returns emit function. This is very similar
  * to Redux's `applyMiddleware`.
  *
- * @param exchanges
+ * @param plugins
  * @param options
  */
 export const pipe = (
-	exchanges: Exchange[],
-	options: ExchangeOptions
+	plugins: Plugin[],
+	options: PluginOptions
 ): EmitFunc => {
 	invariant(
-		exchanges?.length > 0,
-		'At least one exchange must be provided'
+		plugins?.length > 0,
+		'At least one plugin must be provided'
 	);
 
-	for (const ex of exchanges) {
+	for (const ex of plugins) {
 		invariant(
 			is.string(ex?.name),
-			`exchange.name must be a non-empty string. Found: ${ex?.name}`
+			`plugin.name must be a non-empty string. Found: ${ex?.name}`
 		);
 
 		invariant(
 			is.func(ex?.init),
-			`exchange.init must be a function. Found: ${ex?.init}`
+			`plugin.init must be a function. Found: ${ex?.init}`
 		);
 	}
 
 	// No duplicated names allowed
-	const names = exchanges.map((e) => e.name);
+	const names = plugins.map((e) => e.name);
 	for (const name of names) {
 		invariant(
 			names.indexOf(name) === names.lastIndexOf(name),
-			`exchange names must be unique. ` +
-				`Found two or more exchanges with the name: ${name}`
+			`plugin names must be unique. ` +
+				`Found two or more plugins with the name: ${name}`
 		);
 	}
 
 	let emit: EmitFunc = () => {
-		invariant(false, 'emitting during exchange setup is not allowed');
+		invariant(false, 'emitting during plugin setup is not allowed');
 	};
 
-	const api: ExchangeOptions = {
+	const api: PluginOptions = {
 		...options,
 		emit: (o) => emit(o),
 	};
 
-	emit = exchanges
+	emit = plugins
 		.map((ex) => ex.init(api))
 		.reduce((a, b) => (o) => a(b(o)))(options.emit);
 

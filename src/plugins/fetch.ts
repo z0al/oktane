@@ -2,11 +2,7 @@
 import { Request } from '../request';
 import { Cache } from '../utils/cache';
 import { subscribe, Subscription } from '../utils/sources';
-import {
-	Exchange,
-	ExchangeOptions,
-	EmitFunc,
-} from '../utils/exchanges';
+import { Plugin, PluginOptions, EmitFunc } from '../utils/plugins';
 
 import * as o from '../utils/operations';
 
@@ -21,7 +17,7 @@ export type FetchFunc = (request: Request, ctx?: FetchContext) => any;
  * @param options
  * @param fn
  */
-const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchFunc) => {
+const fetch = ({ emit, cache }: PluginOptions, fn: FetchFunc) => {
 	// holds ongoing requests
 	const queue = new Map<string, Subscription>();
 
@@ -66,12 +62,12 @@ const fetch = ({ emit, cache }: ExchangeOptions, fn: FetchFunc) => {
 			queue.set(request.id, subscription);
 		}
 
-		// Proceed to next exchange
+		// Proceed to next plugin
 		return next(op);
 	};
 };
 
-export const createFetch = (fn: FetchFunc): Exchange => ({
+export const createFetch = (fn: FetchFunc): Plugin => ({
 	name: 'fetch',
 	init: (options) => fetch(options, fn),
 });

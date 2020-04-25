@@ -13,4 +13,4 @@ export {
 
 export { Result } from './utils/cache';
 export { Status } from './utils/status';
-export { Exchange, ExchangeOptions } from './utils/exchanges';
+export { Plugin, PluginOptions } from './utils/plugins';

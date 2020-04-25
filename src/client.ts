@@ -9,8 +9,8 @@ import { Request } from './request';
 import { Emitter } from './utils/emitter';
 import { transition } from './utils/status';
 import { Result, mapToCache } from './utils/cache';
-import { pipe, Exchange } from './utils/exchanges';
-import { createFetch, FetchFunc } from './exchanges/fetch';
+import { pipe, Plugin } from './utils/plugins';
+import { createFetch, FetchFunc } from './plugins/fetch';
 
 export type Subscriber = (change: Result) => void;
 
@@ -35,7 +35,7 @@ export interface ClientOptions {
 		// Max age for unused requests. Default is 30 seconds.
 		maxAge?: number;
 	};
-	exchanges?: Exchange[];
+	plugins?: Plugin[];
 }
 
 export const createClient = (options: ClientOptions): Client => {
@@ -97,12 +97,12 @@ export const createClient = (options: ClientOptions): Client => {
 	 * @param op
 	 */
 	const apply = (() => {
-		const exchanges = options.exchanges || [];
-		const fetchExchange = createFetch(options.fetch);
+		const plugins = options.plugins || [];
+		const fetchPlugin = createFetch(options.fetch);
 
-		// Setup exchanges
+		// Setup plugins
 		const api = { emit: updateCache, cache: mapToCache(store) };
-		const pipeThrough = pipe([...exchanges, fetchExchange], api);
+		const pipeThrough = pipe([...plugins, fetchPlugin], api);
 
 		return (op: o.Operation) => {
 			const current = store.get(keyOf(op))?.status;

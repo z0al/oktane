@@ -5,7 +5,7 @@ import delay from 'delay';
 import { Cache } from './utils/cache';
 import { createClient } from './client';
 import { buildRequest } from './request';
-import { Exchange } from './utils/exchanges';
+import { Plugin } from './utils/plugins';
 import {
 	$fetch,
 	$cancel,
@@ -36,7 +36,7 @@ describe('client', () => {
 		...e,
 	});
 
-	const logOptions = (fn: any): Exchange => ({
+	const logOptions = (fn: any): Plugin => ({
 		name: 'log-options',
 		init: (api) => {
 			fn(api);
@@ -44,7 +44,7 @@ describe('client', () => {
 		},
 	});
 
-	const logOperations = (fn: any): Exchange => ({
+	const logOperations = (fn: any): Plugin => ({
 		name: 'log-operations',
 		init: () => (next) => (op) => {
 			fn(op);
@@ -61,7 +61,7 @@ describe('client', () => {
 		});
 	});
 
-	it('should not throw when no exchanges were passed', () => {
+	it('should not throw when no plugins were passed', () => {
 		const fetch = jest.fn();
 
 		expect(() => {
@@ -69,13 +69,13 @@ describe('client', () => {
 		}).not.toThrow();
 
 		expect(() => {
-			createClient({ fetch, exchanges: [] });
+			createClient({ fetch, plugins: [] });
 		}).not.toThrow();
 
 		expect(fetch).not.toBeCalled();
 	});
 
-	it('should pass necessary options to exchanges', () => {
+	it('should pass necessary options to plugins', () => {
 		const api = {
 			emit: expect.any(Function),
 			cache: expect.objectContaining({
@@ -87,7 +87,7 @@ describe('client', () => {
 		const log = jest.fn();
 		createClient({
 			fetch: jest.fn(),
-			exchanges: [logOptions(log)],
+			plugins: [logOptions(log)],
 		});
 
 		expect(log).toBeCalledWith(api);
@@ -98,7 +98,7 @@ describe('client', () => {
 		const client = createClient({
 			fetch: jest.fn(),
 			cache: { maxAge: 5 },
-			exchanges: [logOperations(log)],
+			plugins: [logOperations(log)],
 		});
 
 		// No subscriber? immediatly unused
@@ -138,7 +138,7 @@ describe('client', () => {
 		const client = createClient({
 			cache: { maxAge: 5 },
 			fetch: async () => DATA,
-			exchanges: [logOptions(log)],
+			plugins: [logOptions(log)],
 		});
 
 		// Immediatly unused (no subscriber)
@@ -153,7 +153,7 @@ describe('client', () => {
 			const log = jest.fn();
 			const client = createClient({
 				fetch: jest.fn(),
-				exchanges: [logOperations(log)],
+				plugins: [logOperations(log)],
 			});
 
 			client.fetch(request);
@@ -165,7 +165,7 @@ describe('client', () => {
 			const log = jest.fn();
 			const client = createClient({
 				fetch: () => delay(10),
-				exchanges: [logOperations(log)],
+				plugins: [logOperations(log)],
 			});
 
 			client.fetch(request);
@@ -275,7 +275,7 @@ describe('client', () => {
 
 				const client = createClient({
 					fetch: () => delay(10),
-					exchanges: [logOperations(log)],
+					plugins: [logOperations(log)],
 				});
 
 				client.fetch(request).cancel();
@@ -296,7 +296,7 @@ describe('client', () => {
 
 				const client = createClient({
 					fetch: () => handler(),
-					exchanges: [logOperations(log)],
+					plugins: [logOperations(log)],
 				});
 
 				const operations = client.fetch(request);
@@ -359,7 +359,7 @@ describe('client', () => {
 
 				const client = createClient({
 					fetch: () => handler(),
-					exchanges: [logOperations(log)],
+					plugins: [logOperations(log)],
 				});
 
 				// Has no subscriber? cancel
@@ -451,7 +451,7 @@ describe('client', () => {
 
 				const client = createClient({
 					fetch: () => gen,
-					exchanges: [logOperations(log)],
+					plugins: [logOperations(log)],
 				});
 
 				const stream = client.fetch(request);
@@ -503,7 +503,7 @@ describe('client', () => {
 
 				const client = createClient({
 					fetch: () => gen,
-					exchanges: [logOperations(log)],
+					plugins: [logOperations(log)],
 				});
 
 				const stream = client.fetch(request);
@@ -560,7 +560,7 @@ describe('client', () => {
 
 			const client = createClient({
 				fetch: () => handler(),
-				exchanges: [logOperations(log)],
+				plugins: [logOperations(log)],
 			});
 
 			// fetch
@@ -603,7 +603,7 @@ describe('client', () => {
 						throw ERROR;
 					}),
 
-				exchanges: [logOperations(log)],
+				plugins: [logOperations(log)],
 			});
 
 			// fetch
@@ -643,7 +643,7 @@ describe('client', () => {
 			const client = createClient({
 				fetch: jest.fn(),
 				cache: { maxAge: 5 },
-				exchanges: [logOperations(log)],
+				plugins: [logOperations(log)],
 			});
 
 			client.prefetch(request);
