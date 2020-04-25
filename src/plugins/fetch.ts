@@ -1,10 +1,9 @@
 // Ours
 import { Request } from '../request';
 import { Cache } from '../utils/cache';
+import { Operation } from '../utils/operations';
 import { subscribe, Subscription } from '../utils/sources';
 import { Plugin, PluginOptions, EmitFunc } from '../utils/plugins';
-
-import * as o from '../utils/operations';
 
 interface FetchContext {
 	cache: Cache;
@@ -17,11 +16,11 @@ export type FetchFunc = (request: Request, ctx?: FetchContext) => any;
  * @param options
  * @param fn
  */
-const fetch = ({ emit, cache }: PluginOptions, fn: FetchFunc) => {
+const handler = ({ apply, cache }: PluginOptions, fn: FetchFunc) => {
 	// holds ongoing requests
 	const queue = new Map<string, Subscription>();
 
-	return (next: EmitFunc) => (op: o.Operation) => {
+	return (next: EmitFunc) => (op: Operation) => {
 		const { request } = op.payload;
 		let subscription = queue.get(request.id);
 
@@ -45,17 +44,14 @@ const fetch = ({ emit, cache }: PluginOptions, fn: FetchFunc) => {
 
 			subscription = subscribe(fn(request, context), {
 				next(data) {
-					emit(
-						o.$put(request, data, {
-							lazy: subscription.lazy,
-						})
-					);
+					const meta = { lazy: subscription.lazy };
+					apply('put', { request, data }, meta);
 				},
-				error(err) {
-					emit(o.$reject(request, err));
+				error(error) {
+					apply('reject', { request, error });
 				},
 				complete(data) {
-					emit(o.$complete(request, data));
+					apply('complete', { request, data });
 				},
 			});
 
@@ -69,5 +65,5 @@ const fetch = ({ emit, cache }: PluginOptions, fn: FetchFunc) => {
 
 export const createFetch = (fn: FetchFunc): Plugin => ({
 	name: 'fetch',
-	init: (options) => fetch(options, fn),
+	init: (options) => handler(options, fn),
 });

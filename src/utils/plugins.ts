@@ -1,12 +1,14 @@
 // Ours
 import is from './is';
 import { Cache } from './cache';
-import { Operation } from './operations';
+import { Operation, $ } from './operations';
 
 export type EmitFunc = (op: Operation) => Operation;
 
+type ApplyFunc = typeof $;
+
 export interface PluginOptions {
-	emit: EmitFunc;
+	apply: ApplyFunc;
 	cache: Cache;
 }
 
@@ -24,7 +26,8 @@ export interface Plugin {
  */
 export const pipe = (
 	plugins: Plugin[],
-	options: PluginOptions
+	emit: EmitFunc,
+	cache: Cache
 ): EmitFunc => {
 	if (__DEV__) {
 		for (const ex of plugins) {
@@ -53,18 +56,28 @@ export const pipe = (
 		}
 	}
 
-	let emit: EmitFunc = () => {
-		throw new Error('emitting during plugin setup is not allowed');
+	let apply: ApplyFunc = () => {
+		throw new Error(
+			'applying operations during plugin setup is not allowed'
+		);
 	};
 
 	const api: PluginOptions = {
-		...options,
-		emit: (o) => emit(o),
+		cache,
+		apply: (t, p, m) => apply(t, p, m),
 	};
 
 	emit = plugins
 		.map((ex) => ex.init(api))
-		.reduce((a, b) => (o) => a(b(o)))(options.emit);
+		.reduce((a, b) => (o) => a(b(o)))(emit);
+
+	apply = (t, p, m) => {
+		if (t === 'dispose') {
+			throw new Error('manual requests disposal is not supported');
+		}
+
+		return emit($(t, p, m));
+	};
 
 	return emit;
 };

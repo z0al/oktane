@@ -1,12 +1,11 @@
 // Ours
-import * as o from './utils/operations';
-
 import is from './utils/is';
 import { Request } from './request';
 import { Emitter } from './utils/emitter';
 import { transition } from './utils/status';
-import { Result, mapToCache } from './utils/cache';
 import { pipe, Plugin } from './utils/plugins';
+import { Operation, $ } from './utils/operations';
+import { Result, mapToCache } from './utils/cache';
 import { createFetch, FetchFunc } from './plugins/fetch';
 
 export type Subscriber = (change: Result) => void;
@@ -50,7 +49,7 @@ export const createClient = (options: ClientOptions): Client => {
 	 *
 	 * @param op
 	 */
-	const keyOf = (op: o.Operation) => {
+	const keyOf = (op: Operation) => {
 		return op.payload.request.id;
 	};
 
@@ -59,26 +58,21 @@ export const createClient = (options: ClientOptions): Client => {
 	 *
 	 * @param op
 	 */
-	const updateCache = (op: o.Operation) => {
+	const emit = (op: Operation) => {
 		const key = keyOf(op);
-
 		const obj = store.get(key);
 
-		const next = transition(obj?.status, op);
+		const status = transition(obj?.status, op);
 
-		if (next === 'disposed') {
+		if (status === 'disposed') {
 			store.delete(key);
 			return op;
 		}
 
 		store.set(key, {
-			status: next,
-			error: op.type === 'reject' ? op.payload.error : undefined,
-			data:
-				op.type === 'put' ||
-				(op.type === 'complete' && op.payload.data !== undefined)
-					? op.payload.data
-					: obj?.data,
+			status,
+			error: op.payload.error,
+			data: op.payload.data !== undefined ? op.payload.data : obj?.data,
 		});
 
 		// notify subscribers
@@ -95,19 +89,21 @@ export const createClient = (options: ClientOptions): Client => {
 	 */
 	const apply = (() => {
 		const plugins = options.plugins || [];
-		const fetchPlugin = createFetch(options.fetch);
 
 		// Setup plugins
-		const api = { emit: updateCache, cache: mapToCache(store) };
-		const pipeThrough = pipe([...plugins, fetchPlugin], api);
+		const pipeThrough = pipe(
+			[...plugins, createFetch(options.fetch)],
+			emit,
+			mapToCache(store)
+		);
 
-		return (op: o.Operation) => {
+		return (op: Operation) => {
 			const current = store.get(keyOf(op))?.status;
 			const next = transition(current, op);
 
-			// Rule:
-			// If it won't change the current status DO NOT do it.
-			// The ONLY exception is buffering.
+			// Skip any Operation that doesn't change the status. The only
+			// exception is "put" operation since it doesn't change the
+			// status when performed multiple times.
 			if (current !== 'buffering' && next === current) {
 				return;
 			}
@@ -127,7 +123,7 @@ export const createClient = (options: ClientOptions): Client => {
 		return (r: Request, dispose = true) => {
 			if (dispose) {
 				const collect = () => {
-					apply(o.$dispose({ id: r.id }));
+					apply($('dispose', { request: r }));
 				};
 
 				const { cache } = options;
@@ -186,12 +182,12 @@ export const createClient = (options: ClientOptions): Client => {
 			}
 
 			if (hasMore()) {
-				apply(o.$fetch(request));
+				apply($('fetch', { request }));
 			}
 		};
 
 		const cancel = () => {
-			apply(o.$cancel(request));
+			apply($('cancel', { request }));
 		};
 
 		const refetch = () => {
@@ -202,7 +198,7 @@ export const createClient = (options: ClientOptions): Client => {
 				status === 'cancelled' ||
 				status === 'failed'
 			) {
-				apply(o.$fetch(request));
+				apply($('fetch', { request }));
 			} else {
 				if (__DEV__) {
 					console.warn(
@@ -227,7 +223,7 @@ export const createClient = (options: ClientOptions): Client => {
 		const isPrefetched = prefetched.has(request.id);
 
 		if (!isPrefetched) {
-			apply(o.$fetch(request));
+			apply($('fetch', { request }));
 		} else {
 			prefetched.delete(request.id);
 

@@ -3,16 +3,10 @@ import delay from 'delay';
 
 // Ours
 import { Cache } from './utils/cache';
+import { $ } from './utils/operations';
 import { createClient } from './client';
 import { buildRequest } from './request';
 import { Plugin } from './utils/plugins';
-import {
-	$fetch,
-	$cancel,
-	$dispose,
-	$complete,
-	$put,
-} from './utils/operations';
 
 // @ts-ignore
 global.__DEV__ = false;
@@ -22,12 +16,12 @@ const request = buildRequest({
 	body: {},
 });
 
-const DATA = [
+const data = [
 	{ id: 1, name: 'React' },
 	{ id: 2, name: 'Svelte' },
 ];
 
-const ERROR = new Error('unknown');
+const error = new Error('unknown');
 
 describe('client', () => {
 	const toChange = (e: any) => ({
@@ -77,7 +71,7 @@ describe('client', () => {
 
 	it('should pass necessary options to plugins', () => {
 		const api = {
-			emit: expect.any(Function),
+			apply: expect.any(Function),
 			cache: expect.objectContaining({
 				get: expect.any(Function),
 				has: expect.any(Function),
@@ -105,19 +99,19 @@ describe('client', () => {
 		client.prefetch(request);
 		await delay(10);
 
-		expect(log).toBeCalledWith($dispose({ id: request.id }));
+		expect(log).toBeCalledWith($('dispose', { request }));
 
 		// Has subscriber? wait for .unsubscribe()
 		log.mockClear();
 		const sub = client.fetch(request, jest.fn());
 		await delay(10);
 
-		expect(log).not.toBeCalledWith($dispose({ id: request.id }));
+		expect(log).not.toBeCalledWith($('dispose', { request }));
 
 		sub.unsubscribe();
 		await delay(10);
 
-		expect(log).toBeCalledWith($dispose({ id: request.id }));
+		expect(log).toBeCalledWith($('dispose', { request }));
 
 		// At least one subscriber? don't dispose
 		log.mockClear();
@@ -125,7 +119,7 @@ describe('client', () => {
 		client.fetch(request, jest.fn());
 		await delay(10);
 
-		expect(log).not.toBeCalledWith($dispose({ id: request.id }));
+		expect(log).not.toBeCalledWith($('dispose', { request }));
 	});
 
 	it('should clear cache on "dispose"', async () => {
@@ -137,7 +131,7 @@ describe('client', () => {
 
 		const client = createClient({
 			cache: { maxAge: 5 },
-			fetch: async () => DATA,
+			fetch: async () => data,
 			plugins: [logOptions(log)],
 		});
 
@@ -158,7 +152,7 @@ describe('client', () => {
 
 			client.fetch(request);
 
-			expect(log).toBeCalledWith($fetch(request));
+			expect(log).toBeCalledWith($('fetch', { request }));
 		});
 
 		it('should not duplicate requests', () => {
@@ -172,13 +166,13 @@ describe('client', () => {
 			client.fetch(request);
 			client.fetch(request);
 
-			expect(log).toBeCalledWith($fetch(request));
+			expect(log).toBeCalledWith($('fetch', { request }));
 			expect(log).toBeCalledTimes(1);
 		});
 
 		it('should notify subscriber with changes', async () => {
 			const subscriber = jest.fn();
-			let handler: any = () => delay(5).then(() => DATA);
+			let handler: any = () => delay(5).then(() => data);
 
 			const client = createClient({
 				fetch: () => handler(),
@@ -194,7 +188,7 @@ describe('client', () => {
 			expect(subscriber).toBeCalledWith(
 				toChange({
 					status: 'completed',
-					data: DATA,
+					data,
 				})
 			);
 			expect(subscriber).toBeCalledTimes(2);
@@ -207,13 +201,13 @@ describe('client', () => {
 			expect(subscriber).toBeCalledWith(
 				toChange({
 					status: 'pending',
-					data: DATA,
+					data,
 				})
 			);
 			expect(subscriber).toBeCalledWith(
 				toChange({
 					status: 'cancelled',
-					data: DATA,
+					data,
 				})
 			);
 			expect(subscriber).toBeCalledTimes(2);
@@ -222,7 +216,7 @@ describe('client', () => {
 			subscriber.mockClear();
 			handler = () => (o: any) => {
 				delay(5).then(() => {
-					o.next(DATA);
+					o.next(data);
 					o.complete();
 				});
 			};
@@ -232,39 +226,39 @@ describe('client', () => {
 			expect(subscriber).toBeCalledWith(
 				toChange({
 					status: 'pending',
-					data: DATA,
+					data,
 				})
 			);
 			expect(subscriber).toBeCalledWith(
 				toChange({
 					status: 'buffering',
-					data: DATA,
+					data,
 				})
 			);
 			expect(subscriber).toBeCalledWith(
 				toChange({
 					status: 'completed',
-					data: DATA,
+					data,
 				})
 			);
 
 			// failure
 			subscriber.mockClear();
-			handler = () => Promise.reject(ERROR);
+			handler = () => Promise.reject(error);
 			client.fetch(request);
 			await delay(10);
 
 			expect(subscriber).toBeCalledWith(
 				toChange({
 					status: 'pending',
-					data: DATA,
+					data,
 				})
 			);
 			expect(subscriber).toBeCalledWith(
 				toChange({
 					status: 'failed',
-					data: DATA,
-					error: ERROR,
+					data,
+					error,
 				})
 			);
 		});
@@ -280,8 +274,8 @@ describe('client', () => {
 
 				client.fetch(request).cancel();
 
-				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($cancel(request));
+				expect(log).toBeCalledWith($('fetch', { request }));
+				expect(log).toBeCalledWith($('cancel', { request }));
 			});
 		});
 
@@ -317,14 +311,14 @@ describe('client', () => {
 				log.mockClear();
 				operations.refetch();
 
-				expect(log).toBeCalledWith($fetch(request));
+				expect(log).toBeCalledWith($('fetch', { request }));
 
 				// cancelled
 				log.mockClear();
 				operations.cancel();
 				operations.refetch();
 
-				expect(log).toBeCalledWith($fetch(request));
+				expect(log).toBeCalledWith($('fetch', { request }));
 
 				await delay(15);
 
@@ -332,7 +326,7 @@ describe('client', () => {
 				log.mockClear();
 				operations.refetch();
 
-				expect(log).toBeCalledWith($fetch(request));
+				expect(log).toBeCalledWith($('fetch', { request }));
 			});
 		});
 
@@ -355,7 +349,7 @@ describe('client', () => {
 
 			it('should cancel unused requests', async () => {
 				const log = jest.fn();
-				let handler = async () => delay(5).then(() => DATA);
+				let handler = async () => delay(5).then(() => data);
 
 				const client = createClient({
 					fetch: () => handler(),
@@ -365,8 +359,8 @@ describe('client', () => {
 				// Has no subscriber? cancel
 				client.fetch(request, jest.fn()).unsubscribe();
 
-				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($cancel(request));
+				expect(log).toBeCalledWith($('fetch', { request }));
+				expect(log).toBeCalledWith($('cancel', { request }));
 				expect(log).toBeCalledTimes(2);
 
 				// Has some subscriber? don't cancel
@@ -374,8 +368,8 @@ describe('client', () => {
 				const { cancel } = client.fetch(request, jest.fn()); // <--- (R)
 				client.fetch(request, jest.fn()).unsubscribe();
 
-				expect(log).toBeCalledWith($fetch(request));
-				expect(log).not.toBeCalledWith($cancel(request));
+				expect(log).toBeCalledWith($('fetch', { request }));
+				expect(log).not.toBeCalledWith($('cancel', { request }));
 				expect(log).toBeCalledTimes(1);
 
 				// Request completed? too late cancel
@@ -383,8 +377,8 @@ describe('client', () => {
 				await delay(10); // wait for (R)
 				cancel();
 
-				expect(log).toBeCalledWith($complete(request, DATA));
-				expect(log).not.toBeCalledWith($cancel(request));
+				expect(log).toBeCalledWith($('complete', { request, data }));
+				expect(log).not.toBeCalledWith($('cancel', { request }));
 			});
 		});
 
@@ -392,7 +386,7 @@ describe('client', () => {
 			it('should success if the source is lazy and ready', async () => {
 				let gen = (async function*() {
 					await delay(5);
-					yield DATA;
+					yield data;
 				})();
 
 				let handler: any = () => gen;
@@ -417,7 +411,7 @@ describe('client', () => {
 				// failure
 				handler = async () => {
 					await delay(5);
-					throw ERROR;
+					throw error;
 				};
 
 				client.fetch(request);
@@ -427,7 +421,7 @@ describe('client', () => {
 				// buffering
 				handler = () => (o: any) => {
 					Promise.resolve()
-						.then(() => o.next(DATA))
+						.then(() => o.next(data))
 						.then(() => delay(10))
 						.finally(() => o.complete());
 				};
@@ -457,39 +451,45 @@ describe('client', () => {
 				const stream = client.fetch(request);
 				await delay(10);
 
-				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($put(request, 1, meta));
+				expect(log).toBeCalledWith($('fetch', { request }));
+				expect(log).toBeCalledWith(
+					$('put', { request, data: 1 }, meta)
+				);
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
 				stream.fetchMore();
 				await delay(10);
 
-				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($put(request, 2, meta));
+				expect(log).toBeCalledWith($('fetch', { request }));
+				expect(log).toBeCalledWith(
+					$('put', { request, data: 2 }, meta)
+				);
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
 				stream.fetchMore();
 				await delay(10);
 
-				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($put(request, 3, meta));
+				expect(log).toBeCalledWith($('fetch', { request }));
+				expect(log).toBeCalledWith(
+					$('put', { request, data: 3 }, meta)
+				);
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
 				stream.fetchMore();
 				await delay(10);
 
-				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($complete(request));
+				expect(log).toBeCalledWith($('fetch', { request }));
+				expect(log).toBeCalledWith($('complete', { request }));
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
 				stream.fetchMore();
 				await delay(10);
 
-				expect(log).not.toBeCalledWith($fetch(request));
+				expect(log).not.toBeCalledWith($('fetch', { request }));
 				expect(log).toBeCalledTimes(0);
 			});
 
@@ -497,8 +497,8 @@ describe('client', () => {
 				const meta = { lazy: true };
 				const log = jest.fn();
 				const gen = (function*() {
-					yield DATA[0];
-					yield DATA[1];
+					yield data[0];
+					yield data[1];
 				})();
 
 				const client = createClient({
@@ -509,8 +509,10 @@ describe('client', () => {
 				const stream = client.fetch(request);
 				await delay(10);
 
-				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($put(request, DATA[0], meta));
+				expect(log).toBeCalledWith($('fetch', { request }));
+				expect(log).toBeCalledWith(
+					$('put', { request, data: data[0] }, meta)
+				);
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
@@ -521,8 +523,10 @@ describe('client', () => {
 				stream.fetchMore();
 				await delay(10);
 
-				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($put(request, DATA[1], meta));
+				expect(log).toBeCalledWith($('fetch', { request }));
+				expect(log).toBeCalledWith(
+					$('put', { request, data: data[1] }, meta)
+				);
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
@@ -533,8 +537,8 @@ describe('client', () => {
 				stream.fetchMore();
 				await delay(10);
 
-				expect(log).toBeCalledWith($fetch(request));
-				expect(log).toBeCalledWith($complete(request));
+				expect(log).toBeCalledWith($('fetch', { request }));
+				expect(log).toBeCalledWith($('complete', { request }));
 				expect(log).toBeCalledTimes(2);
 			});
 		});
@@ -565,7 +569,7 @@ describe('client', () => {
 
 			// fetch
 			client.prefetch(request);
-			expect(log).toBeCalledWith($fetch(request));
+			expect(log).toBeCalledWith($('fetch', { request }));
 			expect(log).toBeCalledTimes(1);
 
 			await delay(10);
@@ -576,7 +580,7 @@ describe('client', () => {
 			client.prefetch(request);
 			client.fetch(request, subscriber);
 
-			expect(log).not.toBeCalledWith($fetch(request));
+			expect(log).not.toBeCalledWith($('fetch', { request }));
 			expect(subscriber).toBeCalledWith(
 				toChange({ status: 'ready', data: 1 })
 			);
@@ -587,8 +591,8 @@ describe('client', () => {
 
 			await delay(10);
 
-			expect(log).toBeCalledWith($fetch(request));
-			expect(log).toBeCalledWith($put(request, 2, meta));
+			expect(log).toBeCalledWith($('fetch', { request }));
+			expect(log).toBeCalledWith($('put', { request, data: 2 }, meta));
 			expect(subscriber).toBeCalledWith(
 				toChange({ status: 'ready', data: 2 })
 			);
@@ -600,7 +604,7 @@ describe('client', () => {
 			const client = createClient({
 				fetch: () =>
 					delay(5).then(() => {
-						throw ERROR;
+						throw error;
 					}),
 
 				plugins: [logOperations(log)],
@@ -608,7 +612,7 @@ describe('client', () => {
 
 			// fetch
 			client.prefetch(request);
-			expect(log).toBeCalledWith($fetch(request));
+			expect(log).toBeCalledWith($('fetch', { request }));
 			expect(log).toBeCalledTimes(1);
 
 			await delay(10);
@@ -619,11 +623,11 @@ describe('client', () => {
 			client.prefetch(request);
 			client.fetch(request, subscriber);
 
-			expect(log).not.toBeCalledWith($fetch(request));
+			expect(log).not.toBeCalledWith($('fetch', { request }));
 			expect(subscriber).toBeCalledWith(
 				toChange({
 					status: 'failed',
-					error: ERROR,
+					error,
 				})
 			);
 
@@ -634,7 +638,7 @@ describe('client', () => {
 
 			await delay(10);
 
-			expect(log).toBeCalledWith($fetch(request));
+			expect(log).toBeCalledWith($('fetch', { request }));
 		});
 
 		it('should immediately mark the request as inactive', async () => {
@@ -649,7 +653,7 @@ describe('client', () => {
 			client.prefetch(request);
 			await delay(10);
 
-			expect(log).toBeCalledWith($dispose({ id: request.id }));
+			expect(log).toBeCalledWith($('dispose', { request }));
 		});
 
 		it('should be void', () => {

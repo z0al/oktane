@@ -16,6 +16,7 @@
 		"mutation",
 		"subscription"
 	],
+	"repository": "z0al/oktane",
 	"files": [
 		"dist"
 	],
