@@ -1,0 +1,27 @@
+.stories {
+	display: flex;
+	flex-direction: column;
+	max-width: 600px;
+	margin: auto;
+}
+
+.stories ul {
+	list-style: inside square;
+	padding: 0;
+}
+
+.stories ul li {
+	padding: 10px 0;
+}
+
+.navigation {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-around;
+	padding: 30px 0;
+}
+
+footer {
+	padding: 20px 0;
+	text-align: center;
+}
