@@ -105,9 +105,9 @@ describe('With Observable-like', () => {
 	});
 });
 
-describe('With Iterators / Generators', () => {
+describe('With (Async) Iterables', () => {
 	it('should mark it as lazy source', () => {
-		const subscription = subscribe([1, 2][Symbol.iterator](), {
+		const subscription = subscribe([1, 2], {
 			complete: jest.fn(),
 			error: jest.fn(),
 			next: jest.fn(),
@@ -141,7 +141,6 @@ describe('With other values', () => {
 	it('should wrap them in a Promise', async () => {
 		await observe(1, [1]);
 		await observe(true, [true]);
-		await observe([], [[]]);
 		await observe({}, [{}]);
 	});
 });

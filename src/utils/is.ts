@@ -8,17 +8,13 @@ const promise = <T>(p: unknown): p is Promise<T> =>
 const nullish = (v: unknown): v is null =>
 	v === undefined || v === null;
 
-const iterator = (
-	t: any
-): t is IterableIterator<any> | AsyncIterableIterator<any> =>
-	typeof t === 'object' &&
-	(func(t[Symbol.iterator]) || func(t[Symbol.asyncIterator])) &&
-	func(t.next);
+const iterable = (t: any): t is Iterable<any> | AsyncIterable<any> =>
+	func(t?.[Symbol.iterator]) || func(t?.[Symbol.asyncIterator]);
 
 export default {
 	func,
 	string,
 	promise,
 	nullish,
-	iterator,
+	iterable,
 };

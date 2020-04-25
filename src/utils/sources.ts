@@ -3,8 +3,8 @@ import is from './is';
 
 export type Source =
 	// Promise OR
-	// IterableIterator OR
-	// AsyncIterableIterator OR
+	// Iterable OR
+	// AsyncIterable OR
 	// SubscriptionFunc OR
 	// any
 	any;
@@ -46,9 +46,13 @@ export const subscribe = (
 		observe = (observer: Subscriber) => source(observer);
 	}
 
-	// Iterator / Generator
-	else if (is.iterator(source)) {
+	// (Async) Iterable
+	else if (is.iterable(source)) {
 		lazy = true;
+
+		source = (source as any)[Symbol.asyncIterator]
+			? (source as any)[Symbol.asyncIterator]()
+			: (source as any)[Symbol.iterator]();
 
 		observe = (observer: Subscriber) => {
 			next = async () => {
