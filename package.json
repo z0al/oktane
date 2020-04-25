@@ -1,6 +1,6 @@
 {
 	"name": "oktane",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"description": "A light-weight and customizable library for data fetching in React",
 	"license": "MIT",
 	"author": "Ahmed T. Ali",

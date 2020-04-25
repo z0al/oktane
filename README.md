@@ -3,11 +3,20 @@
 [![npm package](https://badgen.net/npm/v/oktane)][npm]
 [![npm bundle size](https://badgen.net/bundlephobia/minzip/oktane@latest)][bundlephobia]
 
+> **Current status:** 🚧 In alpha stage. Expect breaking changes!
+
 A light-weight and customizable library for data fetching in React.
 
-## Project status
+## Features
 
-Experimental 🚧. Expect breaking changes!
+- 🌐 Backend agnostic
+- 🧹 Automatic Garbage collection
+- 🔫 Request cancellation
+- ⏫ Parallel / Dependent Queries
+- 🔃 Streaming + Infinite queries
+- 🔌 Plugins support
+- 💙 TypeScript ready
+- and more ...
 
 ## Installation
 
