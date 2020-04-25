@@ -1,7 +1,7 @@
 # Oktane
 
-![npm package](https://badgen.net/npm/v/oktane)
-![npm bundle size](https://badgen.net/bundlephobia/minzip/oktane)
+[![npm package](https://badgen.net/npm/v/oktane)][npm]
+[![npm bundle size](https://badgen.net/bundlephobia/minzip/oktane@latest)][bundlephobia]
 
 A light-weight and customizable library for data fetching in React.
 
@@ -82,6 +82,8 @@ Inspired by the following great libraries:
 
 MIT © Ahmed T. Ali
 
+[npm]: https://npm.im/oktane
+[bundlephobia]: https://bundlephobia.com/result?p=oktane@latest
 [redux]: https://github.com/reduxjs/redux
 [swr]: https://github.com/zeit/swr
 [react-query]: https://github.com/tannerlinsley/react-query/
