@@ -2,11 +2,11 @@
 import { renderHook } from '@testing-library/react-hooks';
 
 // Ours
-import { useBuildRequest } from './useBuildRequest';
+import { useStableRequest } from './useStableRequest';
 
 test('should return undefined if query is falsy', () => {
 	const { result, rerender } = renderHook((query) =>
-		useBuildRequest(query)
+		useStableRequest(query)
 	);
 
 	expect(result.current).toEqual(undefined);
@@ -24,7 +24,7 @@ test('should preserve object if id has not changed', () => {
 	};
 
 	const { result, rerender } = renderHook(
-		({ query }) => useBuildRequest(query),
+		({ query }) => useStableRequest(query),
 		{ initialProps: { query } }
 	);
 
@@ -32,6 +32,7 @@ test('should preserve object if id has not changed', () => {
 	expect(resultA).toEqual({
 		id: expect.any(String),
 		query: query,
+		'@oktane/request': true,
 	});
 
 	// changed reference
@@ -56,7 +57,7 @@ test('should preserve object if id has not changed', () => {
 test('should not fail if error is thrown when resolving query', () => {
 	const request: any = null;
 	const { result } = renderHook(() =>
-		useBuildRequest(() => request.query)
+		useStableRequest(() => request.query)
 	);
 
 	expect(result.current).toEqual(undefined);

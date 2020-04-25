@@ -7,7 +7,7 @@ import is from '../utils/is';
 import { Client } from '../client';
 import { Result } from '../utils/cache';
 import { useClient } from './useClient';
-import { useBuildRequest } from './useBuildRequest';
+import { useStableRequest } from './useStableRequest';
 
 interface FetchOperations {
 	fetch?: () => void;
@@ -38,7 +38,7 @@ function createFetcher(manual: boolean) {
 		const fns = React.useRef<ReturnType<Client['fetch']>>(null);
 
 		const client = useClient();
-		const request = useBuildRequest(query);
+		const request = useStableRequest(query);
 
 		const fetch = React.useCallback(() => {
 			// bail out if request is not ready

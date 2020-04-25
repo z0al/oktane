@@ -1,12 +1,12 @@
 // Ours
 import is from './utils/is';
-import { Request } from './request';
 import { Emitter } from './utils/emitter';
 import { transition } from './utils/status';
-import { pipe, Plugin } from './utils/plugins';
 import { Operation, $ } from './utils/operations';
-import { Result, mapToCache } from './utils/cache';
+import { Request, createRequest } from './request';
+import { Result, exposeCache } from './utils/cache';
 import { createFetch, FetchFunc } from './plugins/fetch';
+import { pipe, Plugin, ApplyFunc } from './utils/plugins';
 
 export type Subscriber = (change: Result) => void;
 
@@ -38,8 +38,8 @@ export const createClient = (options: ClientOptions): Client => {
 	//The heart of this whole thing.
 	const events = Emitter();
 
-	// A key-value store that maps requests to their status & data.
-	const store = new Map<string, Result>();
+	// A key-value cache that maps requests to their status & data.
+	const cache = new Map<string, Result>();
 
 	// tracks prefetched requests to avoid potential refetching.
 	const prefetched = new Set<string>();
@@ -58,18 +58,18 @@ export const createClient = (options: ClientOptions): Client => {
 	 *
 	 * @param op
 	 */
-	const emit = (op: Operation) => {
+	const update = (op: Operation) => {
 		const key = keyOf(op);
-		const obj = store.get(key);
+		const obj = cache.get(key);
 
 		const status = transition(obj?.status, op);
 
 		if (status === 'disposed') {
-			store.delete(key);
+			cache.delete(key);
 			return op;
 		}
 
-		store.set(key, {
+		cache.set(key, {
 			status,
 			error: op.payload.error,
 			data: op.payload.data !== undefined ? op.payload.data : obj?.data,
@@ -87,28 +87,29 @@ export const createClient = (options: ClientOptions): Client => {
 	 *
 	 * @param op
 	 */
-	const apply = (() => {
+	const apply = ((): ApplyFunc => {
 		const plugins = options.plugins || [];
 
 		// Setup plugins
-		const pipeThrough = pipe(
+		const emit = pipe(
 			[...plugins, createFetch(options.fetch)],
-			emit,
-			mapToCache(store)
+			update,
+			exposeCache(cache)
 		);
 
-		return (op: Operation) => {
-			const current = store.get(keyOf(op))?.status;
+		return (type, payload, meta) => {
+			const op = $(type, payload, meta);
+			const current = cache.get(keyOf(op))?.status;
 			const next = transition(current, op);
 
 			// Skip any Operation that doesn't change the status. The only
 			// exception is "put" operation since it doesn't change the
 			// status when performed multiple times.
 			if (current !== 'buffering' && next === current) {
-				return;
+				return op;
 			}
 
-			pipeThrough(op);
+			return emit(op);
 		};
 	})();
 
@@ -123,7 +124,7 @@ export const createClient = (options: ClientOptions): Client => {
 		return (r: Request, dispose = true) => {
 			if (dispose) {
 				const collect = () => {
-					apply($('dispose', { request: r }));
+					apply('dispose', { request: r });
 				};
 
 				const { cache } = options;
@@ -145,12 +146,16 @@ export const createClient = (options: ClientOptions): Client => {
 
 	/**
 	 *
-	 * @param request
+	 * @param query
 	 * @param cb
 	 */
-	const fetch = (request: Request, cb?: Subscriber) => {
+	const fetch = (query: any, cb?: Subscriber) => {
+		const request = query['@oktane/request']
+			? (query as Request)
+			: createRequest(query);
+
 		const notify = () => {
-			return cb(store.get(request.id));
+			return cb(cache.get(request.id));
 		};
 
 		if (cb) {
@@ -167,7 +172,7 @@ export const createClient = (options: ClientOptions): Client => {
 		const hasMore = () => {
 			// Lazy sources don't go to "buffering" status but rather
 			// got back to "ready".
-			return store.get(request.id)?.status === 'ready';
+			return cache.get(request.id)?.status === 'ready';
 		};
 
 		const fetchMore = () => {
@@ -182,23 +187,23 @@ export const createClient = (options: ClientOptions): Client => {
 			}
 
 			if (hasMore()) {
-				apply($('fetch', { request }));
+				apply('fetch', { request });
 			}
 		};
 
 		const cancel = () => {
-			apply($('cancel', { request }));
+			apply('cancel', { request });
 		};
 
 		const refetch = () => {
-			const { status } = store.get(request.id) || {};
+			const { status } = cache.get(request.id) || {};
 
 			if (
 				status === 'completed' ||
 				status === 'cancelled' ||
 				status === 'failed'
 			) {
-				apply($('fetch', { request }));
+				apply('fetch', { request });
 			} else {
 				if (__DEV__) {
 					console.warn(
@@ -223,7 +228,7 @@ export const createClient = (options: ClientOptions): Client => {
 		const isPrefetched = prefetched.has(request.id);
 
 		if (!isPrefetched) {
-			apply($('fetch', { request }));
+			apply('fetch', { request });
 		} else {
 			prefetched.delete(request.id);
 
@@ -242,9 +247,13 @@ export const createClient = (options: ClientOptions): Client => {
 
 	/**
 	 *
-	 * @param request
+	 * @param query
 	 */
-	const prefetch = (request: Request) => {
+	const prefetch = (query: any) => {
+		const request = query['@oktane/request']
+			? (query as Request)
+			: createRequest(query);
+
 		if (!prefetched.has(request.id)) {
 			fetch(request);
 

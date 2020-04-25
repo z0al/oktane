@@ -5,7 +5,7 @@ import delay from 'delay';
 import { createFetch } from './fetch';
 import { pipe } from '../utils/plugins';
 import { $ } from '../utils/operations';
-import { buildRequest } from '../request';
+import { createRequest } from '../request';
 
 // @ts-ignore
 global.__DEV__ = true;
@@ -17,7 +17,7 @@ const data = [
 
 const error = new Error('unknown');
 
-const request = buildRequest({ url: '/api/users' });
+const request = createRequest({ url: '/api/users' });
 
 let emit: any, cache: any, handler: any, fetch: any;
 

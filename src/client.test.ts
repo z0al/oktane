@@ -5,15 +5,15 @@ import delay from 'delay';
 import { Cache } from './utils/cache';
 import { $ } from './utils/operations';
 import { createClient } from './client';
-import { buildRequest } from './request';
 import { Plugin } from './utils/plugins';
+import { createRequest } from './request';
 
 // @ts-ignore
 global.__DEV__ = false;
 
-const request = buildRequest({
+const request = createRequest({
 	url: '/api',
-	body: {},
+	variables: {},
 });
 
 const data = [
@@ -143,7 +143,7 @@ describe('client', () => {
 	});
 
 	describe('.fetch()', () => {
-		it('should emit fetch operation', () => {
+		it('should convert query to request if necessary', async () => {
 			const log = jest.fn();
 			const client = createClient({
 				fetch: jest.fn(),
@@ -151,8 +151,12 @@ describe('client', () => {
 			});
 
 			client.fetch(request);
+			await delay(1);
+			client.fetch(request.query);
 
 			expect(log).toBeCalledWith($('fetch', { request }));
+			expect(log).toBeCalledWith($('fetch', { request }));
+			expect(log).toBeCalledTimes(3);
 		});
 
 		it('should not duplicate requests', () => {
@@ -654,6 +658,18 @@ describe('client', () => {
 			await delay(10);
 
 			expect(log).toBeCalledWith($('dispose', { request }));
+		});
+
+		it('should convert query to request if necessary', async () => {
+			const log = jest.fn();
+			const client = createClient({
+				fetch: jest.fn(),
+				plugins: [logOperations(log)],
+			});
+
+			client.prefetch(request);
+
+			expect(log).toBeCalledWith($('fetch', { request }));
 		});
 
 		it('should be void', () => {

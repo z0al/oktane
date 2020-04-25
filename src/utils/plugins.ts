@@ -5,7 +5,7 @@ import { Operation, $ } from './operations';
 
 export type EmitFunc = (op: Operation) => Operation;
 
-type ApplyFunc = typeof $;
+export type ApplyFunc = typeof $;
 
 export interface PluginOptions {
 	apply: ApplyFunc;

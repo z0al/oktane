@@ -1,4 +1,5 @@
 export interface Request {
+	'@oktane/request': true;
 	id: string;
 	query?: any;
 }
@@ -15,7 +16,8 @@ const stabilize = (_: string, value: any) => {
 	return value;
 };
 
-export const buildRequest = (query: any): Request => ({
+export const createRequest = (query: any): Request => ({
+	'@oktane/request': true,
 	id: JSON.stringify(query, stabilize),
 	query,
 });

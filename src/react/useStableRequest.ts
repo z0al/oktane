@@ -3,9 +3,9 @@ import { useRef, useMemo } from 'react';
 
 // Ours
 import is from '../utils/is';
-import { buildRequest, Request } from '../request';
+import { createRequest, Request } from '../request';
 
-export function useBuildRequest(query: any): Request {
+export function useStableRequest(query: any): Request {
 	const prev = useRef<Request>(undefined);
 
 	return useMemo(() => {
@@ -22,7 +22,7 @@ export function useBuildRequest(query: any): Request {
 		}
 
 		if (query) {
-			request = buildRequest(query);
+			request = createRequest(query);
 		}
 
 		// If the request id changed then we have a new request

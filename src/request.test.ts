@@ -1,5 +1,5 @@
 // Ours
-import { buildRequest } from './request';
+import { createRequest } from './request';
 
 test('should use stable stringify', () => {
 	const obj1 = {
@@ -23,19 +23,19 @@ test('should use stable stringify', () => {
 	};
 
 	// keys order doesn't matter
-	expect(buildRequest(obj1).id).toEqual(buildRequest(obj2).id);
+	expect(createRequest(obj1).id).toEqual(createRequest(obj2).id);
 
 	// array items DOES matter
 	obj2.array = [2, 1];
-	expect(buildRequest(obj1).id).not.toEqual(buildRequest(obj2).id);
+	expect(createRequest(obj1).id).not.toEqual(createRequest(obj2).id);
 });
 
 test('should stringify the query and use it as an id', () => {
 	const queryA = { query: 'test', variables: [1, 2] };
 	const queryB = { query: 'test', variables: {} };
 
-	const idA = buildRequest(queryA).id;
-	const idB = buildRequest(queryB).id;
+	const idA = createRequest(queryA).id;
+	const idB = createRequest(queryB).id;
 
 	expect(JSON.parse(idA)).toEqual(queryA);
 	expect(JSON.parse(idB)).toEqual(queryB);

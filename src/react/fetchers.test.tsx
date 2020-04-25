@@ -6,7 +6,7 @@ import { render, waitFor, act } from '@testing-library/react';
 
 // Ours
 import { createClient } from '../client';
-import { buildRequest } from '../request';
+import { createRequest } from '../request';
 import { ClientProvider } from './useClient';
 import { wrap, spyOnFetch } from './test/utils';
 import { useQuery, useRequest } from './fetchers';
@@ -180,7 +180,7 @@ describe('useQuery', () => {
 		const client = createClient({ fetch });
 
 		// prefetch and wait for response
-		client.prefetch(buildRequest({ url: '/api' }));
+		client.prefetch(createRequest({ url: '/api' }));
 		await delay(15);
 
 		const Example = wrap(() => {

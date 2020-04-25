@@ -2,15 +2,15 @@ declare global {
 	var __DEV__: boolean;
 }
 
+// Core
 export { Client, createClient } from './client';
-export { Request, buildRequest } from './request';
-export {
-	useQuery,
-	useRequest,
-	useClient,
-	ClientProvider,
-} from './react';
+export { Request, createRequest } from './request';
 
-export { Result } from './utils/cache';
+// React
+export { useQuery, useRequest } from './react/fetchers';
+export { useClient, ClientProvider } from './react/useClient';
+
+// Typings
 export { Status } from './utils/status';
+export { Result, Cache } from './utils/cache';
 export { Plugin, PluginOptions } from './utils/plugins';
