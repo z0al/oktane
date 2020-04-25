@@ -1,0 +1,26 @@
+.issues {
+	display: flex;
+	flex-direction: column;
+	max-width: 600px;
+	margin: auto;
+}
+
+.issues ul {
+	list-style: none;
+	padding: 0;
+}
+
+.issues ul li {
+	padding: 10px 0;
+}
+
+.more {
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	padding: 10px 0;
+}
+
+button {
+	text-transform: uppercase;
+}
