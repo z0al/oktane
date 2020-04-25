@@ -32,7 +32,7 @@ const Stories = () => {
 		<div className="stories">
 			<h2>Hacker News</h2>
 
-			<ul className="items">
+			<ul>
 				{data.items.map((item) => (
 					<li key={item.id}>
 						<a

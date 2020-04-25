@@ -1,28 +1,36 @@
 import { createClient } from 'oktane';
-import { Octokit } from '@octokit/rest';
 
-const octokit = new Octokit();
+const BASE_URL = '//hn.algolia.com/api/v1/search_by_date';
 
 const client = createClient({
-	fetch: (request, { cache }) => {
-		const [owner, repo] = request.query.split('/');
+	fetch: async function*(request, { cache }) {
+		const { tags } = request.query;
 
-		const itr = octokit.paginate.iterator(octokit.issues.listForRepo, {
-			owner,
-			repo,
-		});
+		let page = 0;
+		const MAX_PAGE = 50;
 
-		return (async function*() {
-			for await (const page of itr) {
-				// We need to append new issues to those already in cache.
-				// In future this can be handled automatically by Oktane.
-				// See: https://github.com/z0al/oktane/issues/3
+		while (page < MAX_PAGE) {
+			const response = await (
+				await fetch(
+					`${BASE_URL}?tags=${tags}&page=${page++}&hitsPerPage=15`
+				)
+			).json();
 
-				const { data } = cache.get(request.id) || {};
+			const stories = response.hits.map((hit) => ({
+				id: hit.objectID,
+				title: hit.title,
+				url:
+					hit.url ||
+					`https://news.ycombinator.com/item?id=${hit.objectID}`,
+			}));
 
-				yield (data || []).concat(page.data);
-			}
-		})();
+			// We need to append new stories to those already in cache.
+			// In future this can be handled automatically by Oktane.
+			// See: https://github.com/z0al/oktane/issues/3
+			const storiesInCache = (cache.get(request.id) || {}).data;
+
+			yield (storiesInCache || []).concat(stories);
+		}
 	},
 });
 

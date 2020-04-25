@@ -2,11 +2,11 @@ import React from 'react';
 import { ClientProvider } from 'oktane';
 
 import client from './client';
-import Issues from './Issues';
+import Stories from './Stories';
 
 const App = () => (
 	<ClientProvider value={client}>
-		<Issues />
+		<Stories />
 	</ClientProvider>
 );
 

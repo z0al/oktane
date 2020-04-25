@@ -9,8 +9,7 @@
 	],
 	"main": "src/index.js",
 	"dependencies": {
-		"@octokit/rest": "^17.6.0",
-		"oktane": "latest",
+		"oktane": "^0.1.1",
 		"react": "16.12.0",
 		"react-dom": "16.12.0",
 		"react-scripts": "3.0.1"

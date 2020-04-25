@@ -1,28 +1,28 @@
 import React from 'react';
 import { useQuery } from 'oktane';
 
-const REPO = 'facebook/react';
-
-const Issues = () => {
-	const { data = [], status, hasMore, fetchMore } = useQuery(REPO);
+const Stories = () => {
+	const { data = [], status, hasMore, fetchMore } = useQuery({
+		tags: 'story',
+	});
 
 	return (
-		<div className="issues">
+		<div className="stories">
 			<h2>
-				Open issues in <a href={`https://github.com/${REPO}`}>{REPO}</a>
+				Hacker News ( Powered by{' '}
+				<a href="https://hn.algolia.com/api">Algolia</a>)
 			</h2>
 
 			<ul>
-				{data.map((issue) => (
-					<li key={issue.id}>
+				{data.map((item) => (
+					<li key={item.id}>
 						<a
-							href={issue.url}
+							href={item.url}
 							target="_blank"
 							rel="noopener noreferrer"
 						>
-							{`(#${issue.id})`}
+							{item.title}
 						</a>
-						{' ' + issue.title}
 					</li>
 				))}
 			</ul>
@@ -40,4 +40,4 @@ const Issues = () => {
 	);
 };
 
-export default Issues;
+export default Stories;

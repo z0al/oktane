@@ -1,16 +1,16 @@
-.issues {
+.stories {
 	display: flex;
 	flex-direction: column;
 	max-width: 600px;
 	margin: auto;
 }
 
-.issues ul {
-	list-style: none;
+.stories ul {
+	list-style: inside square;
 	padding: 0;
 }
 
-.issues ul li {
+.stories ul li {
 	padding: 10px 0;
 }
 
@@ -21,6 +21,6 @@
 	padding: 10px 0;
 }
 
-button {
+.more button {
 	text-transform: uppercase;
 }
