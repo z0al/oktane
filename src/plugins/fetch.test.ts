@@ -13,6 +13,9 @@ import {
 	$fetch,
 } from '../utils/operations';
 
+// @ts-ignore
+global.__DEV__ = true;
+
 const DATA = [
 	{ id: 1, name: 'Dan' },
 	{ id: 2, name: 'Kent' },

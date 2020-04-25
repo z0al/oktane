@@ -1,11 +1,12 @@
 {
 	"name": "oktane",
 	"version": "0.0.0",
-	"description": "Light-weight helpers for data fetching",
+	"description": "A light-weight and customizable library for data fetching in React",
 	"license": "MIT",
 	"author": "Ahmed T. Ali",
 	"sideEffects": false,
 	"main": "dist/index.js",
+	"source": "src/index.ts",
 	"module": "dist/oktane.esm.js",
 	"typings": "dist/index.d.ts",
 	"files": [
@@ -31,8 +32,7 @@
 	},
 	"dependencies": {
 		"dequal": "^1.0.0",
-		"mitt": "^1.2.0",
-		"tiny-invariant": "^1.1.0"
+		"mitt": "^1.2.0"
 	},
 	"devDependencies": {
 		"@testing-library/jest-dom": "^5.5.0",

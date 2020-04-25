@@ -1,7 +1,6 @@
 // Packages
 import React from 'react';
 import deepEqual from 'dequal';
-import invariant from 'tiny-invariant';
 
 // Ours
 import is from '../utils/is';
@@ -26,10 +25,8 @@ function createFetcher(
 ): (body: any) => Result & Required<FetchOperations>;
 function createFetcher(manual: boolean) {
 	return (body: any) => {
-		if (__DEV__) {
-			if (manual && is.func(body)) {
-				invariant(false, 'useRequest() does not accept a function');
-			}
+		if (manual && is.func(body)) {
+			throw new Error('useRequest() does not accept a function');
 		}
 
 		// Fetch response

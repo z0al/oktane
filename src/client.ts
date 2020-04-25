@@ -1,6 +1,3 @@
-// Packages
-import invariant from 'tiny-invariant';
-
 // Ours
 import * as o from './utils/operations';
 
@@ -178,11 +175,10 @@ export const createClient = (options: ClientOptions): Client => {
 		};
 
 		const fetchMore = () => {
-			if (!hasMore()) {
-				// warns the user about potential infinite loops in their code
-				if (__DEV__) {
-					invariant(
-						false,
+			if (__DEV__) {
+				if (!hasMore()) {
+					// warns the user about potential infinite loops
+					console.warn(
 						'Can not fetch more data. ' +
 							'Make sure to guard calls to fetchMore() with hasMore().'
 					);
@@ -209,8 +205,7 @@ export const createClient = (options: ClientOptions): Client => {
 				apply(o.$fetch(request));
 			} else {
 				if (__DEV__) {
-					invariant(
-						false,
+					console.warn(
 						'A request can only be refetched if it ' +
 							'completed, failed or got cancelled.'
 					);

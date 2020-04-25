@@ -2,17 +2,12 @@
 import { $put } from './operations';
 import { pipe, Plugin, PluginOptions } from './plugins';
 
+// @ts-ignore
+global.__DEV__ = true;
+
 let api: PluginOptions;
 beforeEach(() => {
 	api = { cache: new Map(), emit: jest.fn() };
-});
-
-test('should throw if no plugins were passesd', () => {
-	expect(() => {
-		pipe([], api);
-	}).toThrow(/at least one plugin/i);
-
-	expect(api.emit).not.toBeCalled();
 });
 
 test('should throw if some plugins are not valid', () => {

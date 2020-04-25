@@ -3,11 +3,11 @@
 ![npm package](https://badgen.net/npm/v/oktane)
 ![npm bundle size](https://badgen.net/bundlephobia/minzip/oktane)
 
-Light-weight helpers for data fetching.
+A light-weight and customizable library for data fetching in React.
 
 ## Project status
 
-Experimental. Expect breaking changes!
+Experimental 🚧. Expect breaking changes!
 
 ## Quick start
 
@@ -19,37 +19,37 @@ Experimental. Expect breaking changes!
 npm add oktane
 ```
 
-### Usage
+### Creating the client
 
 ```javascript
-import { createClient, ClientProvider, useFetch } from 'oktane';
+import { createClient, ClientProvider } from 'oktane';
 
-const client = createClient({
-	fetch: async (request) => {
-		// handle request(s) here and return value
-		if (request.body === 'hello') {
-			return 'Hello world!';
-		}
-	},
-});
-
-const App = () => {
-	return (
-		<ClientProvider value={client}>
-			<Hello />
-		</ClientProvider>
-	);
+const fetch = (request) => {
+	return 'Hello world!';
 };
 
+const client = createClient({ fetch });
+
+const App = () => (
+	<ClientProvider value={client}>
+		<Hello />
+	</ClientProvider>
+);
+```
+
+### Fetching data
+
+```javascript
+import { useFetch } from 'oktane';
+
 const Hello = () => {
-	// Anything you pass to useFetch will form the request.body later
 	const { data, status } = useFetch('hello');
 
 	if (status === 'pending') {
 		return <p>loading ...</p>;
 	}
 
-	return <p>{data}</p>; // displays "Hello world!"
+	return <p>{data}</p>;
 };
 ```
 

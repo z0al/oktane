@@ -1,5 +1,4 @@
 // Packages
-import invariant from 'tiny-invariant';
 import { createContext, useContext } from 'react';
 
 // Ours
@@ -14,7 +13,9 @@ export const ClientProvider = ClientContext.Provider;
 export function useClient() {
 	const client = useContext(ClientContext);
 
-	invariant(client, 'could not find "client" in context');
+	if (!client) {
+		throw new Error('could not find "client" in context');
+	}
 
 	return client;
 }

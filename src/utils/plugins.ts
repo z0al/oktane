@@ -1,6 +1,3 @@
-// Packages
-import invariant from 'tiny-invariant';
-
 // Ours
 import is from './is';
 import { Cache } from './cache';
@@ -29,35 +26,35 @@ export const pipe = (
 	plugins: Plugin[],
 	options: PluginOptions
 ): EmitFunc => {
-	invariant(
-		plugins?.length > 0,
-		'At least one plugin must be provided'
-	);
+	if (__DEV__) {
+		for (const ex of plugins) {
+			if (!is.string(ex?.name)) {
+				throw new Error(
+					`plugin.name must be a non-empty string. Found: ${ex?.name}`
+				);
+			}
 
-	for (const ex of plugins) {
-		invariant(
-			is.string(ex?.name),
-			`plugin.name must be a non-empty string. Found: ${ex?.name}`
-		);
+			if (!is.func(ex?.init)) {
+				throw new Error(
+					`plugin.init must be a function. Found: ${ex?.init}`
+				);
+			}
+		}
 
-		invariant(
-			is.func(ex?.init),
-			`plugin.init must be a function. Found: ${ex?.init}`
-		);
-	}
-
-	// No duplicated names allowed
-	const names = plugins.map((e) => e.name);
-	for (const name of names) {
-		invariant(
-			names.indexOf(name) === names.lastIndexOf(name),
-			`plugin names must be unique. ` +
-				`Found two or more plugins with the name: ${name}`
-		);
+		// No duplicated names allowed
+		const names = plugins.map((e) => e.name);
+		for (const name of names) {
+			if (names.indexOf(name) !== names.lastIndexOf(name)) {
+				throw new Error(
+					`plugin names must be unique. ` +
+						`Found two or more plugins with the name: ${name}`
+				);
+			}
+		}
 	}
 
 	let emit: EmitFunc = () => {
-		invariant(false, 'emitting during plugin setup is not allowed');
+		throw new Error('emitting during plugin setup is not allowed');
 	};
 
 	const api: PluginOptions = {
