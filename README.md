@@ -13,7 +13,7 @@ A light-weight and customizable library for data fetching in React.
 - 🧹 Automatic Garbage collection
 - 🔫 Request cancellation
 - ⏫ Parallel / Dependent Queries
-- 🔃 Streaming + Infinite queries
+- 🔃 Streaming / Lazy queries
 - 🔌 Plugins support
 - 💙 TypeScript ready
 - [and more ...](./examples)
