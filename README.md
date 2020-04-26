@@ -138,7 +138,7 @@ function useQuery(query: QueryFunc  | any): {
 #### useRequest
 
 ```javascript
-function useQuery(query: any): {
+function useRequest(query: any): {
   fetch: () => void;
   cancel: () => void;
   refetch: () => void;
