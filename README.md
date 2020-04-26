@@ -13,7 +13,7 @@ A light-weight and customizable library for data fetching in React.
 - 🧹 Automatic Garbage collection
 - 🔫 Request cancellation
 - ⏫ Parallel / Dependent Queries
-- 🔃 Streaming / Lazy queries
+- 🔃 Subscriptions / Lazy queries
 - 🔌 Plugins support
 - 💙 TypeScript ready
 - [and more ...](./examples)
@@ -28,7 +28,7 @@ npm add oktane
 
 ## Basic usage
 
-[![Open in CodeSandbox][csb]][example]
+[![Open in CodeSandbox][csb]][basic-demo]
 
 ### Creating the client
 
@@ -75,6 +75,47 @@ const Todos = () => {
 };
 ```
 
+## How it works
+
+Many data fetching libraries provide multiple React hooks to support use cases e.g. `useSubscription`, `useInfiniteQuery` ..etc. To minimize the API surface Oktane takes a different approach.
+
+Here how someone would make a request using the `useQuery` hook provided by Oktane:
+
+```javascript
+const { data, error, hasMore, fetchMore, ...rest } = useQuery(/* query */);
+```
+
+> **Note:** `useRequest` hook works the same way as `useQuery` expect it doesn't fetch the request automatically on mount/updates but rather exposes a helper to manually fetch when needed.
+
+When resolving a request, Oktane checks the value returned by `clientOptions.fetch(request, ctx)` call and does one of the following based to the type:
+
+- **Promise:** ([demo][basic-demo] )
+  - Waits for the Promise to resolve and then set `data` to the result.
+  - In the case of error, Oktane will catch the error and expose it as `error`.
+  - Calling `hasMore` will always return false.
+- **Iterable / Async Iterable:**  ([demo][infinite-demo] )
+  - Calls `iterator.next()` **once** and sets `data` to the result.
+  - Next values can be emitted by calling `fetchMore`.
+  - Calling `hasMore` will return true as long as the iterator doesn't complete.
+  - In the case of error, Oktane will catch the error and expose it as `error`.
+- **Callback function:**  ([demo][subscription-demo] )
+  - Assumes a function that accepts a subscriber and optionally returns a function to close subscription (i.e. unsubscribe).
+  - Any value passed to `subscriber.next()` will be available as `data`.
+  - Calling `subscriber.error()` will set the value to `error` and close the subscription.
+  - Calling `subscriber.complete()` will mark the request as completed and close the subscription.
+  - Calling `hasMore` will always return false.
+- **Anything else:** wraps it in `Promise.resolve` and applies the Promise rule above.
+
+It's worth mentioning that custom plugins may alter the behavior described above. For example, a plugin may decide not to report errors back to the React hook and instead retry the request every time it fails.
+
+### Plugins
+
+TODO
+
+### API Documentation
+
+TODO
+
 ## Examples
 
 Check out the [examples](./examples) folder.
@@ -85,7 +126,7 @@ Inspired by the following great libraries:
 
 - [Redux][redux]: Predictable state container for JavaScript apps.
 - [SWR][swr]: React Hooks library for remote data fetching.
-- [React Query][react-query]: Hooks for fetching, caching and updating asynchronous data in React.
+- [React Query][react-query]: Hooks for fetching, caching, and updating asynchronous data in React.
 
 ## License
 
@@ -97,4 +138,7 @@ MIT © Ahmed T. Ali
 [swr]: https://github.com/zeit/swr
 [react-query]: https://github.com/tannerlinsley/react-query/
 [csb]: https://img.shields.io/badge/Open%20in-CodeSandbox-blue?style=flat-square&logo=codesandbox
-[example]: https://codesandbox.io/s/github/z0al/oktane/tree/master/examples/basic
+[basic-demo]: https://codesandbox.io/s/github/z0al/oktane/tree/master/examples/basic
+[infinite-demo]: https://codesandbox.io/s/github/z0al/oktane/tree/master/examples/infinite
+[subscription-demo]: https://codesandbox.io/s/github/z0al/oktane/tree/master/examples/subscription
+
