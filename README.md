@@ -3,7 +3,7 @@
 [![npm package](https://badgen.net/npm/v/oktane)][npm]
 [![npm bundle size](https://badgen.net/bundlephobia/minzip/oktane@latest)][bundlephobia]
 
-> **Current status:** 🚧 In alpha stage. Expect breaking changes!
+> **Current status:** 🚧 In alpha stage so expect breaking changes. Check out the [roadmap](https://github.com/z0al/oktane/issues/3) for more info.
 
 A light-weight and customizable library for data fetching in React.
 
