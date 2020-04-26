@@ -79,13 +79,13 @@ const Todos = () => {
 
 Many data fetching libraries provide multiple React hooks to support use cases e.g. `useSubscription`, `useInfiniteQuery` ..etc. To minimize the API surface Oktane takes a different approach.
 
-Here how someone would make a request using the `useQuery` hook provided by Oktane:
+Here how someone would make a request using the [useQuery](#usequery) hook provided by Oktane:
 
 ```javascript
 const { data, error, hasMore, fetchMore, ...rest } = useQuery(/* query */);
 ```
 
-> **Note:** `useRequest` hook works the same way as `useQuery` expect it doesn't fetch the request automatically on mount/updates but rather exposes a helper to manually fetch when needed.
+> **Note:** [useRequest](#userequest) hook works the same way as `useQuery` expect it doesn't fetch the request automatically on mount/updates but rather exposes a helper to manually fetch when needed.
 
 When resolving a request, Oktane checks the value returned by `clientOptions.fetch(request, ctx)` call and does one of the following based to the type:
 
@@ -108,13 +108,44 @@ When resolving a request, Oktane checks the value returned by `clientOptions.fet
 
 It's worth mentioning that custom plugins may alter the behavior described above. For example, a plugin may decide not to report errors back to the React hook and instead retry the request every time it fails.
 
-### Plugins
+### API
 
-TODO
+#### createClient
 
-### API Documentation
+```javascript
+function createClient(options: ClientOptions): Client
+```
 
-TODO
+**Arguments**
+
+- **options (object)**
+  - **fetch (function):** The function that resolves all requests. **Required**.
+  - **plugins (array):** An array of custom plugins.
+  - **cache (object)**
+    - **disposeTime (number):** A timeout for unused requests. Default is 30 seconds.
+
+#### useQuery
+
+```javascript
+function useQuery(query: QueryFunc  | any): {
+  cancel: () => void;
+  refetch: () => void;
+  hasMore: () => boolean;
+  fetchMore: () => void;
+}
+```
+
+#### useRequest
+
+```javascript
+function useQuery(query: any): {
+  fetch: () => void;
+  cancel: () => void;
+  refetch: () => void;
+  hasMore: () => boolean;
+  fetchMore: () => void;
+}
+```
 
 ## Examples
 
