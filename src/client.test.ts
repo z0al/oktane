@@ -399,18 +399,18 @@ describe('client', () => {
 					fetch: () => handler(),
 				});
 
-				const stream = client.fetch(request);
+				const query = client.fetch(request);
 
 				// pending
-				expect(stream.hasMore()).toEqual(false);
+				expect(query.hasMore()).toEqual(false);
 
 				// ready
 				await delay(10);
-				expect(stream.hasMore()).toEqual(true);
+				expect(query.hasMore()).toEqual(true);
 
 				// cancelled
 				client.fetch(request).cancel();
-				expect(stream.hasMore()).toEqual(false);
+				expect(query.hasMore()).toEqual(false);
 
 				// failure
 				handler = async () => {
@@ -420,7 +420,7 @@ describe('client', () => {
 
 				client.fetch(request);
 				await delay(10);
-				expect(stream.hasMore()).toEqual(false);
+				expect(query.hasMore()).toEqual(false);
 
 				// buffering
 				handler = () => (o: any) => {
@@ -433,7 +433,7 @@ describe('client', () => {
 				client.fetch(request);
 				await delay(5);
 
-				expect(stream.hasMore()).toEqual(false);
+				expect(query.hasMore()).toEqual(false);
 			});
 		});
 
@@ -452,7 +452,7 @@ describe('client', () => {
 					plugins: [logOperations(log)],
 				});
 
-				const stream = client.fetch(request);
+				const query = client.fetch(request);
 				await delay(10);
 
 				expect(log).toBeCalledWith($('fetch', { request }));
@@ -462,7 +462,7 @@ describe('client', () => {
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
-				stream.fetchMore();
+				query.fetchMore();
 				await delay(10);
 
 				expect(log).toBeCalledWith($('fetch', { request }));
@@ -472,7 +472,7 @@ describe('client', () => {
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
-				stream.fetchMore();
+				query.fetchMore();
 				await delay(10);
 
 				expect(log).toBeCalledWith($('fetch', { request }));
@@ -482,7 +482,7 @@ describe('client', () => {
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
-				stream.fetchMore();
+				query.fetchMore();
 				await delay(10);
 
 				expect(log).toBeCalledWith($('fetch', { request }));
@@ -490,7 +490,7 @@ describe('client', () => {
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
-				stream.fetchMore();
+				query.fetchMore();
 				await delay(10);
 
 				expect(log).not.toBeCalledWith($('fetch', { request }));
@@ -510,7 +510,7 @@ describe('client', () => {
 					plugins: [logOperations(log)],
 				});
 
-				const stream = client.fetch(request);
+				const query = client.fetch(request);
 				await delay(10);
 
 				expect(log).toBeCalledWith($('fetch', { request }));
@@ -520,11 +520,11 @@ describe('client', () => {
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
-				stream.fetchMore();
-				stream.fetchMore();
-				stream.fetchMore();
-				stream.fetchMore();
-				stream.fetchMore();
+				query.fetchMore();
+				query.fetchMore();
+				query.fetchMore();
+				query.fetchMore();
+				query.fetchMore();
 				await delay(10);
 
 				expect(log).toBeCalledWith($('fetch', { request }));
@@ -534,11 +534,11 @@ describe('client', () => {
 				expect(log).toBeCalledTimes(2);
 
 				log.mockClear();
-				stream.fetchMore();
-				stream.fetchMore();
-				stream.fetchMore();
-				stream.fetchMore();
-				stream.fetchMore();
+				query.fetchMore();
+				query.fetchMore();
+				query.fetchMore();
+				query.fetchMore();
+				query.fetchMore();
 				await delay(10);
 
 				expect(log).toBeCalledWith($('fetch', { request }));

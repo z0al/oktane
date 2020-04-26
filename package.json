@@ -13,8 +13,11 @@
 		"react",
 		"query",
 		"oktane",
+		"octane",
 		"mutation",
-		"subscription"
+		"subscription",
+		"streams",
+		"observable"
 	],
 	"repository": "z0al/oktane",
 	"files": [
