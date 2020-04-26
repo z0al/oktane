@@ -9,6 +9,7 @@ A light-weight and customizable library for data fetching in React.
 
 ## Features
 
+- 📦 Minimal footprint (< 3kb gzipped)
 - 🌐 Backend agnostic
 - 🧹 Automatic Garbage collection
 - 🔫 Request cancellation
@@ -93,17 +94,20 @@ When resolving a request, Oktane checks the value returned by `clientOptions.fet
   - Waits for the Promise to resolve and then set `data` to the result.
   - In the case of error, Oktane will catch the error and expose it as `error`.
   - Calling `hasMore` will always return false.
+  - **Use case:** API Calls, loading data from LocalStorage ...etc.
 - **Iterable / Async Iterable:**  ([demo][infinite-demo] )
   - Calls `iterator.next()` **once** and sets `data` to the result.
   - Next values can be emitted by calling `fetchMore`.
   - Calling `hasMore` will return true as long as the iterator doesn't complete.
   - In the case of error, Oktane will catch the error and expose it as `error`.
+  - **Use case:** Infinite scroll.
 - **Callback function:**  ([demo][subscription-demo] )
   - Assumes a function that accepts a subscriber and optionally returns a function to close subscription (i.e. unsubscribe).
   - Any value passed to `subscriber.next()` will be available as `data`.
   - Calling `subscriber.error()` will set the value to `error` and close the subscription.
   - Calling `subscriber.complete()` will mark the request as completed and close the subscription.
   - Calling `hasMore` will always return false.
+  - **Use case:** Anything you would use an Observable for e.g. Web Socket.
 - **Anything else:** wraps it in `Promise.resolve` and applies the Promise rule above.
 
 It's worth mentioning that custom plugins may alter the behavior described above. For example, a plugin may decide not to report errors back to the React hook and instead retry the request every time it fails.
