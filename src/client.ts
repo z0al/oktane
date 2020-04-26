@@ -28,8 +28,8 @@ export interface Client {
 export interface ClientOptions {
 	fetch: FetchFunc;
 	cache?: {
-		// Max age for unused requests. Default is 30 seconds.
-		maxAge?: number;
+		// A timeout for unused requests. Default is 30 seconds.
+		disposeTime?: number;
 	};
 	plugins?: Plugin[];
 }
@@ -115,7 +115,7 @@ export const createClient = (options: ClientOptions): Client => {
 
 	/**
 	 * Disposes unused requests. A request becomes unused if it had
-	 * no listeners for `options.cache.maxAge` period.
+	 * no listeners for `options.cache.disposeTime` period.
 	 */
 	const garbage = (() => {
 		// Holds result of setTimeout() calls
@@ -128,8 +128,8 @@ export const createClient = (options: ClientOptions): Client => {
 				};
 
 				const { cache } = options;
-				const after = !is.nullish(cache && cache.maxAge)
-					? cache.maxAge
+				const after = !is.nullish(cache && cache.disposeTime)
+					? cache.disposeTime
 					: 30000; // 30s;
 
 				// schedule disposal

@@ -91,7 +91,7 @@ describe('client', () => {
 		const log = jest.fn();
 		const client = createClient({
 			fetch: jest.fn(),
-			cache: { maxAge: 5 },
+			cache: { disposeTime: 5 },
 			plugins: [logOperations(log)],
 		});
 
@@ -130,7 +130,7 @@ describe('client', () => {
 		};
 
 		const client = createClient({
-			cache: { maxAge: 5 },
+			cache: { disposeTime: 5 },
 			fetch: async () => data,
 			plugins: [logOptions(log)],
 		});
@@ -650,7 +650,7 @@ describe('client', () => {
 
 			const client = createClient({
 				fetch: jest.fn(),
-				cache: { maxAge: 5 },
+				cache: { disposeTime: 5 },
 				plugins: [logOperations(log)],
 			});
 
