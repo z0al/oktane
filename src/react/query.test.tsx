@@ -9,7 +9,7 @@ import { createClient } from '../client';
 import { createRequest } from '../request';
 import { ClientProvider } from './useClient';
 import { wrap, spyOnFetch } from './test/utils';
-import { useQuery, useRequest } from './fetchers';
+import { useQuery, useManualQuery } from './query';
 
 // @ts-ignore
 global.__DEV__ = true;
@@ -296,12 +296,12 @@ describe('useQuery', () => {
 	});
 });
 
-describe('useRequest', () => {
+describe('useManualQuery', () => {
 	test('should only fetch on .fetch() call', async () => {
 		const client = createClient({ fetch });
 
 		const Example = wrap(() => {
-			const { status, data, fetch } = useRequest('/api');
+			const { status, data, fetch } = useManualQuery('/api');
 
 			return (
 				<>
@@ -330,7 +330,7 @@ describe('useRequest', () => {
 	test('should throw if query is a function', () => {
 		const client = createClient({ fetch });
 
-		const { result } = renderHook(() => useRequest(() => '/api'), {
+		const { result } = renderHook(() => useManualQuery(() => '/api'), {
 			wrapper: ({ children }) => (
 				<ClientProvider value={client}>{children}</ClientProvider>
 			),

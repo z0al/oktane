@@ -7,7 +7,7 @@ export { Client, createClient } from './client';
 export { Request, createRequest } from './request';
 
 // React
-export { useQuery, useRequest } from './react/fetchers';
+export { useQuery, useManualQuery } from './react/query';
 export { useClient, ClientProvider } from './react/useClient';
 
 // Typings

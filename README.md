@@ -86,7 +86,7 @@ Here how someone would make a request using the [useQuery](#usequery) hook provi
 const { data, error, hasMore, fetchMore, ...rest } = useQuery(/* query */);
 ```
 
-> **Note:** [useRequest](#userequest) hook works the same way as `useQuery` expect it doesn't fetch the request automatically on mount/updates but rather exposes a helper to manually fetch when needed.
+> **Note:** [useManualQuery](#useManualQuery) hook works the same way as `useQuery` expect it doesn't fetch the request automatically on mount/updates but rather exposes a helper to manually fetch when needed.
 
 When resolving a request, Oktane checks the value returned by `clientOptions.fetch(request, ctx)` call and does one of the following based to the type:
 
@@ -139,10 +139,10 @@ function useQuery(query: QueryFunc  | any): {
 }
 ```
 
-#### useRequest
+#### useManualQuery
 
 ```javascript
-function useRequest(query: any): {
+function useManualQuery(query: any): {
   fetch: () => void;
   cancel: () => void;
   refetch: () => void;

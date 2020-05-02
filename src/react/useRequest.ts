@@ -5,7 +5,7 @@ import { useRef, useMemo } from 'react';
 import is from '../utils/is';
 import { createRequest, Request } from '../request';
 
-export function useStableRequest(query: any): Request {
+export function useRequest(query: any): Request {
 	const prev = useRef<Request>(undefined);
 
 	return useMemo(() => {

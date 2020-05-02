@@ -2,12 +2,10 @@
 import { renderHook } from '@testing-library/react-hooks';
 
 // Ours
-import { useStableRequest } from './useStableRequest';
+import { useRequest } from './useRequest';
 
 test('should return undefined if query is falsy', () => {
-	const { result, rerender } = renderHook((query) =>
-		useStableRequest(query)
-	);
+	const { result, rerender } = renderHook((query) => useRequest(query));
 
 	expect(result.current).toEqual(undefined);
 
@@ -24,7 +22,7 @@ test('should preserve object if id has not changed', () => {
 	};
 
 	const { result, rerender } = renderHook(
-		({ query }) => useStableRequest(query),
+		({ query }) => useRequest(query),
 		{ initialProps: { query } }
 	);
 
@@ -56,9 +54,7 @@ test('should preserve object if id has not changed', () => {
 
 test('should not fail if error is thrown when resolving query', () => {
 	const request: any = null;
-	const { result } = renderHook(() =>
-		useStableRequest(() => request.query)
-	);
+	const { result } = renderHook(() => useRequest(() => request.query));
 
 	expect(result.current).toEqual(undefined);
 	expect(result.error).toEqual(undefined);

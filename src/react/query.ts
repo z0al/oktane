@@ -7,9 +7,9 @@ import is from '../utils/is';
 import { Client } from '../client';
 import { Result } from '../utils/cache';
 import { useClient } from './useClient';
-import { useStableRequest } from './useStableRequest';
+import { useRequest } from './useRequest';
 
-interface FetchOperations {
+interface QueryOperations {
 	fetch?: () => void;
 	cancel: () => void;
 	refetch: () => void;
@@ -17,16 +17,16 @@ interface FetchOperations {
 	fetchMore: () => void;
 }
 
-function createFetcher(
+function createQueryHook(
 	manual: false
-): (query: any) => Result & Omit<FetchOperations, 'fetch'>;
-function createFetcher(
+): (query: any) => Result & Omit<QueryOperations, 'fetch'>;
+function createQueryHook(
 	manual: true
-): (query: any) => Result & Required<FetchOperations>;
-function createFetcher(manual: boolean) {
+): (query: any) => Result & Required<QueryOperations>;
+function createQueryHook(manual: boolean) {
 	return (query: any) => {
 		if (manual && is.func(query)) {
-			throw new Error('useRequest() does not accept a function');
+			throw new Error('useManualQuery() does not accept a function');
 		}
 
 		// Fetch response
@@ -38,7 +38,7 @@ function createFetcher(manual: boolean) {
 		const fns = React.useRef<ReturnType<Client['fetch']>>(null);
 
 		const client = useClient();
-		const request = useStableRequest(query);
+		const request = useRequest(query);
 
 		const fetch = React.useCallback(() => {
 			// bail out if request is not ready
@@ -95,7 +95,7 @@ function createFetcher(manual: boolean) {
 		}, [fetch]);
 
 		// Exposed interface
-		const exposed: Result & FetchOperations = {
+		const exposed: Result & QueryOperations = {
 			...response,
 			cancel,
 			refetch,
@@ -111,5 +111,5 @@ function createFetcher(manual: boolean) {
 	};
 }
 
-export const useQuery = createFetcher(false);
-export const useRequest = createFetcher(true);
+export const useQuery = createQueryHook(false);
+export const useManualQuery = createQueryHook(true);
