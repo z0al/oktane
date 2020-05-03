@@ -1,11 +1,11 @@
 // Ours
-import is from './utils/is';
 import { Emitter } from './utils/emitter';
+import { dedupe } from './plugins/dedupe';
 import { transition } from './utils/status';
+import { pipe, Plugin } from './plugins/api';
 import { Operation, $ } from './utils/operations';
 import { Request, createRequest } from './request';
 import { Result, exposeCache } from './utils/cache';
-import { pipe, Plugin, ApplyFunc } from './plugins/api';
 import { createFetch, FetchFunc } from './plugins/fetch';
 
 export type Subscriber = (change: Result) => void;
@@ -45,21 +45,12 @@ export const createClient = (options: ClientOptions): Client => {
 	const prefetched = new Set<string>();
 
 	/**
-	 * Extracts operation key
-	 *
-	 * @param op
-	 */
-	const keyOf = (op: Operation) => {
-		return op.payload.request.id;
-	};
-
-	/**
 	 * updates the cache and then notifies subscribers.
 	 *
 	 * @param op
 	 */
-	const update = (op: Operation) => {
-		const key = keyOf(op);
+	const apply = (op: Operation) => {
+		const key = op.payload.request.id;
 		const obj = cache.get(key);
 
 		const status = transition(obj?.status, op);
@@ -81,37 +72,22 @@ export const createClient = (options: ClientOptions): Client => {
 		return op;
 	};
 
-	/**
-	 * Compares the next status against the current status and pass
-	 * the `op` through the pipeline if necessary.
-	 *
-	 * @param op
-	 */
-	const apply = ((): ApplyFunc => {
-		const plugins = options.plugins || [];
+	// Set default options
+	options = {
+		plugins: [],
+		...options,
+		cache: {
+			disposeTime: 30 * 1000, // 30s
+			...options.cache,
+		},
+	};
 
-		// Setup plugins
-		const emit = pipe(
-			[...plugins, createFetch(options.fetch)],
-			update,
-			exposeCache(cache)
-		);
-
-		return (type, payload, meta) => {
-			const op = $(type, payload, meta);
-			const current = cache.get(keyOf(op))?.status;
-			const next = transition(current, op);
-
-			// Skip any Operation that doesn't change the status. The only
-			// exception is "put" operation since it doesn't change the
-			// status when performed multiple times.
-			if (current !== 'buffering' && next === current) {
-				return op;
-			}
-
-			return emit(op);
-		};
-	})();
+	// Setup plugins
+	const emit = pipe(
+		[dedupe, createFetch(options.fetch), ...options.plugins],
+		apply,
+		exposeCache(cache)
+	);
 
 	/**
 	 * Disposes unused requests. A request becomes unused if it had
@@ -121,26 +97,24 @@ export const createClient = (options: ClientOptions): Client => {
 		// Holds result of setTimeout() calls
 		const timers = new Map<string, any>();
 
-		return (r: Request, dispose = true) => {
+		return (request: Request, dispose = true) => {
 			if (dispose) {
 				const collect = () => {
-					apply('dispose', { request: r });
+					emit($('dispose', { request }));
 				};
 
-				const { cache } = options;
-				const after = !is.nullish(cache && cache.disposeTime)
-					? cache.disposeTime
-					: 30000; // 30s;
-
 				// schedule disposal
-				timers.set(r.id, setTimeout(collect, after));
+				timers.set(
+					request.id,
+					setTimeout(collect, options.cache.disposeTime)
+				);
 
 				return;
 			}
 
 			// keep
-			clearTimeout(timers.get(r.id));
-			timers.delete(r.id);
+			clearTimeout(timers.get(request.id));
+			timers.delete(request.id);
 		};
 	})();
 
@@ -187,17 +161,17 @@ export const createClient = (options: ClientOptions): Client => {
 			}
 
 			if (hasMore()) {
-				apply('fetch', { request });
+				emit($('fetch', { request }));
 			}
 		};
 
 		const cancel = () => {
-			apply('cancel', { request });
+			emit($('cancel', { request }));
 		};
 
 		const refetch = () => {
-			apply('cancel', { request });
-			apply('fetch', { request });
+			emit($('cancel', { request }));
+			emit($('fetch', { request }));
 		};
 
 		const unsubscribe = () => {
@@ -214,7 +188,7 @@ export const createClient = (options: ClientOptions): Client => {
 		const isPrefetched = prefetched.has(request.id);
 
 		if (!isPrefetched) {
-			apply('fetch', { request });
+			emit($('fetch', { request }));
 		} else {
 			prefetched.delete(request.id);
 

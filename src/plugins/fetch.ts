@@ -1,9 +1,9 @@
 // Ours
 import { Request } from '../request';
 import { Cache } from '../utils/cache';
-import { Operation } from '../utils/operations';
-import { subscribe, Subscription } from '../utils/sources';
+import { Operation, $ } from '../utils/operations';
 import { Plugin, PluginOptions, EmitFunc } from './api';
+import { subscribe, Subscription } from '../utils/sources';
 
 interface FetchContext {
 	cache: Cache;
@@ -16,54 +16,59 @@ export type FetchFunc = (request: Request, ctx?: FetchContext) => any;
  * @param options
  * @param fn
  */
-const handler = ({ apply, cache }: PluginOptions, fn: FetchFunc) => {
+const handler = ({ emit, cache }: PluginOptions, fn: FetchFunc) => {
 	// holds ongoing requests
 	const queue = new Map<string, Subscription>();
 
 	return (next: EmitFunc) => (op: Operation) => {
-		const { request } = op.payload;
-		let subscription = queue.get(request.id);
+		// Run after the pipeline since some plugins may change
+		// the operation type.
+		op = next(op);
 
-		if (op.type === 'cancel') {
-			queue.delete(request.id);
-			subscription?.close();
-		}
+		if (op) {
+			const { request } = op.payload;
+			let subscription = queue.get(request.id);
 
-		if (op.type === 'fetch') {
-			// Is running?
-			if (subscription && !subscription.isClosed()) {
-				// Lazy? emit next value
-				if (subscription.lazy) {
-					subscription.next();
-				}
-
-				return next(op);
+			if (op.type === 'cancel') {
+				queue.delete(request.id);
+				subscription?.close();
 			}
 
-			const context = { cache };
+			if (op.type === 'fetch') {
+				// Is running?
+				if (subscription && !subscription.isClosed()) {
+					// Lazy? emit next value
+					if (subscription.lazy) {
+						subscription.next();
+					}
 
-			subscription = subscribe(fn(request, context), {
-				next(data) {
-					const meta = { lazy: subscription.lazy };
-					apply('put', { request, data }, meta);
-				},
-				error(error) {
-					apply('reject', { request, error });
-				},
-				complete(data) {
-					apply('complete', { request, data });
-				},
-			});
+					return op;
+				}
 
-			queue.set(request.id, subscription);
+				const context = { cache };
+
+				subscription = subscribe(fn(request, context), {
+					next(data) {
+						const meta = { lazy: subscription.lazy };
+						emit($('put', { request, data }, meta));
+					},
+					error(error) {
+						emit($('reject', { request, error }));
+					},
+					complete(data) {
+						emit($('complete', { request, data }));
+					},
+				});
+
+				queue.set(request.id, subscription);
+			}
 		}
 
-		// Proceed to next plugin
-		return next(op);
+		return op;
 	};
 };
 
 export const createFetch = (fn: FetchFunc): Plugin => ({
-	name: 'fetch',
+	name: 'core/fetch',
 	init: (options) => handler(options, fn),
 });

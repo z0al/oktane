@@ -1,14 +1,12 @@
 // Ours
 import is from '../utils/is';
 import { Cache } from '../utils/cache';
-import { Operation, $ } from '../utils/operations';
+import { Operation } from '../utils/operations';
 
 export type EmitFunc = (op: Operation) => Operation;
 
-export type ApplyFunc = typeof $;
-
 export interface PluginOptions {
-	apply: ApplyFunc;
+	emit: EmitFunc;
 	cache: Cache;
 }
 
@@ -26,7 +24,7 @@ export interface Plugin {
  */
 export const pipe = (
 	plugins: Plugin[],
-	emit: EmitFunc,
+	apply: EmitFunc,
 	cache: Cache
 ): EmitFunc => {
 	if (__DEV__) {
@@ -56,27 +54,27 @@ export const pipe = (
 		}
 	}
 
-	let apply: ApplyFunc = () => {
-		throw new Error(
-			'applying operations during plugin setup is not allowed'
-		);
+	let emitInsidePlugins: EmitFunc = () => {
+		throw new Error('Emitting during plugin setup is not allowed');
 	};
 
-	const api: PluginOptions = {
-		cache,
-		apply: (t, p, m) => apply(t, p, m),
-	};
+	const emit = plugins
+		.map((ex) =>
+			ex.init({
+				cache,
+				emit: (op) => emitInsidePlugins(op),
+			})
+		)
+		.reduce((a, b) => (o) => a(b(o)))(apply);
 
-	emit = plugins
-		.map((ex) => ex.init(api))
-		.reduce((a, b) => (o) => a(b(o)))(emit);
-
-	apply = (t, p, m) => {
-		if (t === 'dispose') {
-			throw new Error('manual requests disposal is not supported');
+	emitInsidePlugins = (op) => {
+		if (op.type === 'dispose') {
+			throw new Error(
+				'disposing queries inside plugins is not supported'
+			);
 		}
 
-		return emit($(t, p, m));
+		return emit(op);
 	};
 
 	return emit;

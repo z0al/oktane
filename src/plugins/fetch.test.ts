@@ -22,8 +22,8 @@ const request = createRequest({ url: '/api/users' });
 let emit: any, cache: any, handler: any, fetch: any;
 
 beforeEach(() => {
-	emit = jest.fn();
 	cache = new Map();
+	emit = jest.fn().mockImplementation((o) => o);
 
 	// actual handler is implemented inside each test
 	const fetchHandler = (...args: any[]) => handler(...args);
@@ -33,11 +33,11 @@ beforeEach(() => {
 test('should return a valid plugin', () => {
 	const plugin = createFetch(jest.fn());
 
-	expect(plugin.name).toEqual('fetch');
+	expect(plugin.name).toEqual('core/fetch');
 	expect(plugin.init).toEqual(expect.any(Function));
 	expect(
 		plugin.init({
-			apply: jest.fn(),
+			emit: jest.fn(),
 			cache: new Map(),
 		})
 	).toEqual(expect.any(Function));

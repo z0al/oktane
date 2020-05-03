@@ -71,7 +71,7 @@ describe('client', () => {
 
 	it('should pass necessary options to plugins', () => {
 		const api = {
-			apply: expect.any(Function),
+			emit: expect.any(Function),
 			cache: expect.objectContaining({
 				get: expect.any(Function),
 				has: expect.any(Function),

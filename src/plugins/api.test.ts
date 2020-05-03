@@ -59,8 +59,8 @@ test('should throw if plugin names are not unique', () => {
 test('should throw when emitting during plugin setup', () => {
 	const ex: Plugin = {
 		name: 'test',
-		init: jest.fn().mockImplementation(({ apply }) => {
-			apply();
+		init: jest.fn().mockImplementation((options) => {
+			options.emit();
 			return (next: any) => (op: any) => next(op);
 		}),
 	};
@@ -78,15 +78,15 @@ test('should throw when trying to dispose a request', () => {
 		name: 'test',
 		init: jest
 			.fn()
-			.mockImplementation(({ apply }) => (next: any) => (op: any) => {
-				apply('dispose', { request: null });
+			.mockImplementation((options) => (next: any) => (op: any) => {
+				options.emit($('dispose', { request: null }));
 				next(op);
 			}),
 	};
 
 	expect(() => {
 		pipe([ex], emit, cache)(null);
-	}).toThrow(/disposal/i);
+	}).toThrow(/dispos/i);
 
 	expect(ex.init).toBeCalled();
 	expect(emit).not.toBeCalled();
