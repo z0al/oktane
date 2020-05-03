@@ -5,8 +5,8 @@ import { transition } from './utils/status';
 import { Operation, $ } from './utils/operations';
 import { Request, createRequest } from './request';
 import { Result, exposeCache } from './utils/cache';
+import { pipe, Plugin, ApplyFunc } from './plugins/api';
 import { createFetch, FetchFunc } from './plugins/fetch';
-import { pipe, Plugin, ApplyFunc } from './utils/plugins';
 
 export type Subscriber = (change: Result) => void;
 
@@ -196,22 +196,8 @@ export const createClient = (options: ClientOptions): Client => {
 		};
 
 		const refetch = () => {
-			const { status } = cache.get(request.id) || {};
-
-			if (
-				status === 'completed' ||
-				status === 'cancelled' ||
-				status === 'failed'
-			) {
-				apply('fetch', { request });
-			} else {
-				if (__DEV__) {
-					console.warn(
-						'A request can only be refetched if it ' +
-							'completed, failed or got cancelled.'
-					);
-				}
-			}
+			apply('cancel', { request });
+			apply('fetch', { request });
 		};
 
 		const unsubscribe = () => {

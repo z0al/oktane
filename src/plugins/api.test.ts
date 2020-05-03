@@ -1,6 +1,6 @@
 // Ours
-import { $ } from './operations';
-import { pipe, Plugin } from './plugins';
+import { $ } from '../utils/operations';
+import { pipe, Plugin } from './api';
 
 // @ts-ignore
 global.__DEV__ = true;

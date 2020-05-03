@@ -3,7 +3,7 @@ import delay from 'delay';
 
 // Ours
 import { createFetch } from './fetch';
-import { pipe } from '../utils/plugins';
+import { pipe } from './api';
 import { $ } from '../utils/operations';
 import { createRequest } from '../request';
 

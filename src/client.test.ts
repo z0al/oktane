@@ -5,7 +5,7 @@ import delay from 'delay';
 import { Cache } from './utils/cache';
 import { $ } from './utils/operations';
 import { createClient } from './client';
-import { Plugin } from './utils/plugins';
+import { Plugin } from './plugins/api';
 import { createRequest } from './request';
 
 // @ts-ignore
@@ -284,7 +284,7 @@ describe('client', () => {
 		});
 
 		describe('.refetch()', () => {
-			it('should emit "fetch" if necessary', async () => {
+			it('should cancel then fetch', async () => {
 				const log = jest.fn();
 
 				let handler: any = async () => {
@@ -302,35 +302,10 @@ describe('client', () => {
 				// pending
 				log.mockClear();
 				operations.refetch();
-				expect(log).not.toHaveBeenCalled();
 
-				await delay(15);
-
-				handler = async () => {
-					await delay(10);
-					return 'OK';
-				};
-
-				// failed
-				log.mockClear();
-				operations.refetch();
-
-				expect(log).toBeCalledWith($('fetch', { request }));
-
-				// cancelled
-				log.mockClear();
-				operations.cancel();
-				operations.refetch();
-
-				expect(log).toBeCalledWith($('fetch', { request }));
-
-				await delay(15);
-
-				// completed
-				log.mockClear();
-				operations.refetch();
-
-				expect(log).toBeCalledWith($('fetch', { request }));
+				expect(log).toHaveBeenCalledWith($('cancel', { request }));
+				expect(log).toHaveBeenCalledWith($('fetch', { request }));
+				expect(log).toHaveBeenCalledTimes(2);
 			});
 		});
 

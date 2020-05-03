@@ -1,7 +1,7 @@
 // Ours
-import is from './is';
-import { Cache } from './cache';
-import { Operation, $ } from './operations';
+import is from '../utils/is';
+import { Cache } from '../utils/cache';
+import { Operation, $ } from '../utils/operations';
 
 export type EmitFunc = (op: Operation) => Operation;
 

@@ -13,4 +13,4 @@ export { useClient, ClientProvider } from './react/useClient';
 // Typings
 export { Status } from './utils/status';
 export { Result, Cache } from './utils/cache';
-export { Plugin, PluginOptions } from './utils/plugins';
+export { Plugin, PluginOptions } from './plugins/api';

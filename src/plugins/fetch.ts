@@ -3,7 +3,7 @@ import { Request } from '../request';
 import { Cache } from '../utils/cache';
 import { Operation } from '../utils/operations';
 import { subscribe, Subscription } from '../utils/sources';
-import { Plugin, PluginOptions, EmitFunc } from '../utils/plugins';
+import { Plugin, PluginOptions, EmitFunc } from './api';
 
 interface FetchContext {
 	cache: Cache;
